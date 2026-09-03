@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Judhur.Api/Judhur.Api.csproj" />
+    <Project Path="src/Judhur.Application/Judhur.Application.csproj" />
+    <Project Path="src/Judhur.Contracts/Judhur.Contracts.csproj" />
+    <Project Path="src/Judhur.Domain/Judhur.Domain.csproj" />
+    <Project Path="src/Judhur.Infrastructure/Judhur.Infrastructure.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Judhur.Application\Judhur.Application.csproj" />
+    <ProjectReference Include="..\Judhur.Infrastructure\Judhur.Infrastructure.csproj" />
+    <ProjectReference Include="..\Judhur.Contracts\Judhur.Contracts.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
