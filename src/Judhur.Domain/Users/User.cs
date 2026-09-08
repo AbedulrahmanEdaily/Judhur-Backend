@@ -77,7 +77,12 @@ public sealed class User : AuditableEntity
         {
             return UserErrors.BanReasonRequired;
         }
-        if (Id == adminId) {
+        if (adminId == Guid.Empty)
+        {
+            return UserErrors.AdminIdRequired;
+        }
+        if (Id == adminId)
+        {
             return UserErrors.CannotBanSelf;
         }
         IsBanned = true;

@@ -20,10 +20,6 @@ public static class PropertyErrors
         "PropertyErrors.PropertyTypeInvalid",
         "نوع العقار غير صالح");
 
-    public static readonly Error PropertyStatusInvalid = Error.Validation(
-        "PropertyErrors.PropertyStatusInvalid",
-        "حالة العقار غير صالحة");
-
     public static readonly Error InitialPropertyStatusInvalid = Error.Validation(
         "PropertyErrors.InitialPropertyStatusInvalid",
         "عند إنشاء العرض يجب أن تكون حالته للبيع أو للإيجار فقط");
@@ -66,15 +62,11 @@ public static class PropertyErrors
 
     public static readonly Error MinImagesRequired = Error.Validation(
         "PropertyErrors.MinImagesRequired",
-        "يجب رفع 3 صور على الأقل");
+        $"يجب رفع {Property.MinImages} صور على الأقل");
 
     public static readonly Error MaxImagesReached = Error.Validation(
         "PropertyErrors.MaxImagesReached",
-        "الحد الأقصى للصور هو 10");
-
-    public static readonly Error ImageUrlRequired = Error.Validation(
-        "PropertyErrors.ImageUrlRequired",
-        "رابط الصورة مطلوب");
+        $"الحد الأقصى للصور هو {Property.MaxImages}");
 
     public static readonly Error ImageNotFound = Error.NotFound(
         "PropertyErrors.ImageNotFound",
@@ -112,7 +104,23 @@ public static class PropertyErrors
         "PropertyErrors.CannotReactivateUnapprovedProperty",
         "لا يمكن تفعيل عقار غير مصرح به");
 
-    public static readonly Error CannotUpdateUnapprovedProperty = Error.Conflict(
-        "PropertyErrors.CannotUpdateUnapprovedProperty",
-        "لا يمكن تحديث بيانات عقار غير مصرح به");
+    public static readonly Error MainImageRequired = Error.Validation(
+        "PropertyErrors.MainImageRequired",
+        "يجب تحديد صورة رئيسية للعقار");
+
+    public static readonly Error DuplicateImageId = Error.Conflict(
+        "PropertyErrors.DuplicateImageId",
+        "الصورة مضافة بالفعل");
+
+    public static readonly Error ReviewerRequired = Error.Validation(
+        "PropertyErrors.ReviewerRequired",
+        "معرّف المراجع مطلوب");
+
+    public static readonly Error PropertyStatusTransitionInvalid = Error.Conflict(
+        "PropertyErrors.PropertyStatusTransitionInvalid",
+        "لا يمكن الانتقال إلى هذه الحالة من الحالة الحالية");
+
+    public static readonly Error CannotChangeStatusOfUnapprovedProperty = Error.Conflict(
+        "PropertyErrors.CannotChangeStatusOfUnapprovedProperty",
+        "لا يمكن تغيير حالة عقار غير مصرح به");
 }

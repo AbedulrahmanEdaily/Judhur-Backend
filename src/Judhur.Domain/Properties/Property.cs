@@ -32,8 +32,7 @@ public sealed class Property : AuditableEntity
         LandClassification landClassification,
         LegalStatus legalStatus,
         string ownershipDocumentUrl,
-        Guid sellerId,
-        List<PropertyImage> propertyImages)
+        Guid sellerId)
         : base(id)
     {
         Title = title;
@@ -54,7 +53,6 @@ public sealed class Property : AuditableEntity
         SellerId = sellerId;
         ModerationStatus = ModerationStatus.Pending;
         IsActive = true;
-        _propertyImages = propertyImages;
     }
 
     public string Title { get; private set; } = null!;
@@ -99,7 +97,7 @@ public sealed class Property : AuditableEntity
 
     public bool IsActive { get; private set; }
 
-    public IEnumerable<PropertyImage> PropertyImages => _propertyImages.AsReadOnly();
+    public IReadOnlyCollection<PropertyImage> PropertyImages => _propertyImages.AsReadOnly();
 
     public PropertyImage? MainImage => _propertyImages.FirstOrDefault(i => i.IsMainImage);
 
@@ -122,6 +120,307 @@ public sealed class Property : AuditableEntity
         string ownershipDocumentUrl,
         Guid sellerId)
     {
+        var detailsError = ValidateDetails(
+            title,
+            price,
+            paymentType,
+            propertyType,
+            area,
+            city,
+            fullAddress,
+            latitude,
+            longitude,
+            landClassification,
+            legalStatus);
+
+        if (detailsError is not null)
+        {
+            return detailsError.Value;
+        }
+
+        if (propertyStatus is not (PropertyStatus.ForSale or PropertyStatus.ForRent))
+        {
+            return PropertyErrors.InitialPropertyStatusInvalid;
+        }
+
+        if (string.IsNullOrWhiteSpace(ownershipDocumentUrl))
+        {
+            return PropertyErrors.OwnershipDocumentRequired;
+        }
+
+        if (sellerId == Guid.Empty)
+        {
+            return PropertyErrors.SellerRequired;
+        }
+
+        return new Property(
+            id,
+            title,
+            description,
+            price,
+            paymentType,
+            propertyType,
+            propertyStatus,
+            area,
+            city,
+            region,
+            fullAddress,
+            latitude,
+            longitude,
+            landClassification,
+            legalStatus,
+            ownershipDocumentUrl,
+            sellerId);
+    }
+
+    public Result<Updated> UpdateDetails(
+        string title,
+        string? description,
+        decimal price,
+        PaymentType paymentType,
+        PropertyType propertyType,
+        double area,
+        string city,
+        string? region,
+        string fullAddress,
+        double latitude,
+        double longitude,
+        LandClassification landClassification,
+        LegalStatus legalStatus)
+    {
+        var detailsError = ValidateDetails(
+            title,
+            price,
+            paymentType,
+            propertyType,
+            area,
+            city,
+            fullAddress,
+            latitude,
+            longitude,
+            landClassification,
+            legalStatus);
+
+        if (detailsError is not null)
+        {
+            return detailsError.Value;
+        }
+
+        Title = title;
+        Description = description;
+        Price = price;
+        PaymentType = paymentType;
+        PropertyType = propertyType;
+        Area = area;
+        City = city;
+        Region = region;
+        FullAddress = fullAddress;
+        Latitude = latitude;
+        Longitude = longitude;
+        LandClassification = landClassification;
+        LegalStatus = legalStatus;
+
+        ResetModeration();
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> UpdateDescription(string? description)
+    {
+        Description = description;
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> Approve(Guid reviewedBy, DateTimeOffset reviewedAtUtc)
+    {
+        if (reviewedBy == Guid.Empty)
+        {
+            return PropertyErrors.ReviewerRequired;
+        }
+
+        if (ModerationStatus == ModerationStatus.Approved)
+        {
+            return PropertyErrors.AlreadyApproved;
+        }
+
+        if (_propertyImages.Count < MinImages)
+        {
+            return PropertyErrors.MinImagesRequired;
+        }
+
+        if (MainImage is null)
+        {
+            return PropertyErrors.MainImageRequired;
+        }
+
+        ModerationStatus = ModerationStatus.Approved;
+        RejectionReason = null;
+        ReviewedBy = reviewedBy;
+        ReviewedAtUtc = reviewedAtUtc;
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> Reject(Guid reviewedBy, DateTimeOffset reviewedAtUtc, string reason)
+    {
+        if (reviewedBy == Guid.Empty)
+        {
+            return PropertyErrors.ReviewerRequired;
+        }
+
+        if (ModerationStatus == ModerationStatus.Approved)
+        {
+            return PropertyErrors.CannotRejectApprovedProperty;
+        }
+
+        if (ModerationStatus == ModerationStatus.Rejected)
+        {
+            return PropertyErrors.AlreadyRejected;
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return PropertyErrors.RejectionReasonRequired;
+        }
+
+        ModerationStatus = ModerationStatus.Rejected;
+        RejectionReason = reason;
+        ReviewedBy = reviewedBy;
+        ReviewedAtUtc = reviewedAtUtc;
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> MarkAsSold()
+        => ChangeMarketStatus(PropertyStatus.ForSale, PropertyStatus.Sold);
+
+    public Result<Updated> MarkAsRented()
+        => ChangeMarketStatus(PropertyStatus.ForRent, PropertyStatus.Rented);
+
+    public Result<Updated> Deactivate()
+    {
+        if (!IsActive)
+        {
+            return PropertyErrors.AlreadyDeactivated;
+        }
+
+        IsActive = false;
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> Reactivate()
+    {
+        if (ModerationStatus != ModerationStatus.Approved)
+        {
+            return PropertyErrors.CannotReactivateUnapprovedProperty;
+        }
+
+        if (IsActive)
+        {
+            return PropertyErrors.AlreadyActive;
+        }
+
+        IsActive = true;
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> AddImage(Guid imageId, string fileUrl, string publicId, bool isMainImage)
+    {
+        if (_propertyImages.Count >= MaxImages)
+        {
+            return PropertyErrors.MaxImagesReached;
+        }
+
+        if (_propertyImages.Any(i => i.Id == imageId))
+        {
+            return PropertyErrors.DuplicateImageId;
+        }
+
+        var shouldBeMainImage = isMainImage || _propertyImages.Count == 0;
+
+        var displayOrder = _propertyImages.Count == 0
+            ? 1
+            : _propertyImages.Max(i => i.DisplayOrder) + 1;
+
+        var imageResult = PropertyImage.Create(imageId, Id, fileUrl, publicId, displayOrder, shouldBeMainImage);
+
+        if (imageResult.IsError)
+        {
+            return imageResult.Errors;
+        }
+
+        var image = imageResult.Value;
+
+        if (shouldBeMainImage)
+        {
+            foreach (var existing in _propertyImages)
+            {
+                existing.SetAsMainImage(false);
+            }
+        }
+
+        _propertyImages.Add(image);
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> RemoveImage(Guid imageId)
+    {
+        var image = _propertyImages.FirstOrDefault(i => i.Id == imageId);
+
+        if (image is null)
+        {
+            return PropertyErrors.ImageNotFound;
+        }
+
+        if (image.IsMainImage)
+        {
+            return PropertyErrors.CannotRemoveMainImage;
+        }
+
+        if (ModerationStatus == ModerationStatus.Approved && _propertyImages.Count - 1 < MinImages)
+        {
+            return PropertyErrors.MinImagesRequired;
+        }
+
+        _propertyImages.Remove(image);
+
+        return Result.Updated;
+    }
+
+    public Result<Updated> SetMainImage(Guid imageId)
+    {
+        var image = _propertyImages.FirstOrDefault(i => i.Id == imageId);
+
+        if (image is null)
+        {
+            return PropertyErrors.ImageNotFound;
+        }
+
+        foreach (var existing in _propertyImages)
+        {
+            existing.SetAsMainImage(existing.Id == imageId);
+        }
+
+        return Result.Updated;
+    }
+
+    private static Error? ValidateDetails(
+        string title,
+        decimal price,
+        PaymentType paymentType,
+        PropertyType propertyType,
+        double area,
+        string city,
+        string fullAddress,
+        double latitude,
+        double longitude,
+        LandClassification landClassification,
+        LegalStatus legalStatus)
+    {
         if (string.IsNullOrWhiteSpace(title))
         {
             return PropertyErrors.TitleRequired;
@@ -135,11 +434,6 @@ public sealed class Property : AuditableEntity
         if (!Enum.IsDefined(paymentType))
         {
             return PropertyErrors.PaymentInvalid;
-        }
-
-        if (propertyStatus is not (PropertyStatus.ForSale or PropertyStatus.ForRent))
-        {
-            return PropertyErrors.InitialPropertyStatusInvalid;
         }
 
         if (!Enum.IsDefined(propertyType))
@@ -182,175 +476,36 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.LegalStatusInvalid;
         }
 
-        if (string.IsNullOrWhiteSpace(ownershipDocumentUrl))
-        {
-            return PropertyErrors.OwnershipDocumentRequired;
-        }
-
-        if (sellerId == Guid.Empty)
-        {
-            return PropertyErrors.SellerRequired;
-        }
-
-        return new Property(
-            id,
-            title,
-            description,
-            price,
-            paymentType,
-            propertyType,
-            propertyStatus,
-            area,
-            city,
-            region,
-            fullAddress,
-            latitude,
-            longitude,
-            landClassification,
-            legalStatus,
-            ownershipDocumentUrl,
-            sellerId,
-            []);
+        return null;
     }
 
-    public Result<Updated> Approve(Guid reviewedBy, DateTimeOffset reviewedAtUtc)
-    {
-        if (ModerationStatus == ModerationStatus.Approved)
-        {
-            return PropertyErrors.AlreadyApproved;
-        }
-
-        if (_propertyImages.Count < MinImages)
-        {
-            return PropertyErrors.MinImagesRequired;
-        }
-
-        ModerationStatus = ModerationStatus.Approved;
-        RejectionReason = null;
-        ReviewedBy = reviewedBy;
-        ReviewedAtUtc = reviewedAtUtc;
-
-        return Result.Updated;
-    }
-
-    public Result<Updated> Reject(Guid reviewedBy, DateTimeOffset reviewedAtUtc, string reason)
-    {
-        if (ModerationStatus == ModerationStatus.Approved)
-        {
-            return PropertyErrors.CannotRejectApprovedProperty;
-        }
-
-        if (ModerationStatus == ModerationStatus.Rejected)
-        {
-            return PropertyErrors.AlreadyRejected;
-        }
-
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            return PropertyErrors.RejectionReasonRequired;
-        }
-
-        ModerationStatus = ModerationStatus.Rejected;
-        RejectionReason = reason;
-        ReviewedBy = reviewedBy;
-        ReviewedAtUtc = reviewedAtUtc;
-
-        return Result.Updated;
-    }
-
-    public Result<Updated> Deactivate()
-    {
-        if (!IsActive)
-        {
-            return PropertyErrors.AlreadyDeactivated;
-        }
-
-        IsActive = false;
-
-        return Result.Updated;
-    }
-
-    public Result<Updated> Reactivate()
+    private Result<Updated> ChangeMarketStatus(PropertyStatus expectedCurrent, PropertyStatus next)
     {
         if (ModerationStatus != ModerationStatus.Approved)
         {
-            return PropertyErrors.CannotReactivateUnapprovedProperty;
+            return PropertyErrors.CannotChangeStatusOfUnapprovedProperty;
         }
 
-        if (IsActive)
+        if (PropertyStatus != expectedCurrent)
         {
-            return PropertyErrors.AlreadyActive;
+            return PropertyErrors.PropertyStatusTransitionInvalid;
         }
 
-        IsActive = true;
+        PropertyStatus = next;
 
         return Result.Updated;
     }
 
-    public Result<Updated> AddImage(string fileUrl, string publicId, bool isMainImage)
+    private void ResetModeration()
     {
-        if (_propertyImages.Count >= MaxImages)
+        if (ModerationStatus == ModerationStatus.Pending)
         {
-            return PropertyErrors.MaxImagesReached;
+            return;
         }
 
-        var displayOrder = _propertyImages.Count + 1;
-
-        var imageResult = PropertyImage.Create(Guid.NewGuid(), Id, fileUrl, publicId, displayOrder, isMainImage);
-
-        if (imageResult.IsError)
-        {
-            return imageResult.Errors;
-        }
-
-        var image = imageResult.Value;
-
-        if (isMainImage)
-        {
-            foreach (var existing in _propertyImages)
-            {
-                existing.SetAsMainImage(false);
-            }
-        }
-
-        _propertyImages.Add(image);
-
-        return Result.Updated;
-    }
-
-    public Result<Updated> RemoveImage(Guid imageId)
-    {
-        var image = _propertyImages.FirstOrDefault(i => i.Id == imageId);
-
-        if (image is null)
-        {
-            return PropertyErrors.ImageNotFound;
-        }
-
-        if (image.IsMainImage)
-        {
-            return PropertyErrors.CannotRemoveMainImage;
-        }
-
-        _propertyImages.Remove(image);
-
-        return Result.Updated;
-    }
-
-    public Result<Updated> SetMainImage(Guid imageId)
-    {
-        var image = _propertyImages.FirstOrDefault(i => i.Id == imageId);
-
-        if (image is null)
-        {
-            return PropertyErrors.ImageNotFound;
-        }
-
-        foreach (var existing in _propertyImages)
-        {
-            existing.SetAsMainImage(existing.Id == imageId);
-        }
-
-        return Result.Updated;
+        ModerationStatus = ModerationStatus.Pending;
+        RejectionReason = null;
+        ReviewedBy = null;
+        ReviewedAtUtc = null;
     }
 }

@@ -54,6 +54,10 @@ public sealed class Report : AuditableEntity
 
     private Result<Updated> MarkAsReviewed(ReportStatus status, Guid adminId, DateTimeOffset reviewedAtUtc, string? adminNote)
     {
+        if (adminId == Guid.Empty)
+        {
+            return ReportErrors.AdminIdRequired;
+        }
         if (Status != ReportStatus.Pending)
         {
             return ReportErrors.AlreadyReviewed;
