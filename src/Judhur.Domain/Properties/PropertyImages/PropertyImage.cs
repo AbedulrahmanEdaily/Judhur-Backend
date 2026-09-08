@@ -34,7 +34,7 @@ public sealed class PropertyImage : Entity
 
     public bool IsMainImage { get; private set; }
 
-    public static Result<PropertyImage> Create(
+    internal static Result<PropertyImage> Create(
         Guid id,
         Guid propertyId,
         string fileUrl,
@@ -63,5 +63,10 @@ public sealed class PropertyImage : Entity
         }
 
         return new PropertyImage(id, propertyId, fileUrl, publicId, displayOrder, isMainImage);
+    }
+
+    internal void SetAsMainImage(bool isMainImage)
+    {
+        IsMainImage = isMainImage;
     }
 }

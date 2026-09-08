@@ -8,10 +8,6 @@ public static class PropertyErrors
         "PropertyErrors.TitleRequired",
         "العنوان مطلوب");
 
-    public static readonly Error MainImageRequired = Error.Validation(
-        "PropertyErrors.MainImageRequired",
-        "الصورة الرئيسية مطلوبة");
-
     public static readonly Error PriceInvalid = Error.Validation(
         "PropertyErrors.PriceInvalid",
         "السعر يجب أن يكون أكبر من صفر");
@@ -27,6 +23,10 @@ public static class PropertyErrors
     public static readonly Error PropertyStatusInvalid = Error.Validation(
         "PropertyErrors.PropertyStatusInvalid",
         "حالة العقار غير صالحة");
+
+    public static readonly Error InitialPropertyStatusInvalid = Error.Validation(
+        "PropertyErrors.InitialPropertyStatusInvalid",
+        "عند إنشاء العرض يجب أن تكون حالته للبيع أو للإيجار فقط");
 
     public static readonly Error LandClassificationInvalid = Error.Validation(
         "PropertyErrors.LandClassificationInvalid",
@@ -64,6 +64,10 @@ public static class PropertyErrors
         "PropertyErrors.LongitudeInvalid",
         "خط الطول غير صحيح");
 
+    public static readonly Error MinImagesRequired = Error.Validation(
+        "PropertyErrors.MinImagesRequired",
+        "يجب رفع 3 صور على الأقل");
+
     public static readonly Error MaxImagesReached = Error.Validation(
         "PropertyErrors.MaxImagesReached",
         "الحد الأقصى للصور هو 10");
@@ -80,9 +84,17 @@ public static class PropertyErrors
         "PropertyErrors.CannotRemoveMainImage",
         "لا يمكن حذف الصورة الرئيسية");
 
+    public static readonly Error RejectionReasonRequired = Error.Validation(
+        "PropertyErrors.RejectionReasonRequired",
+        "سبب الرفض مطلوب");
+
     public static readonly Error AlreadyApproved = Error.Conflict(
         "PropertyErrors.AlreadyApproved",
         "العقار مصرح به بالفعل");
+
+    public static readonly Error AlreadyRejected = Error.Conflict(
+        "PropertyErrors.AlreadyRejected",
+        "العقار مرفوض بالفعل");
 
     public static readonly Error CannotRejectApprovedProperty = Error.Conflict(
         "PropertyErrors.CannotRejectApprovedProperty",
@@ -102,5 +114,5 @@ public static class PropertyErrors
 
     public static readonly Error CannotUpdateUnapprovedProperty = Error.Conflict(
         "PropertyErrors.CannotUpdateUnapprovedProperty",
-        "لا يمكن تحديث حالة عقار غير مصرح به");
+        "لا يمكن تحديث بيانات عقار غير مصرح به");
 }
