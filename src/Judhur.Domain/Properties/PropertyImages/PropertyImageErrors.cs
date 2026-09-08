@@ -1,8 +1,6 @@
+using Judhur.Domain.Common.Results;
 
-
-using Judhur.Domain.Common.Result;
-
-namespace Judhur.Domain.Property.PropertyImages;
+namespace Judhur.Domain.Properties.PropertyImages;
 
 public static class PropertyImageErrors
 {
@@ -18,7 +16,7 @@ public static class PropertyImageErrors
         "PropertyImage.DisplayOrderInvalid",
         "ترتيب العرض يجب أن يكون أكبر من صفر");
 
-    public static readonly Error PropertyIdRequired = Error.Validation(  
+    public static readonly Error PropertyIdRequired = Error.Validation(
         "PropertyImage.PropertyIdRequired",
         "معرف العقار مطلوب");
 }

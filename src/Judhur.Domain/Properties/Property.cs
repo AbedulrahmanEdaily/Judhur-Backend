@@ -1,42 +1,16 @@
-namespace Judhur.Domain.Property;
-
 using Judhur.Domain.Common;
-using Judhur.Domain.Common.Result;
-using Judhur.Domain.Property.Enums;
-using Judhur.Domain.Property.PropertyImages;
-using Judhur.Domain.PropertyErrors;
+using Judhur.Domain.Common.Results;
+using Judhur.Domain.Properties.Enums;
+using Judhur.Domain.Properties.PropertyImages;
 
-public class Property : AuditableEntity
+namespace Judhur.Domain.Properties;
+
+public sealed class Property : AuditableEntity
 {
-    public string Title { get; private set; }
-    public string? Description { get; private set; }
-    public decimal Price { get; private set; }
-    public PaymentType PaymentType { get; private set; }
-    public PropertyType PropertyType { get; private set; }
-    public PropertyStatus PropertyStatus { get; private set; }
-    public double Area { get; private set; }
-    public string City { get; private set; }
-    public string? Region { get; private set; }
-    public string FullAddress { get; private set; }
-    public double Latitude { get; private set; }
-    public double Longitude { get; private set; }
-    public LandClassification LandClassification { get; private set; }
-    public LegalStatus LegalStatus { get; private set; }
-    public string OwnershipDocumentUrl { get; private set; }
-    public Guid SellerId { get; private set; }
-    public bool IsApproved { get; private set; }
-    public bool IsActive { get; private set; }
-    public Guid? ApprovedBy { get; private set; }
-    public DateTimeOffset? ApprovedAtUtc { get; private set; }
     private readonly List<PropertyImage> _propertyImages = [];
-    public IEnumerable<PropertyImage> PropertyImages => _propertyImages.AsReadOnly();
-    public PropertyImage? MainImage => _propertyImages.FirstOrDefault(i => i.IsMainImage);
 
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     private Property()
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
-    {
-    }
+    { }
 
     private Property(
         Guid id,
@@ -56,8 +30,7 @@ public class Property : AuditableEntity
         LegalStatus legalStatus,
         string ownershipDocumentUrl,
         Guid sellerId,
-        PropertyImage mainImage,
-        List<PropertyImage>propertyImages)
+        List<PropertyImage> propertyImages)
         : base(id)
     {
         Title = title;
@@ -80,6 +53,51 @@ public class Property : AuditableEntity
         IsActive = true;
         _propertyImages = propertyImages;
     }
+
+    public string Title { get; private set; } = null!;
+
+    public string? Description { get; private set; }
+
+    public decimal Price { get; private set; }
+
+    public PaymentType PaymentType { get; private set; }
+
+    public PropertyType PropertyType { get; private set; }
+
+    public PropertyStatus PropertyStatus { get; private set; }
+
+    public double Area { get; private set; }
+
+    public string City { get; private set; } = null!;
+
+    public string? Region { get; private set; }
+
+    public string FullAddress { get; private set; } = null!;
+
+    public double Latitude { get; private set; }
+
+    public double Longitude { get; private set; }
+
+    public LandClassification LandClassification { get; private set; }
+
+    public LegalStatus LegalStatus { get; private set; }
+
+    public string OwnershipDocumentUrl { get; private set; } = null!;
+
+    public Guid SellerId { get; private set; }
+
+    public bool IsApproved { get; private set; }
+
+    public bool IsActive { get; private set; }
+
+    public Guid? ApprovedBy { get; private set; }
+
+    public DateTimeOffset? ApprovedAtUtc { get; private set; }
+
+    public IEnumerable<PropertyImage> PropertyImages => _propertyImages.AsReadOnly();
+
+    public PropertyImage? MainImage => _propertyImages.FirstOrDefault(i => i.IsMainImage);
+
     public static Result<Property> Create(
         Guid id,
         string title,
@@ -104,59 +122,82 @@ public class Property : AuditableEntity
         {
             return PropertyErrors.TitleRequired;
         }
+
         if (price <= 0)
         {
             return PropertyErrors.PriceInvalid;
         }
+
         if (!Enum.IsDefined(paymentType))
         {
             return PropertyErrors.PaymentInvalid;
         }
+
         if (!Enum.IsDefined(propertyStatus))
         {
             return PropertyErrors.PropertyStatusInvalid;
         }
+
         if (!Enum.IsDefined(propertyType))
         {
             return PropertyErrors.PropertyTypeInvalid;
         }
-        if(area <= 0)
+
+        if (area <= 0)
         {
             return PropertyErrors.AreaInvalid;
         }
+
         if (string.IsNullOrWhiteSpace(city))
         {
             return PropertyErrors.CityRequired;
         }
+
         if (string.IsNullOrWhiteSpace(fullAddress))
         {
             return PropertyErrors.FullAddressRequired;
         }
-        if(latitude < -90 || latitude >90)
+
+        if (latitude < -90 || latitude > 90)
         {
             return PropertyErrors.LatitudeInvalid;
         }
-        if(longitude < -180 || longitude > 180)
+
+        if (longitude < -180 || longitude > 180)
         {
             return PropertyErrors.LongitudeInvalid;
         }
+
         if (!Enum.IsDefined(landClassification))
         {
             return PropertyErrors.LandClassificationInvalid;
         }
+
         if (!Enum.IsDefined(legalStatus))
         {
             return PropertyErrors.LegalStatusInvalid;
         }
+
         if (string.IsNullOrWhiteSpace(ownershipDocumentUrl))
         {
             return PropertyErrors.OwnershipDocumentRequired;
         }
-        var mainImage = propertyImages.FirstOrDefault(i=>i.IsMainImage==true)!;
-        if(mainImage is null)
+
+        if (sellerId == Guid.Empty)
+        {
+            return PropertyErrors.SellerRequired;
+        }
+
+        if (propertyImages is null || propertyImages.Count == 0)
         {
             return PropertyErrors.MainImageRequired;
         }
+
+        if (!propertyImages.Any(i => i.IsMainImage))
+        {
+            return PropertyErrors.MainImageRequired;
+        }
+
         return new Property(
             id,
             title,
@@ -175,8 +216,6 @@ public class Property : AuditableEntity
             legalStatus,
             ownershipDocumentUrl,
             sellerId,
-            mainImage,
-            propertyImages
-            );
+            propertyImages);
     }
 }

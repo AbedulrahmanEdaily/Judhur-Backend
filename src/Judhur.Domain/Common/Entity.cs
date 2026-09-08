@@ -2,13 +2,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Judhur.Domain.Common;
 
-public class Entity
+public abstract class Entity
 {
-    public Guid Id{get;}
-    private readonly List<DomainEvent>_domainEvents=[];
-    
-    [NotMapped]
-    public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    private readonly List<DomainEvent> _domainEvents = [];
 
     protected Entity()
     { }
@@ -17,6 +13,11 @@ public class Entity
     {
         Id = id == Guid.Empty ? Guid.NewGuid() : id;
     }
+
+    public Guid Id { get; }
+
+    [NotMapped]
+    public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     public void AddDomainEvent(DomainEvent domainEvent)
     {

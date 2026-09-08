@@ -1,4 +1,4 @@
-namespace Judhur.Domain.Common.Result;
+namespace Judhur.Domain.Common.Results;
 
 public enum ErrorKind
 {

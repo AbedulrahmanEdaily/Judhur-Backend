@@ -1,4 +1,4 @@
-namespace Judhur.Domain.Property.Enums;
+namespace Judhur.Domain.Properties.Enums;
 
 public enum LegalStatus
 {

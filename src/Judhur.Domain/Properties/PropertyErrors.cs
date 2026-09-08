@@ -1,95 +1,106 @@
-using Judhur.Domain.Common.Result;
+using Judhur.Domain.Common.Results;
 
-namespace Judhur.Domain.PropertyErrors;
+namespace Judhur.Domain.Properties;
 
 public static class PropertyErrors
 {
-    public static Error TitleRequired = Error.Validation(
+    public static readonly Error TitleRequired = Error.Validation(
         "PropertyErrors.TitleRequired",
         "العنوان مطلوب");
-    public static Error MainImageRequired = Error.Validation(
-        "PropertyErrors.TitleRequired",
-        "الصوره الرئيسية مطلوبة");
 
-    public static Error PriceInvalid = Error.Validation(
+    public static readonly Error MainImageRequired = Error.Validation(
+        "PropertyErrors.MainImageRequired",
+        "الصورة الرئيسية مطلوبة");
+
+    public static readonly Error PriceInvalid = Error.Validation(
         "PropertyErrors.PriceInvalid",
         "السعر يجب أن يكون أكبر من صفر");
-    public static Error PaymentInvalid => Error.Validation(
+
+    public static readonly Error PaymentInvalid = Error.Validation(
         "PropertyErrors.PaymentInvalid",
         "طريقة الدفع غير صالحة");
-    public static Error PropertyTypeInvalid => Error.Validation(
+
+    public static readonly Error PropertyTypeInvalid = Error.Validation(
         "PropertyErrors.PropertyTypeInvalid",
         "نوع العقار غير صالح");
-    public static Error PropertyStatusInvalid => Error.Validation(
+
+    public static readonly Error PropertyStatusInvalid = Error.Validation(
         "PropertyErrors.PropertyStatusInvalid",
-        "حالة العقار غير صالح");
-    public static Error LandClassificationInvalid => Error.Validation(
+        "حالة العقار غير صالحة");
+
+    public static readonly Error LandClassificationInvalid = Error.Validation(
         "PropertyErrors.LandClassificationInvalid",
-        "تصنيف العقار غير صالح");
-    public static Error LegalStatusInvalid => Error.Validation(
+        "تصنيف الأرض غير صالح");
+
+    public static readonly Error LegalStatusInvalid = Error.Validation(
         "PropertyErrors.LegalStatusInvalid",
         "نوع الوثيقة غير صالح");
-    public static Error AreaInvalid = Error.Validation(
+
+    public static readonly Error AreaInvalid = Error.Validation(
         "PropertyErrors.AreaInvalid",
         "المساحة يجب أن تكون أكبر من صفر");
 
-    public static Error CityRequired = Error.Validation(
+    public static readonly Error CityRequired = Error.Validation(
         "PropertyErrors.CityRequired",
         "المدينة مطلوبة");
 
-    public static Error FullAddressRequired = Error.Validation(
+    public static readonly Error FullAddressRequired = Error.Validation(
         "PropertyErrors.FullAddressRequired",
         "العنوان الكامل مطلوب");
 
-    public static Error OwnershipDocumentRequired = Error.Validation(
+    public static readonly Error OwnershipDocumentRequired = Error.Validation(
         "PropertyErrors.OwnershipDocumentRequired",
         "وثيقة الملكية مطلوبة");
 
-    public static Error LatitudeInvalid = Error.Validation(
+    public static readonly Error SellerRequired = Error.Validation(
+        "PropertyErrors.SellerRequired",
+        "معرّف البائع مطلوب");
+
+    public static readonly Error LatitudeInvalid = Error.Validation(
         "PropertyErrors.LatitudeInvalid",
         "خط العرض غير صحيح");
 
-    public static Error LongitudeInvalid = Error.Validation(
+    public static readonly Error LongitudeInvalid = Error.Validation(
         "PropertyErrors.LongitudeInvalid",
         "خط الطول غير صحيح");
 
-    public static Error MaxImagesReached = Error.Validation(
+    public static readonly Error MaxImagesReached = Error.Validation(
         "PropertyErrors.MaxImagesReached",
         "الحد الأقصى للصور هو 10");
 
-    public static Error ImageUrlRequired = Error.Validation(
+    public static readonly Error ImageUrlRequired = Error.Validation(
         "PropertyErrors.ImageUrlRequired",
         "رابط الصورة مطلوب");
 
-    public static Error ImageNotFound = Error.NotFound(
+    public static readonly Error ImageNotFound = Error.NotFound(
         "PropertyErrors.ImageNotFound",
         "الصورة غير موجودة");
 
-    public static Error CannotRemoveMainImage = Error.Validation(
+    public static readonly Error CannotRemoveMainImage = Error.Validation(
         "PropertyErrors.CannotRemoveMainImage",
         "لا يمكن حذف الصورة الرئيسية");
 
-    public static Error AlreadyApproved = Error.Conflict(
+    public static readonly Error AlreadyApproved = Error.Conflict(
         "PropertyErrors.AlreadyApproved",
         "العقار مصرح به بالفعل");
 
-    public static Error CannotRejectApprovedProperty = Error.Conflict(
+    public static readonly Error CannotRejectApprovedProperty = Error.Conflict(
         "PropertyErrors.CannotRejectApprovedProperty",
         "لا يمكن رفض عقار مصرح به");
 
-    public static Error AlreadyDeactivated = Error.Conflict(
+    public static readonly Error AlreadyDeactivated = Error.Conflict(
         "PropertyErrors.AlreadyDeactivated",
         "العقار معطل بالفعل");
 
-    public static Error AlreadyActive = Error.Conflict(
+    public static readonly Error AlreadyActive = Error.Conflict(
         "PropertyErrors.AlreadyActive",
         "العقار مفعل بالفعل");
 
-    public static Error CannotReactivateUnapprovedProperty = Error.Conflict(
+    public static readonly Error CannotReactivateUnapprovedProperty = Error.Conflict(
         "PropertyErrors.CannotReactivateUnapprovedProperty",
         "لا يمكن تفعيل عقار غير مصرح به");
 
-    public static Error CannotUpdateUnapprovedProperty = Error.Conflict(
+    public static readonly Error CannotUpdateUnapprovedProperty = Error.Conflict(
         "PropertyErrors.CannotUpdateUnapprovedProperty",
         "لا يمكن تحديث حالة عقار غير مصرح به");
 }
