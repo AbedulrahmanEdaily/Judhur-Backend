@@ -5,6 +5,8 @@ namespace Judhur.Domain.Identity;
 
 public sealed class RefreshToken : AuditableEntity
 {
+    public const int MaxTokenLength = 200;
+
     public string Token { get; private set; } = null!;
     public Guid UserId { get; private set; }
     public DateTimeOffset ExpiresOnUtc { get; private set; }
@@ -26,6 +28,11 @@ public sealed class RefreshToken : AuditableEntity
         if (string.IsNullOrWhiteSpace(token))
         {
             return RefreshTokenErrors.TokenRequired;
+        }
+
+        if (token.Length > MaxTokenLength)
+        {
+            return RefreshTokenErrors.TokenTooLong;
         }
         if (userId == Guid.Empty)
         {

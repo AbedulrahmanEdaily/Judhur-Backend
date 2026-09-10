@@ -10,6 +10,14 @@ public sealed class Property : AuditableEntity
     public const int MinImages = 3;
     public const int MaxImages = 10;
 
+    public const int MaxTitleLength = 200;
+    public const int MaxDescriptionLength = 2000;
+    public const int MaxCityLength = 100;
+    public const int MaxRegionLength = 100;
+    public const int MaxFullAddressLength = 500;
+    public const int MaxOwnershipDocumentUrlLength = 500;
+    public const int MaxRejectionReasonLength = 500;
+    
     private readonly List<PropertyImage> _propertyImages = [];
 
     private Property()
@@ -23,7 +31,7 @@ public sealed class Property : AuditableEntity
         PaymentType paymentType,
         PropertyType propertyType,
         PropertyStatus propertyStatus,
-        double area,
+        decimal area,
         string city,
         string? region,
         string fullAddress,
@@ -67,7 +75,7 @@ public sealed class Property : AuditableEntity
 
     public PropertyStatus PropertyStatus { get; private set; }
 
-    public double Area { get; private set; }
+    public decimal Area { get; private set; }
 
     public string City { get; private set; } = null!;
 
@@ -109,7 +117,7 @@ public sealed class Property : AuditableEntity
         PaymentType paymentType,
         PropertyType propertyType,
         PropertyStatus propertyStatus,
-        double area,
+        decimal area,
         string city,
         string? region,
         string fullAddress,
@@ -122,11 +130,13 @@ public sealed class Property : AuditableEntity
     {
         var detailsError = ValidateDetails(
             title,
+            description,
             price,
             paymentType,
             propertyType,
             area,
             city,
+            region,
             fullAddress,
             latitude,
             longitude,
@@ -146,6 +156,11 @@ public sealed class Property : AuditableEntity
         if (string.IsNullOrWhiteSpace(ownershipDocumentUrl))
         {
             return PropertyErrors.OwnershipDocumentRequired;
+        }
+
+        if (ownershipDocumentUrl.Length > MaxOwnershipDocumentUrlLength)
+        {
+            return PropertyErrors.OwnershipDocumentUrlTooLong;
         }
 
         if (sellerId == Guid.Empty)
@@ -179,7 +194,7 @@ public sealed class Property : AuditableEntity
         decimal price,
         PaymentType paymentType,
         PropertyType propertyType,
-        double area,
+        decimal area,
         string city,
         string? region,
         string fullAddress,
@@ -190,11 +205,13 @@ public sealed class Property : AuditableEntity
     {
         var detailsError = ValidateDetails(
             title,
+            description,
             price,
             paymentType,
             propertyType,
             area,
             city,
+            region,
             fullAddress,
             latitude,
             longitude,
@@ -282,6 +299,11 @@ public sealed class Property : AuditableEntity
         if (string.IsNullOrWhiteSpace(reason))
         {
             return PropertyErrors.RejectionReasonRequired;
+        }
+
+        if (reason.Length > MaxRejectionReasonLength)
+        {
+            return PropertyErrors.RejectionReasonTooLong;
         }
 
         ModerationStatus = ModerationStatus.Rejected;
@@ -410,11 +432,13 @@ public sealed class Property : AuditableEntity
 
     private static Error? ValidateDetails(
         string title,
+        string? description,
         decimal price,
         PaymentType paymentType,
         PropertyType propertyType,
-        double area,
+        decimal area,
         string city,
+        string? region,
         string fullAddress,
         double latitude,
         double longitude,
@@ -424,6 +448,16 @@ public sealed class Property : AuditableEntity
         if (string.IsNullOrWhiteSpace(title))
         {
             return PropertyErrors.TitleRequired;
+        }
+
+        if (title.Length > MaxTitleLength)
+        {
+            return PropertyErrors.TitleTooLong;
+        }
+
+        if (description?.Length > MaxDescriptionLength)
+        {
+            return PropertyErrors.DescriptionTooLong;
         }
 
         if (price <= 0)
@@ -451,9 +485,24 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.CityRequired;
         }
 
+        if (city.Length > MaxCityLength)
+        {
+            return PropertyErrors.CityTooLong;
+        }
+
+        if (region?.Length > MaxRegionLength)
+        {
+            return PropertyErrors.RegionTooLong;
+        }
+
         if (string.IsNullOrWhiteSpace(fullAddress))
         {
             return PropertyErrors.FullAddressRequired;
+        }
+
+        if (fullAddress.Length > MaxFullAddressLength)
+        {
+            return PropertyErrors.FullAddressTooLong;
         }
 
         if (latitude < -90 || latitude > 90)

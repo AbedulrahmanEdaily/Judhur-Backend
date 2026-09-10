@@ -5,6 +5,9 @@ namespace Judhur.Domain.Properties.PropertyImages;
 
 public sealed class PropertyImage : Entity
 {
+    public const int MaxFileUrlLength = 500;
+    public const int MaxPublicIdLength = 200;
+
     private PropertyImage()
     { }
 
@@ -52,9 +55,19 @@ public sealed class PropertyImage : Entity
             return PropertyImageErrors.FileUrlRequired;
         }
 
+        if (fileUrl.Length > MaxFileUrlLength)
+        {
+            return PropertyImageErrors.FileUrlTooLong;
+        }
+
         if (string.IsNullOrWhiteSpace(publicId))
         {
             return PropertyImageErrors.PublicIdRequired;
+        }
+
+        if (publicId.Length > MaxPublicIdLength)
+        {
+            return PropertyImageErrors.PublicIdTooLong;
         }
 
         if (displayOrder < 1)

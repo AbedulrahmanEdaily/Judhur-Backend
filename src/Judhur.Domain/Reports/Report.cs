@@ -6,6 +6,9 @@ namespace Judhur.Domain.Reports;
 
 public sealed class Report : AuditableEntity
 {
+    public const int MaxDetailsLength = 1000;
+    public const int MaxAdminNoteLength = 1000;
+
     public Guid ReporterId { get; private set; }
     public Guid PropertyId { get; private set; }
     public ReportReason Reason { get; private set; }
@@ -43,6 +46,11 @@ public sealed class Report : AuditableEntity
         {
             return ReportErrors.DetailsRequiredForOtherReason;
         }
+
+        if (details?.Length > MaxDetailsLength)
+        {
+            return ReportErrors.DetailsTooLong;
+        }
         return new Report(id, reporterId, propertyId, reason, details);
     }
 
@@ -61,6 +69,11 @@ public sealed class Report : AuditableEntity
         if (Status != ReportStatus.Pending)
         {
             return ReportErrors.AlreadyReviewed;
+        }
+
+        if (adminNote?.Length > MaxAdminNoteLength)
+        {
+            return ReportErrors.AdminNoteTooLong;
         }
         Status = status;
         ReviewedBy = adminId;
