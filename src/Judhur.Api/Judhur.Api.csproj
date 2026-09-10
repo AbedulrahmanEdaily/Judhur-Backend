@@ -1,9 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <UserSecretsId>ffe3f5a9-a154-4a82-9ecb-2ffcde24bbc5</UserSecretsId>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Judhur.Application\Judhur.Application.csproj" />
     <ProjectReference Include="..\Judhur.Contracts\Judhur.Contracts.csproj" />
     <ProjectReference Include="..\Judhur.Infrastructure\Judhur.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" />
   </ItemGroup>
 
 </Project>
