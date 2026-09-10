@@ -13,6 +13,6 @@ public sealed class FavoriteConfiguration : IEntityTypeConfiguration<Favorite>
     {
         builder.HasOne<User>().WithMany().HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<Property>().WithMany().HasForeignKey(f => f.PropertyId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasIndex(f => new { f.PropertyId, f.UserId }).IsUnique();
+        builder.HasIndex(f => new { f.UserId, f.PropertyId }).IsUnique();
     }
 }

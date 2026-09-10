@@ -8,6 +8,7 @@ public sealed class Review : AuditableEntity
     public const decimal MinRating = 0.5m;
     public const decimal MaxRating = 5.0m;
     public const decimal RatingStep = 0.5m;
+    public const int MaxCommentLength = 500;
     public Guid ReviewerId { get; private set; }
     public Guid SellerId { get; private set; }
     public decimal Rating { get; private set; }
@@ -41,6 +42,10 @@ public sealed class Review : AuditableEntity
         {
             return ReviewErrors.InvalidRating;
         }
+        if (comment?.Length > MaxCommentLength)
+        {
+            return ReviewErrors.CommentTooLong;
+        }
         return new Review(id, reviewerId, sellerId, rating, comment);
     }
     public Result<Updated> Update(decimal rating, string? comment)
@@ -48,6 +53,10 @@ public sealed class Review : AuditableEntity
         if (!IsValidRating(rating))
         {
             return ReviewErrors.InvalidRating;
+        }
+        if (comment?.Length > MaxCommentLength)
+        {
+            return ReviewErrors.CommentTooLong;
         }
         Rating = rating;
         Comment = comment;
