@@ -11,6 +11,7 @@ public sealed class ConversationConfiguration : IEntityTypeConfiguration<Convers
 {
     public void Configure(EntityTypeBuilder<Conversation> builder)
     {
+        builder.HasKey(i => i.Id);
         // Child entity: no inverse navigation, written through the private field.
         builder.HasMany(c => c.Messages)
             .WithOne()

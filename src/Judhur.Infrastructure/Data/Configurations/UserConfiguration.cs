@@ -10,6 +10,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
+        builder.ToTable("Users");
+        builder.HasKey(i => i.Id);
         builder.HasOne<ApplicationUser>()
             .WithOne()
             .HasForeignKey<User>(u => u.Id)

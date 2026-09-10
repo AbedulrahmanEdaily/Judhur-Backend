@@ -9,6 +9,7 @@ public sealed class PropertyImageConfiguration : IEntityTypeConfiguration<Proper
 {
     public void Configure(EntityTypeBuilder<PropertyImage> builder)
     {
+        builder.HasKey(i => i.Id);
         builder.Property(i => i.FileUrl).HasMaxLength(PropertyImage.MaxFileUrlLength);
         builder.Property(i => i.PublicId).HasMaxLength(PropertyImage.MaxPublicIdLength);
 

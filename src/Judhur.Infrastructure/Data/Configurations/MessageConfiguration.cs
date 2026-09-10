@@ -10,6 +10,7 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
 {
     public void Configure(EntityTypeBuilder<Message> builder)
     {
+        builder.HasKey(i => i.Id);
         // Derived from ReadAtUtc, never stored.
         builder.Ignore(m => m.IsRead);
 

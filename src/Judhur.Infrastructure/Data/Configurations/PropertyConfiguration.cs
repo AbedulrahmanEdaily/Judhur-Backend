@@ -10,6 +10,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
 {
     public void Configure(EntityTypeBuilder<Property> builder)
     {
+        builder.HasKey(i => i.Id);
         // Computed, not stored.
         builder.Ignore(p => p.MainImage);
 

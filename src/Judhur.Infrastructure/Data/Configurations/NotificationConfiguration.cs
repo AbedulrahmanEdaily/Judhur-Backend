@@ -10,6 +10,7 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
 {
     public void Configure(EntityTypeBuilder<Notification> builder)
     {
+        builder.HasKey(i => i.Id);
         // Derived from ReadAtUtc, never stored.
         builder.Ignore(n => n.IsRead);
 

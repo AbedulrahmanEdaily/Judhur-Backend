@@ -11,6 +11,7 @@ public sealed class ReportConfiguration : IEntityTypeConfiguration<Report>
 {
     public void Configure(EntityTypeBuilder<Report> builder)
     {
+        builder.HasKey(i => i.Id);
         // A report is a pure relationship: it has no meaning once either the
         // reporter or the reported listing is gone.
         builder.HasOne<User>()

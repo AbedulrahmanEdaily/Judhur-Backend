@@ -10,6 +10,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
 {
     public void Configure(EntityTypeBuilder<RefreshToken> builder)
     {
+        builder.HasKey(i => i.Id);
         // A refresh token belongs to the Identity account, not to the domain
         // profile, and dies with it.
         builder.HasOne<ApplicationUser>()

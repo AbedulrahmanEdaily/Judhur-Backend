@@ -10,6 +10,7 @@ public sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
 {
     public void Configure(EntityTypeBuilder<Review> builder)
     {
+        builder.HasKey(i => i.Id);
         // A review of a deleted seller is meaningless, so it goes with them.
         builder.HasOne<User>()
             .WithMany()
