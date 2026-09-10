@@ -123,4 +123,32 @@ public static class PropertyErrors
     public static readonly Error CannotChangeStatusOfUnapprovedProperty = Error.Conflict(
         "PropertyErrors.CannotChangeStatusOfUnapprovedProperty",
         "لا يمكن تغيير حالة عقار غير مصرح به");
+
+    public static readonly Error TitleTooLong = Error.Validation(
+        "PropertyErrors.TitleTooLong",
+        $"لا يمكن أن يتجاوز العنوان {Property.MaxTitleLength} حرف");
+
+    public static readonly Error DescriptionTooLong = Error.Validation(
+        "PropertyErrors.DescriptionTooLong",
+        $"لا يمكن أن يتجاوز الوصف {Property.MaxDescriptionLength} حرف");
+
+    public static readonly Error CityTooLong = Error.Validation(
+        "PropertyErrors.CityTooLong",
+        $"لا يمكن أن يتجاوز اسم المدينة {Property.MaxCityLength} حرف");
+
+    public static readonly Error RegionTooLong = Error.Validation(
+        "PropertyErrors.RegionTooLong",
+        $"لا يمكن أن يتجاوز اسم المنطقة {Property.MaxRegionLength} حرف");
+
+    public static readonly Error FullAddressTooLong = Error.Validation(
+        "PropertyErrors.FullAddressTooLong",
+        $"لا يمكن أن يتجاوز العنوان الكامل {Property.MaxFullAddressLength} حرف");
+
+    public static readonly Error OwnershipDocumentUrlTooLong = Error.Validation(
+        "PropertyErrors.OwnershipDocumentUrlTooLong",
+        $"لا يمكن أن يتجاوز رابط وثيقة الملكية {Property.MaxOwnershipDocumentUrlLength} حرف");
+
+    public static readonly Error RejectionReasonTooLong = Error.Validation(
+        "PropertyErrors.RejectionReasonTooLong",
+        $"لا يمكن أن يتجاوز سبب الرفض {Property.MaxRejectionReasonLength} حرف");
 }
