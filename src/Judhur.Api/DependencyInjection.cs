@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-using Judhur.Api;
+using Judhur.Api.Exceptions;
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
 
@@ -18,7 +18,6 @@ public static class DependencyInjection
         return services;
     }
 
-    // Serves the document Program.cs points SwaggerUI at: /openapi/v1.json.
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
         services.AddOpenApi();
@@ -43,12 +42,13 @@ public static class DependencyInjection
         services.AddProblemDetails(options => options.CustomizeProblemDetails = (context) =>
         {
             context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
-            context.ProblemDetails.Extensions.Add("requestId", context.HttpContext.TraceIdentifier);
+            context.ProblemDetails.Extensions["requestId"] = context.HttpContext.TraceIdentifier;
         });
         return services;
     }
     public static IServiceCollection AddExceptionHandling(this IServiceCollection services)
     {
+        services.AddExceptionHandler<DbUpdateExceptionHandler>();
         services.AddExceptionHandler<GlobalExceptionHandler>();
         return services;
     }
