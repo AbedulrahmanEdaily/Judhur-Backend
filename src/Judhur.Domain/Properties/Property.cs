@@ -244,7 +244,14 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> UpdateDescription(string? description)
     {
+        if (description?.Length > MaxDescriptionLength)
+        {
+            return PropertyErrors.DescriptionTooLong;
+        }
+
         Description = description;
+
+        ResetModeration();
 
         return Result.Updated;
     }

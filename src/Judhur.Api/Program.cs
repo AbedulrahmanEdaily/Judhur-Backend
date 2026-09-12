@@ -9,20 +9,22 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
+    app.MapOpenApi();
+
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Judhur API v1");
-        options.RoutePrefix = string.Empty;
+        options.SwaggerEndpoint("/openapi/v1.json", "Judhur API V1");
+        options.EnableDeepLinking();
+        options.DisplayRequestDuration();
+        options.EnableFilter();
     });
 }
+else
+{
+    app.UseHsts();
+}
 
-app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
+app.UseCoreMiddlewares(builder.Configuration);
 app.MapControllers();
-app.MapHealthChecks("/health");
 
 app.Run();
