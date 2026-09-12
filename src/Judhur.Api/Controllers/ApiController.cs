@@ -14,10 +14,12 @@ public class ApiController : ControllerBase
         {
             return Problem();
         }
+
         if (errors.All(e => e.Type == ErrorKind.Validation))
         {
             return ValidationProblem(errors);
         }
+
         return Problem(errors[0]);
     }
 
@@ -32,6 +34,7 @@ public class ApiController : ControllerBase
             ErrorKind.Forbidden => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError,
         };
+
         return Problem(statusCode: statusCode, title: error.Description);
     }
 
@@ -39,6 +42,7 @@ public class ApiController : ControllerBase
     {
         var modelStateDictionary = new ModelStateDictionary();
         errors.ForEach(error => modelStateDictionary.AddModelError(error.Code, error.Description));
+
         return ValidationProblem(modelStateDictionary);
     }
 }

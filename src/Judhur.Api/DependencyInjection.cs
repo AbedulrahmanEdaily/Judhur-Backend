@@ -1,10 +1,5 @@
 using System.Text.Json.Serialization;
-
-<<<<<<< HEAD
 using Judhur.Api.Exceptions;
-=======
-using Judhur.Api;
->>>>>>> 30b5c6b (feat(ResultToHttop):Add Global Exception Handler)
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
 
@@ -22,10 +17,6 @@ public static class DependencyInjection
         return services;
     }
 
-<<<<<<< HEAD
-=======
-    // Serves the document Program.cs points SwaggerUI at: /openapi/v1.json.
->>>>>>> 30b5c6b (feat(ResultToHttop):Add Global Exception Handler)
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
         services.AddOpenApi();
