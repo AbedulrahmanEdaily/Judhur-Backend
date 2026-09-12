@@ -42,7 +42,6 @@ public class ApiController : ControllerBase
     {
         var modelStateDictionary = new ModelStateDictionary();
         errors.ForEach(error => modelStateDictionary.AddModelError(error.Code, error.Description));
-
         return ValidationProblem(modelStateDictionary);
     }
 }
