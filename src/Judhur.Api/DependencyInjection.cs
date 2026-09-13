@@ -1,4 +1,7 @@
 using System.Text.Json.Serialization;
+
+using Asp.Versioning;
+
 using Judhur.Api.Exceptions;
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
@@ -10,6 +13,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApi(this IServiceCollection services)
     {
         services.AddCustomProblemDetails()
+                .AddCustomApiVersioning()
                 .AddExceptionHandling()
                 .AddControllerWithJsonConfiguration()
                 .AddApiDocumentation()
@@ -22,12 +26,29 @@ public static class DependencyInjection
         services.AddOpenApi();
         return services;
     }
-
+    public static IServiceCollection AddCustomApiVersioning(this IServiceCollection services)
+    {
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        }).AddMvc()
+        .AddApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
+        return services;
+    }
     public static IServiceCollection AddControllerWithJsonConfiguration(this IServiceCollection services)
     {
-        services.AddControllers().AddJsonOptions(options => options
-            .JsonSerializerOptions
-            .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull);
+        services.AddControllers().AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
         return services;
     }
     public static IServiceCollection AddIdentityInfrastructure(this IServiceCollection services)
