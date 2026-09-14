@@ -1,3 +1,5 @@
+using Asp.Versioning.ApiExplorer;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
@@ -9,11 +11,16 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-
+    app.MapOpenApi().WithDocumentPerVersion();
+    var apiVersions = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "Judhur API V1");
+        foreach (var description in apiVersions.ApiVersionDescriptions)
+        {
+            options.SwaggerEndpoint(
+                $"/openapi/{description.GroupName}.json",
+                $"Judhur API {description.GroupName}");
+        }
         options.EnableDeepLinking();
         options.DisplayRequestDuration();
         options.EnableFilter();

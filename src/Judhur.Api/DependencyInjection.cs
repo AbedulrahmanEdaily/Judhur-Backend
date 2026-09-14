@@ -3,8 +3,11 @@ using System.Text.Json.Serialization;
 using Asp.Versioning;
 
 using Judhur.Api.Exceptions;
+using Judhur.Api.OpenApi.Transformer;
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
+
+using Microsoft.AspNetCore.OpenApi;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -23,9 +26,15 @@ public static class DependencyInjection
 
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
-        services.AddOpenApi();
+        services.ConfigureAll<OpenApiOptions>(options =>
+        {
+            options.AddDocumentTransformer<VersionInfoTransformer>();
+            options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            options.AddOperationTransformer<BearerSecuritySchemeTransformer>();
+        });
         return services;
     }
+
     public static IServiceCollection AddCustomApiVersioning(this IServiceCollection services)
     {
         services.AddApiVersioning(options =>
@@ -34,12 +43,14 @@ public static class DependencyInjection
             options.AssumeDefaultVersionWhenUnspecified = true;
             options.ReportApiVersions = true;
             options.ApiVersionReader = new UrlSegmentApiVersionReader();
-        }).AddMvc()
+        })
+        .AddMvc()
         .AddApiExplorer(options =>
         {
             options.GroupNameFormat = "'v'VVV";
             options.SubstituteApiVersionInUrl = true;
-        });
+        })
+        .AddOpenApi();
         return services;
     }
     public static IServiceCollection AddControllerWithJsonConfiguration(this IServiceCollection services)
