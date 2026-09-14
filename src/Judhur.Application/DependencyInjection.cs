@@ -13,6 +13,7 @@ public static class DependencyInjection
         {
             options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             options.AddOpenBehavior(typeof(UnhandledExceptionBehavior<,>));
+            options.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
         return services;
     }
