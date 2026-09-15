@@ -15,6 +15,7 @@ public static class DependencyInjection
             options.AddOpenBehavior(typeof(UnhandledExceptionBehavior<,>));
             options.AddOpenBehavior(typeof(ValidationBehavior<,>));
             options.AddOpenBehavior(typeof(PerformanceBehavior<,>));
+            options.AddOpenBehavior(typeof(CachingBehavior<,>));
             options.AddRequestPreProcessor(typeof(LoggingBehavior<>));
         });
         return services;
