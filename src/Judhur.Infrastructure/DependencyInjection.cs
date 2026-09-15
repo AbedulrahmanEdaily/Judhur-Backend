@@ -6,6 +6,7 @@ using Judhur.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -40,7 +41,14 @@ public static class DependencyInjection
         })
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
-
+        services.AddHybridCache(options =>
+        {
+            options.DefaultEntryOptions = new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromMinutes(10),
+                LocalCacheExpiration = TimeSpan.FromMinutes(30)
+            };
+        });
         return services;
     }
 }
