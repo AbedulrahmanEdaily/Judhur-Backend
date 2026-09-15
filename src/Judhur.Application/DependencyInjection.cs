@@ -14,6 +14,7 @@ public static class DependencyInjection
             options.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             options.AddOpenBehavior(typeof(UnhandledExceptionBehavior<,>));
             options.AddOpenBehavior(typeof(ValidationBehavior<,>));
+            options.AddRequestPreProcessor(typeof(LoggingBehavior<>));
         });
         return services;
     }
