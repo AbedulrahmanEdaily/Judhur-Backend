@@ -8,38 +8,55 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Common.Behaviors;
 
-public class CachingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
+/// <summary>
+/// Serves cacheable queries from the cache, and runs the handler only on a miss.
+///
+/// The constraint on <typeparamref name="TRequest"/> is what keeps this out of the
+/// pipeline entirely for every other request: the container checks generic constraints
+/// and skips behaviours that cannot close, so there is no per-request type test here.
+/// </summary>
+public sealed class CachingBehavior<TRequest, TResponse>(
+    HybridCache cache,
+    ILogger<CachingBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : ICachedQuery
+    where TResponse : IResult
 {
-    private readonly HybridCache _cache;
-    private readonly ILogger<CachingBehavior<TRequest, TResponse>> _logger;
-    public CachingBehavior(HybridCache cache, ILogger<CachingBehavior<TRequest, TResponse>> logger)
+    private readonly ILogger<CachingBehavior<TRequest, TResponse>> _logger = logger;
+
+
+    public async Task<TResponse> Handle(
+        TRequest request,
+        RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
     {
-        _cache = cache;
-        _logger = logger;
-    }
-    public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
-    {
-        if (request is not ICachedQuery cachedQuery)
+        try
         {
-            return await next(cancellationToken);
-        }
-        _logger.LogInformation("Checking cache for {RequestName}", typeof(TRequest).Name);
-        var result = await _cache.GetOrCreateAsync<TResponse>(cachedQuery.CacheKey, _ => new ValueTask<TResponse>((TResponse)(object)null!), new HybridCacheEntryOptions
-        {
-            Flags = HybridCacheEntryFlags.DisableUnderlyingData
-        }, cancellationToken: cancellationToken);
-        if (result is null)
-        {
-            result = await next(cancellationToken);
-            if (result is IResult rs && rs.IsSuccess)
-            {
-                _logger.LogInformation("Caching result for {RequestName}", typeof(TRequest).Name);
-                await _cache.SetAsync(cachedQuery.CacheKey, result, new HybridCacheEntryOptions
+            return await cache.GetOrCreateAsync<TResponse>(
+                request.CacheKey,
+                async ct =>
                 {
-                    Expiration = cachedQuery.Expiration
-                }, cachedQuery.Tags, cancellationToken);
-            }
+                    _logger.LogInformation(
+                        "Cache miss for {RequestName}, running the handler",
+                        typeof(TRequest).Name);
+                    var result = await next(ct);
+                    if (!result.IsSuccess)
+                    {
+                        throw new UncacheableResultException(result);
+                    }
+                    return result;
+                },
+                new HybridCacheEntryOptions { Expiration = request.Expiration },
+                request.Tags,
+                cancellationToken);
         }
-        return result;
+        catch (UncacheableResultException uncacheable)
+        {
+            return uncacheable.Response;
+        }
+    }
+    private sealed class UncacheableResultException(TResponse response) : Exception
+    {
+        public TResponse Response { get; } = response;
     }
 }
