@@ -1,13 +1,17 @@
+using System.Text;
+
 using Judhur.Application.Common.Interfaces;
 using Judhur.Infrastructure.Data;
 using Judhur.Infrastructure.Data.Interceptors;
 using Judhur.Infrastructure.Identity;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -19,8 +23,27 @@ public static class DependencyInjection
 
         services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
 
-        // The factory overload is what lets the options see the container, so
-        // the scoped interceptors can be resolved per request.
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        }).AddJwtBearer(options =>
+        {
+            var jwtSettings = configuration.GetSection("JwtSettings");
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtSettings["Issuer"],
+                ValidAudience = jwtSettings["Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings["Secret"]!)),
+            };
+        });
+        services.AddAuthorization();
         services.AddDbContext<AppDbContext>((sp, options) =>
             options
                 .UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
