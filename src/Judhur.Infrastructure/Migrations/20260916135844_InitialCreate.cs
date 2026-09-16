@@ -188,6 +188,7 @@ namespace Judhur.Infrastructure.Migrations
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Role = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    City = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     IsBanned = table.Column<bool>(type: "bit", nullable: false),
                     BannedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     BannedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),

@@ -18,10 +18,9 @@ public sealed class LoggingBehavior<TRequest>(IUser user, ILogger<TRequest> logg
     public Task Process(TRequest request, CancellationToken cancellationToken)
     {
         _logger.LogInformation(
-            "Request: {RequestName} by {UserId} {@Request}",
+            "Request: {RequestName} by {UserId}",
             typeof(TRequest).Name,
-            _user.Id,
-            request);
+            _user.Id);
 
         return Task.CompletedTask;
     }

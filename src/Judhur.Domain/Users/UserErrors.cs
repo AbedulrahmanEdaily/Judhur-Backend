@@ -6,6 +6,11 @@ public static class UserErrors
 {
     public static readonly Error NameRequired =
         Error.Validation("UserErrors.NameRequired", "الاسم مطلوب");
+    public static readonly Error CityRequired =
+        Error.Validation("UserErrors.CityRequired", "اسم المدينة مطلوب");
+
+    public static readonly Error CityTooLong =
+        Error.Validation("UserErrors.CityTooLong", $"لا يمكن أن يتجاوز اسم المدينة {User.MaxCityLength} حرف");
 
     public static readonly Error NameTooLong =
         Error.Validation("UserErrors.NameTooLong", $"لا يمكن أن يتجاوز الاسم {User.MaxNameLength} حرف");

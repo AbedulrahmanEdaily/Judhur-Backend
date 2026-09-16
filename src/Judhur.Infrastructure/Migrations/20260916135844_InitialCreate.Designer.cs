@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Judhur.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260910212907_InitialCreate")]
+    [Migration("20260916135844_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -499,6 +499,11 @@ namespace Judhur.Infrastructure.Migrations
                     b.Property<string>("BannedReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("datetimeoffset");

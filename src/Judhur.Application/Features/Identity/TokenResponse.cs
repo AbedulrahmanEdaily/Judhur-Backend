@@ -1,8 +1,3 @@
 namespace Judhur.Application.Features.Identity;
 
-public class TokenResponse
-{
-    public string? AccessToken { get; set; }
-    public string? RefreshToken { get; set; }
-    public DateTime ExpireOnUtc { get; set; }
-}
+public sealed record TokenResponse(string AccessToken, string RefreshToken, DateTimeOffset ExpiresOnUtc);

@@ -10,28 +10,31 @@ public sealed class User : AuditableEntity
 {
     public const int MaxNameLength = 150;
     public const int MaxPhoneNumberLength = 20;
+    public const int MaxCityLength = 100;
     public const int MaxBanReasonLength = 500;
 
     public string Name { get; private set; } = null!;
     public string PhoneNumber { get; private set; } = null!;
     public UserRole Role { get; private set; }
+    public string City { get; private set; } = null!;
     public bool IsBanned { get; private set; }
     public Guid? BannedBy { get; private set; }
     public DateTimeOffset? BannedAtUtc { get; private set; }
     public string? BannedReason { get; private set; }
     private User()
     { }
-    private User(Guid id, string name, string phoneNumber, UserRole role)
+    private User(Guid id, string name, string phoneNumber, UserRole role, string city)
         : base(id)
     {
         Name = name;
         PhoneNumber = phoneNumber;
         Role = role;
+        City = city;
     }
 
-    public static Result<User> Create(Guid id, string name, string phoneNumber, UserRole role)
+    public static Result<User> Create(Guid id, string name, string phoneNumber, UserRole role, string city)
     {
-        var error = ValidateProfile(name, phoneNumber);
+        var error = ValidateProfile(name, phoneNumber, city);
         if (error is not null)
         {
             return error.Value;
@@ -40,12 +43,12 @@ public sealed class User : AuditableEntity
         {
             return UserErrors.InvalidUserRole;
         }
-        return new User(id, name, phoneNumber, role);
+        return new User(id, name, phoneNumber, role, city);
     }
 
-    public Result<Updated> Update(string name, string phoneNumber)
+    public Result<Updated> Update(string name, string phoneNumber, string city)
     {
-        var error = ValidateProfile(name, phoneNumber);
+        var error = ValidateProfile(name, phoneNumber, city);
         if (error is not null)
         {
             return error.Value;
@@ -97,7 +100,7 @@ public sealed class User : AuditableEntity
         return Result.Updated;
     }
 
-    private static Error? ValidateProfile(string name, string phoneNumber)
+    private static Error? ValidateProfile(string name, string phoneNumber, string city)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -111,9 +114,17 @@ public sealed class User : AuditableEntity
         {
             return UserErrors.InvalidPhoneNumber;
         }
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            return UserErrors.CityRequired;
+        }
+        if (city.Length > MaxCityLength)
+        {
+            return UserErrors.CityTooLong;
+        }
         return null;
     }
 
     private static bool IsValidPhoneNumber(string phoneNumber)
-        => Regex.IsMatch(phoneNumber, @"^\+?(?:970|972)\d{9}$");
+        => Regex.IsMatch(phoneNumber, @"^(?:\+?(?:970|972)\d{9}|05\d{8})$");
 }

@@ -19,6 +19,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Name).HasMaxLength(User.MaxNameLength);
         builder.Property(u => u.PhoneNumber).HasMaxLength(User.MaxPhoneNumberLength);
+        builder.Property(u => u.City).HasMaxLength(User.MaxCityLength);
         builder.Property(u => u.BannedReason).HasMaxLength(User.MaxBanReasonLength);
 
         builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(32);

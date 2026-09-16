@@ -21,36 +21,34 @@ public static class DependencyInjection
     {
         services.AddSingleton(TimeProvider.System);
 
+        services.AddPersistence(configuration)
+                .AddIdentityServices(configuration)
+                .AddCaching();
+
+        return services;
+    }
+
+    private static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
+    {
         services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
 
-        services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddJwtBearer(options =>
-        {
-            var jwtSettings = configuration.GetSection("JwtSettings");
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = jwtSettings["Issuer"],
-                ValidAudience = jwtSettings["Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(jwtSettings["Secret"]!)),
-            };
-        });
-        services.AddAuthorization();
         services.AddDbContext<AppDbContext>((sp, options) =>
             options
                 .UseSqlServer(configuration.GetConnectionString("DefaultConnection"))
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
-        services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSettings = JwtSettings.Bind(configuration);
+        services.AddSingleton(jwtSettings);
+
+        services.AddIdentityCore<ApplicationUser>(options =>
         {
             options.Password.RequireDigit = true;
             options.Password.RequireLowercase = true;
@@ -62,16 +60,50 @@ public static class DependencyInjection
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             options.SignIn.RequireConfirmedEmail = false;
         })
+        .AddRoles<IdentityRole<Guid>>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ClockSkew = TimeSpan.Zero,
+                ValidIssuer = jwtSettings.Issuer,
+                ValidAudience = jwtSettings.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
+            };
+        });
+
+        services.AddAuthorization();
+
+        services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<ITokenProvider, TokenProvider>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddCaching(this IServiceCollection services)
+    {
         services.AddHybridCache(options =>
         {
             options.DefaultEntryOptions = new HybridCacheEntryOptions
             {
                 Expiration = TimeSpan.FromMinutes(10),
-                LocalCacheExpiration = TimeSpan.FromMinutes(30)
+                LocalCacheExpiration = TimeSpan.FromMinutes(5),
             };
         });
+
         return services;
     }
 }
