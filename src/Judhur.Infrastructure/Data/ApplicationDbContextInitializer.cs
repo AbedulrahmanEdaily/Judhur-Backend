@@ -3,6 +3,7 @@ using Judhur.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -19,6 +20,8 @@ public class ApplicationDbContextInitializer(ILogger<ApplicationDbContextInitial
     {
         try
         {
+            if ((await _context.Database.GetPendingMigrationsAsync()).Any())
+                await _context.Database.MigrateAsync();
             await _context.Database.EnsureCreatedAsync();
         }
         catch (Exception e)
