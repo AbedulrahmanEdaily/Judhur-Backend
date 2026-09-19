@@ -7,7 +7,6 @@ namespace Judhur.Application.Common.Interfaces;
 public interface IIdentityService
 {
     Task<Result<AppUserDto>> CreateNewUserAsync(
-        Guid userId,
         NewUserRegistration registration,
         CancellationToken cancellationToken = default);
 }
