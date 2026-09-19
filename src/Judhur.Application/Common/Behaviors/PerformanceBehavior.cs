@@ -31,11 +31,10 @@ public sealed class PerformanceBehavior<TRequest, TResponse>(
             if (elapsed.TotalMilliseconds > LongRunningThresholdMilliseconds)
             {
                 logger.LogWarning(
-                    "Long running request: {RequestName} took {ElapsedMilliseconds} ms for {UserId} {@Request}",
+                    "Long running request: {RequestName} took {ElapsedMilliseconds} ms for {UserId}",
                     typeof(TRequest).Name,
                     (long)elapsed.TotalMilliseconds,
-                    user.Id,
-                    request);
+                    user.Id);
             }
         }
     }

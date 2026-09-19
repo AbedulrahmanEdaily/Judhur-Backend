@@ -8,7 +8,6 @@ using Judhur.Domain.Properties;
 using Judhur.Domain.Properties.PropertyImages;
 using Judhur.Domain.Reports;
 using Judhur.Domain.Reviews;
-using Judhur.Domain.Users;
 using Judhur.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Identity;
@@ -31,10 +30,23 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PropertyImage> PropertyImages => Set<PropertyImage>();
     public DbSet<Message> Messages => Set<Message>();
-    DbSet<User> IAppDbContext.Users => Set<User>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        // Identity brings seven tables. Only three are used here -- the user, the roles
+        // and the link between them -- so the other four are dropped from the model.
+        // The APIs behind them (claims, external logins, persisted tokens, role claims)
+        // now throw, because their types are no longer mapped.
+        builder.Ignore<IdentityUserClaim<Guid>>();
+        builder.Ignore<IdentityUserLogin<Guid>>();
+        builder.Ignore<IdentityUserToken<Guid>>();
+        builder.Ignore<IdentityRoleClaim<Guid>>();
+
+        // Drop the AspNet prefix on the three that remain.
+        builder.Entity<IdentityRole<Guid>>().ToTable("Roles");
+        builder.Entity<IdentityUserRole<Guid>>().ToTable("UserRoles");
+
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }

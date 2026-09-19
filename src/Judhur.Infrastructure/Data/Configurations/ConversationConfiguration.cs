@@ -1,6 +1,6 @@
 using Judhur.Domain.Conversations;
 using Judhur.Domain.Properties;
-using Judhur.Domain.Users;
+using Judhur.Infrastructure.Identity;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -12,37 +12,25 @@ public sealed class ConversationConfiguration : IEntityTypeConfiguration<Convers
     public void Configure(EntityTypeBuilder<Conversation> builder)
     {
         builder.HasKey(i => i.Id);
-        // Child entity: no inverse navigation, written through the private field.
         builder.HasMany(c => c.Messages)
             .WithOne()
             .HasForeignKey(m => m.ConversationId)
             .OnDelete(DeleteBehavior.Cascade);
-
         builder.Navigation(c => c.Messages)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
-
-        builder.HasOne<User>()
+        builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(c => c.BuyerId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // Second path from Users to the same row, so this side cannot cascade
-        // as well; deleting a seller with conversations fails until they are
-        // cleared explicitly.
-        builder.HasOne<User>()
+        builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(c => c.SellerId)
             .OnDelete(DeleteBehavior.Restrict);
-
         builder.HasOne<Property>()
             .WithMany()
             .HasForeignKey(c => c.PropertyId)
             .OnDelete(DeleteBehavior.Cascade);
-
-        // Enforces ConversationErrors.ConversationAlreadyExists.
         builder.HasIndex(c => new { c.BuyerId, c.SellerId, c.PropertyId }).IsUnique();
-
-        // "My conversations", newest activity first.
         builder.HasIndex(c => c.LastMessageAtUtc);
     }
 }
