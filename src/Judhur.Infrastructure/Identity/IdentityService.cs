@@ -1,8 +1,8 @@
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Identity.Dtos;
+using Judhur.Domain.Common;
 using Judhur.Domain.Common.Results;
-using Judhur.Domain.Users;
 
 using Microsoft.AspNetCore.Identity;
 

@@ -4,6 +4,7 @@ using Judhur.Application.Common.Interfaces;
 using Judhur.Infrastructure.Data;
 using Judhur.Infrastructure.Data.Interceptors;
 using Judhur.Infrastructure.Identity;
+using Judhur.Infrastructure.Service;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
 
         services.AddPersistence(configuration)
+                .AddEmailSender()
                 .AddIdentityServices(configuration)
                 .AddCaching();
 
@@ -42,7 +44,11 @@ public static class DependencyInjection
 
         return services;
     }
-
+    private static IServiceCollection AddEmailSender(this IServiceCollection services)
+    {
+        services.AddScoped<IEmailSender,EmailSender>();
+        return services;
+    }
     private static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration configuration)
     {
         var jwtSettings = JwtSettings.Bind(configuration);

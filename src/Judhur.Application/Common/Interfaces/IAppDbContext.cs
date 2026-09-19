@@ -5,7 +5,6 @@ using Judhur.Domain.Notifications;
 using Judhur.Domain.Properties;
 using Judhur.Domain.Reports;
 using Judhur.Domain.Reviews;
-using Judhur.Domain.Users;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -13,8 +12,6 @@ namespace Judhur.Application.Common.Interfaces;
 
 public interface IAppDbContext
 {
-    DbSet<User> Users { get; }
-
     DbSet<Property> Properties { get; }
 
     DbSet<Conversation> Conversations { get; }

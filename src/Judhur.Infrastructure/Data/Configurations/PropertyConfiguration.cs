@@ -1,5 +1,5 @@
 using Judhur.Domain.Properties;
-using Judhur.Domain.Users;
+using Judhur.Infrastructure.Identity;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,25 +11,17 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
     public void Configure(EntityTypeBuilder<Property> builder)
     {
         builder.HasKey(i => i.Id);
-        // Computed, not stored.
         builder.Ignore(p => p.MainImage);
-
-        // Child entity: no inverse navigation, written through the private field.
         builder.HasMany(p => p.PropertyImages)
             .WithOne()
             .HasForeignKey(i => i.PropertyId)
             .OnDelete(DeleteBehavior.Cascade);
-
         builder.Navigation(p => p.PropertyImages)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
-
-        // Cross-aggregate reference by id only. Restrict so deleting a user
-        // never silently wipes their listings. Creates its own index.
-        builder.HasOne<User>()
+        builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(p => p.SellerId)
             .OnDelete(DeleteBehavior.Restrict);
-
         builder.Property(p => p.Title).HasMaxLength(Property.MaxTitleLength);
         builder.Property(p => p.Description).HasMaxLength(Property.MaxDescriptionLength);
         builder.Property(p => p.City).HasMaxLength(Property.MaxCityLength);
@@ -37,10 +29,8 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         builder.Property(p => p.FullAddress).HasMaxLength(Property.MaxFullAddressLength);
         builder.Property(p => p.OwnershipDocumentUrl).HasMaxLength(Property.MaxOwnershipDocumentUrlLength);
         builder.Property(p => p.RejectionReason).HasMaxLength(Property.MaxRejectionReasonLength);
-
         builder.Property(p => p.Price).HasPrecision(18, 2);
         builder.Property(p => p.Area).HasPrecision(10, 2);
-
         builder.Property(p => p.PaymentType).HasConversion<string>().HasMaxLength(32);
         builder.Property(p => p.PropertyType).HasConversion<string>().HasMaxLength(32);
         builder.Property(p => p.PropertyStatus).HasConversion<string>().HasMaxLength(32);

@@ -2,11 +2,13 @@ using FluentValidation;
 
 using Judhur.Application.Common.Behaviors;
 
+using Microsoft.Extensions.Configuration;
+
 namespace Microsoft.Extensions.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
         var applicationAssembly = typeof(DependencyInjection).Assembly;
 
@@ -14,6 +16,7 @@ public static class DependencyInjection
 
         services.AddMediatR(options =>
         {
+            options.LicenseKey = configuration["MediatR:LicenseKey"];
             options.RegisterServicesFromAssembly(applicationAssembly);
             options.AddOpenRequestPreProcessor(typeof(LoggingBehavior<>));
             options.AddOpenBehavior(typeof(UnhandledExceptionBehavior<,>));

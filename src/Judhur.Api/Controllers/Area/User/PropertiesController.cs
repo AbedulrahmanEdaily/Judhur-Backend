@@ -1,6 +1,6 @@
 using Asp.Versioning;
 
-using Judhur.Domain.Users;
+using Judhur.Domain.Common;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

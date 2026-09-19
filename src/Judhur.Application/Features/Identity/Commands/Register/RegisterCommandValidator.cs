@@ -1,13 +1,13 @@
 using FluentValidation;
 
-using Judhur.Domain.Users;
-
 namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
     private const int MaxUserNameLength = 256;
     private const int MaxEmailLength = 256;
+    private const int MaxFullNameLength = 150;
+    private const int MaxCityLength = 100;
     private const int MinPasswordLength = 8;
 
     public RegisterCommandValidator()
@@ -18,7 +18,7 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
 
         RuleFor(r => r.FullName)
             .NotEmpty().WithMessage("FullName cannot be null or empty")
-            .MaximumLength(User.MaxNameLength).WithMessage($"FullName cannot exceed {User.MaxNameLength} characters");
+            .MaximumLength(MaxFullNameLength).WithMessage($"FullName cannot exceed {MaxFullNameLength} characters");
 
         RuleFor(r => r.Email)
             .NotEmpty().WithMessage("Email cannot be null or empty")
@@ -27,7 +27,7 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
 
         RuleFor(r => r.City)
             .NotEmpty().WithMessage("City cannot be null or empty")
-            .MaximumLength(User.MaxCityLength).WithMessage($"City cannot exceed {User.MaxCityLength} characters");
+            .MaximumLength(MaxCityLength).WithMessage($"City cannot exceed {MaxCityLength} characters");
 
         RuleFor(r => r.Password)
             .NotEmpty().WithMessage("Password cannot be null or empty")

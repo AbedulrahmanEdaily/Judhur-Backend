@@ -1,4 +1,3 @@
-using Judhur.Domain.Users;
 using Judhur.Infrastructure.Identity;
 
 using Microsoft.EntityFrameworkCore;
@@ -6,25 +5,21 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Judhur.Infrastructure.Data.Configurations;
 
-public sealed class UserConfiguration : IEntityTypeConfiguration<User>
+public sealed class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 {
-    public void Configure(EntityTypeBuilder<User> builder)
+    private const int MaxFullNameLength = 150;
+    private const int MaxCityLength = 100;
+    private const int MaxProfileImageUrlLength = 500;
+    private const int MaxResetCodeLength = 256;
+    private const int MaxBioLength = 1000;
+
+    public void Configure(EntityTypeBuilder<ApplicationUser> builder)
     {
-        builder.ToTable("Users");
-        builder.HasKey(i => i.Id);
-        builder.HasOne<ApplicationUser>()
-            .WithOne()
-            .HasForeignKey<User>(u => u.Id)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Property(u => u.Name).HasMaxLength(User.MaxNameLength);
-        builder.Property(u => u.PhoneNumber).HasMaxLength(User.MaxPhoneNumberLength);
-        builder.Property(u => u.City).HasMaxLength(User.MaxCityLength);
-        builder.Property(u => u.BannedReason).HasMaxLength(User.MaxBanReasonLength);
-
-        builder.Property(u => u.Role).HasConversion<string>().HasMaxLength(32);
-
-        builder.HasIndex(u => u.Role);
-        builder.HasIndex(u => u.IsBanned);
+        builder.ToTable("AppUser");
+        builder.Property(u => u.FullName).HasMaxLength(MaxFullNameLength);
+        builder.Property(u => u.City).HasMaxLength(MaxCityLength);
+        builder.Property(u => u.ProfileImageUrl).HasMaxLength(MaxProfileImageUrlLength);
+        builder.Property(u => u.ResetCode).HasMaxLength(MaxResetCodeLength);
+        builder.Property(u => u.Bio).HasMaxLength(MaxBioLength);
     }
 }
