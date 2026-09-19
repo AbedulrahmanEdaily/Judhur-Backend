@@ -13,16 +13,17 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager) : 
     private readonly UserManager<ApplicationUser> _userManager = userManager;
 
     public async Task<Result<AppUserDto>> CreateNewUserAsync(
-        Guid userId,
         NewUserRegistration registration,
         CancellationToken cancellationToken = default)
     {
         var user = new ApplicationUser
         {
-            Id = userId,
+            Id = Guid.CreateVersion7(),
             Email = registration.Email,
             PhoneNumber = registration.PhoneNumber,
             UserName = registration.UserName,
+            City = registration.City,
+            FullName = registration.FullName
         };
         var createResult = await _userManager.CreateAsync(user, registration.Password);
         if (!createResult.Succeeded)

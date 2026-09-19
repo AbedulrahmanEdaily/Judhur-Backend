@@ -33,17 +33,11 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-
-        // Identity brings seven tables. Only three are used here -- the user, the roles
-        // and the link between them -- so the other four are dropped from the model.
-        // The APIs behind them (claims, external logins, persisted tokens, role claims)
-        // now throw, because their types are no longer mapped.
-        builder.Ignore<IdentityUserClaim<Guid>>();
-        builder.Ignore<IdentityUserLogin<Guid>>();
         builder.Ignore<IdentityUserToken<Guid>>();
         builder.Ignore<IdentityRoleClaim<Guid>>();
-
-        // Drop the AspNet prefix on the three that remain.
+        
+        builder.Entity<IdentityUserClaim<Guid>>().ToTable("UserClaims");
+        builder.Entity<IdentityUserLogin<Guid>>().ToTable("UserLogins");
         builder.Entity<IdentityRole<Guid>>().ToTable("Roles");
         builder.Entity<IdentityUserRole<Guid>>().ToTable("UserRoles");
 

@@ -11,4 +11,6 @@ public sealed record RegisterCommand(
     string Email,
     string PhoneNumber,
     string City,
-    string Password) : IRequest<Result<TokenResponse>>, ITransactionalCommand;
+    string? Bio,
+    string? ProfileImageUrl,
+    string Password) : IRequest<Result<Success>>, ITransactionalCommand;

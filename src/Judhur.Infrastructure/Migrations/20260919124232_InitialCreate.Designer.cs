@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Judhur.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260916135844_InitialCreate")]
+    [Migration("20260919124232_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -485,65 +485,6 @@ namespace Judhur.Infrastructure.Migrations
                     b.ToTable("Reviews");
                 });
 
-            modelBuilder.Entity("Judhur.Domain.Users.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("BannedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("BannedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("BannedReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTimeOffset>("CreatedAtUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsBanned")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("LastModifiedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("LastModifiedUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsBanned");
-
-                    b.HasIndex("Role");
-
-                    b.ToTable("Users", (string)null);
-                });
-
             modelBuilder.Entity("Judhur.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -552,6 +493,15 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -563,6 +513,11 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -582,10 +537,22 @@ namespace Judhur.Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ProfileImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ResetCode")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset?>("ResetCodeExpiresAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -600,14 +567,16 @@ namespace Judhur.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
+                        .IsUnique()
+                        .HasDatabaseName("EmailIndex")
+                        .HasFilter("[NormalizedEmail] IS NOT NULL");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("AppUsers", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", b =>
@@ -635,31 +604,7 @@ namespace Judhur.Infrastructure.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("RoleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -683,7 +628,7 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("UserClaims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -704,7 +649,7 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("UserLogins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
@@ -719,31 +664,12 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("UserId", "LoginProvider", "Name");
-
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Judhur.Domain.Conversations.Conversation", b =>
                 {
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("BuyerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -755,7 +681,7 @@ namespace Judhur.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -770,7 +696,7 @@ namespace Judhur.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -785,7 +711,7 @@ namespace Judhur.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -803,7 +729,7 @@ namespace Judhur.Infrastructure.Migrations
 
             modelBuilder.Entity("Judhur.Domain.Notifications.Notification", b =>
                 {
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -812,7 +738,7 @@ namespace Judhur.Infrastructure.Migrations
 
             modelBuilder.Entity("Judhur.Domain.Properties.Property", b =>
                 {
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("SellerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -836,7 +762,7 @@ namespace Judhur.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("ReporterId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -845,33 +771,15 @@ namespace Judhur.Infrastructure.Migrations
 
             modelBuilder.Entity("Judhur.Domain.Reviews.Review", b =>
                 {
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("ReviewerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Judhur.Domain.Users.User", null)
+                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Judhur.Domain.Users.User", b =>
-                {
-                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
-                        .WithOne()
-                        .HasForeignKey("Judhur.Domain.Users.User", "Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -902,15 +810,6 @@ namespace Judhur.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
-                {
                     b.HasOne("Judhur.Infrastructure.Identity.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")

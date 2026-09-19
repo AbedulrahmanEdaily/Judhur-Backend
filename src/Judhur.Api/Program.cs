@@ -1,5 +1,7 @@
 using Asp.Versioning.ApiExplorer;
 
+using Judhur.Infrastructure.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
@@ -30,7 +32,7 @@ else
 {
     app.UseHsts();
 }
-
+await app.InitializeDatabaseAsync();
 app.UseCoreMiddlewares(builder.Configuration);
 app.MapControllers();
 

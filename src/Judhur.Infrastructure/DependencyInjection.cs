@@ -40,6 +40,7 @@ public static class DependencyInjection
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<ApplicationDbContextInitializer>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
