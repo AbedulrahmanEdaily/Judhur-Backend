@@ -9,12 +9,10 @@ namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed class RegisterCommandHandler(
     IIdentityService identityService,
-    ITokenProvider tokenProvider,
     IEmailSender emailSender) : IRequestHandler<RegisterCommand, Result<Success>>
 {
 
     private readonly IIdentityService _identityService = identityService;
-    private readonly ITokenProvider _tokenProvider = tokenProvider;
     private readonly IEmailSender _emailSender = emailSender;
 
     public async Task<Result<Success>> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -25,12 +23,10 @@ public sealed class RegisterCommandHandler(
         {
             return userResult.Errors;
         }
-        var response = await _tokenProvider.GenerateJwtTokenAsync(userResult.Value);
-        if (response.IsError)
-        {
-            return response.Errors;
-        }
-        var emailMessage = new EmailMessage("admin@judhur.com","","please confirm your email");
+        var emailMessage = new EmailMessage(
+            request.Email,
+            "Confirm your email address",
+            "Please confirm your email address to finish setting up your Judhur account.");
         await _emailSender.SendEmailAsync(emailMessage,cancellationToken);
         return Result.Success;
     }

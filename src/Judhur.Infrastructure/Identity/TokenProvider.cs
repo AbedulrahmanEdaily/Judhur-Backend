@@ -68,13 +68,11 @@ public sealed class TokenProvider(
             return refreshTokenResult.Errors;
         }
 
-        // One active refresh token per user. ExecuteDeleteAsync runs against the database
-        // immediately rather than waiting for SaveChanges, so the old tokens are gone the
-        // moment this line runs -- it is only safe to call inside a transaction.
-        await _context.RefreshTokens
+        var oldRefreshTokens = await _context.RefreshTokens
             .Where(refreshToken => refreshToken.UserId == user.UserId)
-            .ExecuteDeleteAsync(ct);
+            .ToListAsync(ct);
 
+        _context.RefreshTokens.RemoveRange(oldRefreshTokens);
         _context.RefreshTokens.Add(refreshTokenResult.Value);
         await _context.SaveChangesAsync(ct);
 
