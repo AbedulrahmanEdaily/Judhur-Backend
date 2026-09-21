@@ -13,7 +13,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
 
-    public async Task<Result<Success>> CreateNewUserAsync(
+    public async Task<Result<Guid>> CreateNewUserAsync(
         NewUserRegistration registration,
         CancellationToken cancellationToken = default)
     {
@@ -36,7 +36,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return Translate(roleResult);
         }
-        return Result.Success;
+        return user.Id;
     }
     private static List<Error> Translate(IdentityResult result)
         => [.. result.Errors.Select(error => error.Code switch
@@ -96,4 +96,28 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
     private static Error InvalidCredentials()
         => Error.Unauthorized("Identity.InvalidCredentials", "Invalid email or password.");
+
+    public async Task<Result<Success>> ConfirmEmailAsync(Guid userId, string token, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return InvalidConfirmationToken();
+        }
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        return result.Succeeded ? Result.Success : InvalidConfirmationToken();
+    }
+    public async Task<Guid?> FindUnconfirmedUserIdAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+
+        return user is not null && !user.EmailConfirmed
+            ? user.Id
+            : null;
+    }
+
+    private static Error InvalidConfirmationToken()
+    => Error.Validation(
+        "Identity.InvalidConfirmationToken",
+        "The confirmation link is invalid or has expired.");
 }

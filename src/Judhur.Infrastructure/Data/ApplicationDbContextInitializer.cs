@@ -20,9 +20,7 @@ public class ApplicationDbContextInitializer(ILogger<ApplicationDbContextInitial
     {
         try
         {
-            if ((await _context.Database.GetPendingMigrationsAsync()).Any())
-                await _context.Database.MigrateAsync();
-            await _context.Database.EnsureCreatedAsync();
+            await _context.Database.MigrateAsync();
         }
         catch (Exception e)
         {

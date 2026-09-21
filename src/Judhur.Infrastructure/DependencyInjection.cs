@@ -2,9 +2,10 @@ using System.Text;
 
 using Judhur.Application.Common.Interfaces;
 using Judhur.Infrastructure.Data;
+using Judhur.Infrastructure.Common;
 using Judhur.Infrastructure.Data.Interceptors;
+using Judhur.Infrastructure.Email;
 using Judhur.Infrastructure.Identity;
-using Judhur.Infrastructure.Service;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -21,9 +22,10 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IDeferredDispatcher, DeferredDispatcher>();
 
         services.AddPersistence(configuration)
-                .AddEmailSender()
+                .AddEmail(configuration)
                 .AddIdentityServices(configuration)
                 .AddCaching();
 
@@ -45,9 +47,13 @@ public static class DependencyInjection
 
         return services;
     }
-    private static IServiceCollection AddEmailSender(this IServiceCollection services)
+    private static IServiceCollection AddEmail(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<IEmailSender,EmailSender>();
+        services.AddSingleton(FrontendSettings.Bind(configuration));
+        services.AddScoped<IEmailSender, EmailSender>();
+        services.AddSingleton<ChannelEmailQueue>();
+        services.AddSingleton<IEmailQueue>(sp => sp.GetRequiredService<ChannelEmailQueue>());
+        services.AddHostedService<EmailBackgroundService>();
         return services;
     }
     private static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration configuration)

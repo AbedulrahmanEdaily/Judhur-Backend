@@ -24,6 +24,7 @@ public static class DependencyInjection
             options.AddOpenBehavior(typeof(PerformanceBehavior<,>));
             options.AddOpenBehavior(typeof(CachingBehavior<,>));
             options.AddOpenBehavior(typeof(CacheInvalidationBehavior<,>));
+            options.AddOpenBehavior(typeof(DeferredDispatchBehavior<,>));
             options.AddOpenBehavior(typeof(TransactionBehavior<,>));
         });
 

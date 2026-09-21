@@ -1,13 +1,16 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 using Asp.Versioning;
 
+using Judhur.Api;
 using Judhur.Api.Exceptions;
 using Judhur.Api.OpenApi.Transformer;
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
 
 using Microsoft.AspNetCore.OpenApi;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +23,7 @@ public static class DependencyInjection
                 .AddExceptionHandling()
                 .AddControllerWithJsonConfiguration()
                 .AddApiDocumentation()
+                .AddRateLimiting()
                 .AddIdentityInfrastructure();
         return services;
     }
@@ -60,6 +64,25 @@ public static class DependencyInjection
         });
         return services;
     }
+    public static IServiceCollection AddRateLimiting(this IServiceCollection services)
+    {
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.AddPolicy(RateLimitPolicies.ResendConfirmation, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 3,
+                        Window = TimeSpan.FromMinutes(15),
+                    }));
+        });
+
+        return services;
+    }
+
     public static IServiceCollection AddIdentityInfrastructure(this IServiceCollection services)
     {
         services.AddScoped<IUser, CurrentUser>();
@@ -88,6 +111,8 @@ public static class DependencyInjection
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
+        app.UseRouting();
+        app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
         return app;
