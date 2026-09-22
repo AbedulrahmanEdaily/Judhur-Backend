@@ -1,10 +1,10 @@
 using FluentValidation;
 
-namespace Judhur.Application.Features.Identity.Commands.ForgetPassword;
+namespace Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
 
-public sealed class ForgetPasswordCommandValidator : AbstractValidator<ForgetPasswordCommand>
+public sealed class SendResetPasswordCodeCommandValidator : AbstractValidator<SendResetPasswordCodeCommand>
 {
-    public ForgetPasswordCommandValidator()
+    public SendResetPasswordCodeCommandValidator()
     {
         RuleFor(f => f.Email)
             .Cascade(CascadeMode.Stop)

@@ -126,7 +126,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     => Error.Validation(
         "Identity.InvalidConfirmationToken",
         "The confirmation link is invalid or has expired.");
-    public async Task<Guid?> RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<Guid?> SendResetPasswordCodeAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
@@ -171,4 +171,33 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     }
     private static Error UserNoLongerExists()
         => Error.NotFound("Identity.UserNotFound", "The user no longer exists.");
+
+    public async Task<Result<Guid>> ChangePasswordAsync(string email, string password, string code, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null || user.ResetCode != code || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
+        {
+            return Error.Validation("Identity.InvalidResetCode", "The reset code is incorrect or has expired.");
+        }
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, password);
+        if (!result.Succeeded)
+        {
+            return Translate(result);
+        }
+        user.ResetCode = null;
+        user.ResetCodeExpiresAt = null;
+        await _userManager.UpdateAsync(user);
+        return user.Id;
+    }
+
+    public async Task<Result<EmailMessage>> BuildPasswordResetChangedAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return UserNoLongerExists();
+        }
+        return new EmailMessage(user.Email, "Password changed", "<p>Your password has been changed.</p>");
+    }
 }

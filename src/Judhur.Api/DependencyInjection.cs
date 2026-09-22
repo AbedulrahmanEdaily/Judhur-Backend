@@ -79,12 +79,21 @@ public static class DependencyInjection
                         Window = TimeSpan.FromMinutes(15),
                     }));
 
-            options.AddPolicy(RateLimitPolicies.ForgetPassword, httpContext =>
+            options.AddPolicy(RateLimitPolicies.SendResetPasswordCode, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 3,
+                        Window = TimeSpan.FromMinutes(15),
+                    }));
+
+            options.AddPolicy(RateLimitPolicies.ChangePassword, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
                         Window = TimeSpan.FromMinutes(15),
                     }));
         });

@@ -4,18 +4,20 @@ using Judhur.Domain.Common.Results;
 
 using MediatR;
 
-namespace Judhur.Application.Features.Identity.Commands.ForgetPassword;
+namespace Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
 
-public sealed class ForgetPasswordCommandHandler(IIdentityService identityService, IDeferredDispatcher dispatcher,
-    IPublisher publisher) : IRequestHandler<ForgetPasswordCommand, Result<Success>>
+public sealed class SendResetPasswordCodeCommandHandler(
+    IIdentityService identityService,
+    IDeferredDispatcher dispatcher,
+    IPublisher publisher) : IRequestHandler<SendResetPasswordCodeCommand, Result<Success>>
 {
     private readonly IIdentityService _identityService = identityService;
     private readonly IDeferredDispatcher _dispatcher = dispatcher;
     private readonly IPublisher _publisher = publisher;
 
-    public async Task<Result<Success>> Handle(ForgetPasswordCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Success>> Handle(SendResetPasswordCodeCommand request, CancellationToken cancellationToken)
     {
-        var userId = await _identityService.RequestPasswordResetAsync(request.Email, cancellationToken);
+        var userId = await _identityService.SendResetPasswordCodeAsync(request.Email, cancellationToken);
         if (userId is not null)
         {
             _dispatcher.Defer(ct => _publisher.Publish(new PasswordResetRequested(userId.Value), ct));

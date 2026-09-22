@@ -1,11 +1,12 @@
 using Asp.Versioning;
 
 using Judhur.Application.Features.Identity;
+using Judhur.Application.Features.Identity.Commands.ChangePassword;
 using Judhur.Application.Features.Identity.Commands.ConfirmEmail;
-using Judhur.Application.Features.Identity.Commands.ForgetPassword;
 using Judhur.Application.Features.Identity.Commands.Login;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
+using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
 
 using MediatR;
 
@@ -34,6 +35,7 @@ public sealed class AccountController(ISender sender) : ApiController
         var result = await _sender.Send(request, ct);
         return result.Match(_ => Created(), Problem);
     }
+
     [HttpPost("login")]
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -48,6 +50,7 @@ public sealed class AccountController(ISender sender) : ApiController
         var result = await _sender.Send(request, ct);
         return result.Match(response => Ok(response), Problem);
     }
+
     [HttpPost("confirm-email")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -72,15 +75,29 @@ public sealed class AccountController(ISender sender) : ApiController
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);
     }
-    [HttpPost("forget-password")]
-    [EnableRateLimiting(RateLimitPolicies.ForgetPassword)]
+
+    [HttpPost("send-reset-password-code")]
+    [EnableRateLimiting(RateLimitPolicies.SendResetPasswordCode)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [EndpointSummary("Sends reset password code in the email")]
+    [EndpointSummary("Sends a password reset code to the user's email.")]
     [EndpointDescription("Always answers 204, whether or not the address belongs to an account.")]
-    [EndpointName("ForgetPassword")]
-    public async Task<IActionResult> ForgetPasswordAsync([FromBody] ForgetPasswordCommand request, CancellationToken ct)
+    [EndpointName("SendResetPasswordCode")]
+    public async Task<IActionResult> SendResetPasswordCodeAsync([FromBody] SendResetPasswordCodeCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPost("change-password")]
+    [EnableRateLimiting(RateLimitPolicies.ChangePassword)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Verifies the reset code and sets a new password.")]
+    [EndpointName("ChangePassword")]
+    public async Task<IActionResult> ChangePasswordAsync([FromBody] ChangePasswordCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);
