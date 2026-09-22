@@ -7,12 +7,14 @@ namespace Judhur.Application.Common.Interfaces;
 public interface IIdentityService
 {
     Task<Result<Guid>> CreateNewUserAsync(
-        NewUserRegistration registration,
-        CancellationToken cancellationToken = default);
+            NewUserRegistration registration,
+            CancellationToken cancellationToken = default);
+
     Task<Result<AppUserDto>> AuthenticateAsync(
         string email,
         string password,
         CancellationToken cancellationToken = default);
+
     Task<Result<Success>> ConfirmEmailAsync(
         Guid userId,
         string token,
@@ -20,5 +22,17 @@ public interface IIdentityService
 
     Task<Guid?> FindUnconfirmedUserIdAsync(
         string email,
+        CancellationToken cancellationToken = default);
+
+    Task<Guid?> RequestPasswordResetAsync(
+        string email,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<EmailMessage>> BuildConfirmationEmailAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(
+        Guid userId,
         CancellationToken cancellationToken = default);
 }

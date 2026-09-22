@@ -4,13 +4,15 @@ using System.Net.Mail;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Judhur.Infrastructure.Email;
 
-internal sealed class EmailSender(ILogger<EmailSender> logger) : IEmailSender
+internal sealed class EmailSender(ILogger<EmailSender> logger, IConfiguration configuration) : IEmailSender
 {
     private readonly ILogger<EmailSender> _logger = logger;
+    private readonly IConfiguration _configuration = configuration;
 
     public async Task SendEmailAsync(EmailMessage message, CancellationToken cancellationToken)
     {
@@ -19,7 +21,7 @@ internal sealed class EmailSender(ILogger<EmailSender> logger) : IEmailSender
         {
             EnableSsl = true,
             UseDefaultCredentials = false,
-            Credentials = new NetworkCredential("dylyb7883@gmail.com", "enlb vrpd nadq xmlk")
+            Credentials = new NetworkCredential("dylyb7883@gmail.com", _configuration["EmailPassword"])
         };
         var mailMessage = new MailMessage
         {

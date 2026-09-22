@@ -4,5 +4,5 @@ namespace Judhur.Application.Common.Interfaces;
 
 public interface IEmailQueue
 {
-    ValueTask EnqueueAsync(EmailConfirmationRequest request, CancellationToken cancellationToken = default);
+    ValueTask EnqueueAsync(EmailMessage message, CancellationToken cancellationToken = default);
 }

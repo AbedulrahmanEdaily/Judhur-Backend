@@ -2,6 +2,7 @@ using Asp.Versioning;
 
 using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Commands.ConfirmEmail;
+using Judhur.Application.Features.Identity.Commands.ForgetPassword;
 using Judhur.Application.Features.Identity.Commands.Login;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
@@ -67,6 +68,19 @@ public sealed class AccountController(ISender sender) : ApiController
     [EndpointDescription("Always answers 204, whether or not the address belongs to an account.")]
     [EndpointName("ResendConfirmation")]
     public async Task<IActionResult> ResendConfirmationAsync([FromBody] ResendConfirmationCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("forget-password")]
+    [EnableRateLimiting(RateLimitPolicies.ForgetPassword)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Sends reset password code in the email")]
+    [EndpointDescription("Always answers 204, whether or not the address belongs to an account.")]
+    [EndpointName("ForgetPassword")]
+    public async Task<IActionResult> ForgetPasswordAsync([FromBody] ForgetPasswordCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);

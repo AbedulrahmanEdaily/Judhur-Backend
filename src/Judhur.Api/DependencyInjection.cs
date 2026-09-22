@@ -78,6 +78,15 @@ public static class DependencyInjection
                         PermitLimit = 3,
                         Window = TimeSpan.FromMinutes(15),
                     }));
+
+            options.AddPolicy(RateLimitPolicies.ForgetPassword, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 3,
+                        Window = TimeSpan.FromMinutes(15),
+                    }));
         });
 
         return services;

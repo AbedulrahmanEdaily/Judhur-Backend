@@ -1,17 +1,23 @@
+using System.Security.Cryptography;
+
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Identity.Dtos;
 using Judhur.Domain.Common;
 using Judhur.Domain.Common.Results;
+using Judhur.Infrastructure.Email;
 
 using Microsoft.AspNetCore.Identity;
 
 namespace Judhur.Infrastructure.Identity;
 
-public sealed class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager) : IIdentityService
+public sealed class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, FrontendSettings frontendSettings,
+    TimeProvider timeProvider) : IIdentityService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
+    private readonly FrontendSettings _frontendSettings = frontendSettings;
+    private readonly TimeProvider _timeProvider = timeProvider;
 
     public async Task<Result<Guid>> CreateNewUserAsync(
         NewUserRegistration registration,
@@ -120,4 +126,49 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     => Error.Validation(
         "Identity.InvalidConfirmationToken",
         "The confirmation link is invalid or has expired.");
+    public async Task<Guid?> RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            return null;
+        }
+        var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
+        user.ResetCode = code;
+        user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(5);
+        var updateResult = await _userManager.UpdateAsync(user);
+        return updateResult.Succeeded ? user.Id : null;
+    }
+
+    public async Task<Result<EmailMessage>> BuildConfirmationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return UserNoLongerExists();
+        }
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user!);
+        var link = $"{_frontendSettings.ConfirmEmailUrl}" +
+                    $"?userId={user!.Id}" +
+                    $"&token={Uri.EscapeDataString(token)}";
+        return new EmailMessage(
+            user.Email!,
+            "Confirm your email address",
+            $"""<p>Welcome to Judhur.</p><p><a href="{link}">Confirm your email address</a></p>""");
+    }
+
+    public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null || user.ResetCode is null)
+        {
+            return UserNoLongerExists();
+        }
+        return new EmailMessage(
+            user.Email,
+            "Your password reset code",
+            $"""<p>Your password reset code is <strong>{user.ResetCode}</strong>. It expires in 5 minutes.</p>""");
+    }
+    private static Error UserNoLongerExists()
+        => Error.NotFound("Identity.UserNotFound", "The user no longer exists.");
 }

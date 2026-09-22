@@ -1,27 +1,24 @@
 using Judhur.Application.Common.Interfaces;
-using Judhur.Application.Common.Models;
-using Judhur.Domain.Common.Results;
+using Judhur.Application.Features.Identity.Events;
+
 
 using MediatR;
 
 namespace Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 
-public sealed class ResendConfirmationCommandHandler(
-    IIdentityService identityService,
-    IEmailQueue emailQueue) : IRequestHandler<ResendConfirmationCommand, Result<Success>>
+public sealed class SendConfirmationEmailHandler(IIdentityService identityService, IEmailQueue emailQueue)
+    : INotificationHandler<UserRegistered>
 {
     private readonly IIdentityService _identityService = identityService;
     private readonly IEmailQueue _emailQueue = emailQueue;
 
-    public async Task<Result<Success>> Handle(ResendConfirmationCommand request, CancellationToken cancellationToken)
+    public async Task Handle(UserRegistered notification, CancellationToken cancellationToken)
     {
-        var userId = await _identityService.FindUnconfirmedUserIdAsync(request.Email, cancellationToken);
-
-        if (userId is not null)
+        var result = await _identityService.BuildConfirmationEmailAsync(notification.UserId, cancellationToken);
+        if (result.IsError)
         {
-            await _emailQueue.EnqueueAsync(new EmailConfirmationRequest(userId.Value), cancellationToken);
+            return;
         }
-
-        return Result.Success;
+        await _emailQueue.EnqueueAsync(result.Value, cancellationToken);
     }
 }

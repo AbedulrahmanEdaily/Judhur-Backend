@@ -4,15 +4,15 @@ using MediatR;
 
 namespace Judhur.Application.Features.Identity.Events;
 
-public sealed class SendConfirmationEmailHandler(IIdentityService identityService, IEmailQueue emailQueue)
-    : INotificationHandler<UserRegistered>
+public sealed class SendPasswordResetEmailHandler(IIdentityService identityService, IEmailQueue emailQueue)
+    : INotificationHandler<PasswordResetRequested>
 {
     private readonly IIdentityService _identityService = identityService;
     private readonly IEmailQueue _emailQueue = emailQueue;
 
-    public async Task Handle(UserRegistered notification, CancellationToken cancellationToken)
+    public async Task Handle(PasswordResetRequested notification, CancellationToken cancellationToken)
     {
-        var result = await _identityService.BuildConfirmationEmailAsync(notification.UserId, cancellationToken);
+        var result = await _identityService.BuildPasswordResetEmailAsync(notification.UserId, cancellationToken);
         if (result.IsError)
         {
             return;
