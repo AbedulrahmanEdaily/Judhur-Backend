@@ -42,4 +42,5 @@ public interface IIdentityService
     Task<Result<EmailMessage>> BuildPasswordResetChangedAsync(
         Guid userId,
         CancellationToken cancellationToken = default);
+    Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
 }

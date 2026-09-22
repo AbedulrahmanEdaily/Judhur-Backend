@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 
+using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Identity.Dtos;
@@ -200,4 +201,16 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         }
         return new EmailMessage(user.Email, "Password changed", "<p>Your password has been changed.</p>");
     }
+
+    public async Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        var roles = await _userManager.GetRolesAsync(user);
+        return new AppUserDto(user.Id, user.Email, roles);
+    }
+
 }

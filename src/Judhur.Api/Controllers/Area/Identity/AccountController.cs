@@ -4,6 +4,8 @@ using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Commands.ChangePassword;
 using Judhur.Application.Features.Identity.Commands.ConfirmEmail;
 using Judhur.Application.Features.Identity.Commands.Login;
+using Judhur.Application.Features.Identity.Commands.Logout;
+using Judhur.Application.Features.Identity.Commands.RefreshToken;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
@@ -98,6 +100,32 @@ public sealed class AccountController(ISender sender) : ApiController
     [EndpointSummary("Verifies the reset code and sets a new password.")]
     [EndpointName("ChangePassword")]
     public async Task<IActionResult> ChangePasswordAsync([FromBody] ChangePasswordCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("refresh-token")]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    [EndpointSummary("Refreshes access token using a valid refresh token.")]
+    [EndpointDescription("Exchanges an expired access token and a valid refresh token for a new token pair.")]
+    [EndpointName("RefreshToken")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(
+            response => Ok(response),
+            Problem);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [EndpointSummary("Logs the user out.")]
+    [EndpointDescription("Revokes the given refresh token so it can no longer be used to obtain new access tokens.")]
+    [EndpointName("Logout")]
+    public async Task<IActionResult> LogoutAsync([FromBody] LogoutCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);
