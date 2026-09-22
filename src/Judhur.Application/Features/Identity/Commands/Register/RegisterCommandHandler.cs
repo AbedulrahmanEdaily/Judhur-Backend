@@ -1,6 +1,7 @@
 
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Identity.Events;
 using Judhur.Domain.Common.Results;
 
 using MediatR;
@@ -9,29 +10,32 @@ namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed class RegisterCommandHandler(
     IIdentityService identityService,
-    ITokenProvider tokenProvider,
-    IEmailSender emailSender) : IRequestHandler<RegisterCommand, Result<Success>>
+    IDeferredDispatcher dispatcher,
+    IPublisher publisher) : IRequestHandler<RegisterCommand, Result<Success>>
 {
 
     private readonly IIdentityService _identityService = identityService;
-    private readonly ITokenProvider _tokenProvider = tokenProvider;
-    private readonly IEmailSender _emailSender = emailSender;
+    private readonly IDeferredDispatcher _dispatcher = dispatcher;
+    private readonly IPublisher _publisher = publisher;
 
     public async Task<Result<Success>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
-        var register = new NewUserRegistration(request.UserName, request.Email, request.PhoneNumber, request.Password, request.City, request.FullName, request.ProfileImageUrl, request.Bio);
+        var register = new NewUserRegistration(
+            UserName: request.UserName,
+            FullName: request.FullName,
+            Email: request.Email,
+            PhoneNumber: request.PhoneNumber,
+            City: request.City,
+            Bio: request.Bio,
+            ProfileImageUrl: request.ProfileImageUrl,
+            Password: request.Password);
         var userResult = await _identityService.CreateNewUserAsync(register, cancellationToken);
         if (userResult.IsError)
         {
             return userResult.Errors;
         }
-        var response = await _tokenProvider.GenerateJwtTokenAsync(userResult.Value);
-        if (response.IsError)
-        {
-            return response.Errors;
-        }
-        var emailMessage = new EmailMessage("admin@judhur.com","","please confirm your email");
-        await _emailSender.SendEmailAsync(emailMessage,cancellationToken);
+        var userId = userResult.Value;
+        _dispatcher.Defer(ct=> _publisher.Publish(new UserRegistered(userId),ct));
         return Result.Success;
     }
 

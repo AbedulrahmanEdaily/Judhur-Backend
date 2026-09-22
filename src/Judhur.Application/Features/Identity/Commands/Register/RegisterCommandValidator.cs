@@ -9,6 +9,8 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
     private const int MaxFullNameLength = 150;
     private const int MaxCityLength = 100;
     private const int MinPasswordLength = 8;
+    private const int MaxProfileImageUrlLength = 500;
+    private const int MaxBioLength = 1000;
 
     public RegisterCommandValidator()
     {
@@ -39,5 +41,11 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
         RuleFor(r => r.PhoneNumber)
             .NotEmpty().WithMessage("PhoneNumber cannot be null or empty")
             .Matches(@"^(?:\+?(?:970|972)\d{9}|05\d{8})$").WithMessage("Invalid PhoneNumber");
+
+        RuleFor(r => r.Bio)
+        .MaximumLength(MaxBioLength).WithMessage($"Bio cannot exceed {MaxBioLength} characters");
+
+        RuleFor(r => r.ProfileImageUrl)
+        .MaximumLength(MaxProfileImageUrlLength).WithMessage($"Profile image cannot exceed {MaxProfileImageUrlLength} characters");
     }
 }

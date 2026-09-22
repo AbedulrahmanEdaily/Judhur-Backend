@@ -68,13 +68,11 @@ public sealed class TokenProvider(
             return refreshTokenResult.Errors;
         }
 
-        // One active refresh token per user. ExecuteDeleteAsync runs against the database
-        // immediately rather than waiting for SaveChanges, so the old tokens are gone the
-        // moment this line runs -- it is only safe to call inside a transaction.
-        await _context.RefreshTokens
+        var oldRefreshTokens = await _context.RefreshTokens
             .Where(refreshToken => refreshToken.UserId == user.UserId)
-            .ExecuteDeleteAsync(ct);
+            .ToListAsync(ct);
 
+        _context.RefreshTokens.RemoveRange(oldRefreshTokens);
         _context.RefreshTokens.Add(refreshTokenResult.Value);
         await _context.SaveChangesAsync(ct);
 
@@ -83,4 +81,35 @@ public sealed class TokenProvider(
 
     private static string GenerateRefreshToken()
         => Convert.ToBase64String(RandomNumberGenerator.GetBytes(RefreshTokenSizeInBytes));
+
+    public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret!)),
+            ValidateIssuer = true,
+            ValidIssuer = _jwtSettings.Issuer,
+            ValidateAudience = true,
+            ValidAudience = _jwtSettings.Audience,
+            ValidateLifetime = false,
+            ClockSkew = TimeSpan.Zero
+        };
+        var tokenHandler = new JwtSecurityTokenHandler();
+        try
+        {
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return null;
+            }
+            return principal;
+        }
+        catch (Exception exception) when (exception is SecurityTokenException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
 }
