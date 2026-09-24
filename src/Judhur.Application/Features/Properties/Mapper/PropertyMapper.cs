@@ -26,14 +26,7 @@ public static class PropertyMapper
             Longitude = entity.Longitude,
             LandClassification = entity.LandClassification,
             LegalStatus = entity.LegalStatus,
-            OwnershipDocumentUrl = entity.OwnershipDocumentUrl
         };
-    }
-    public static PropertyDto ToDto(this Property entity, UserInfoDto userInfo)
-    {
-        var dto = entity.ToDto();
-        dto.User = userInfo;
-        return dto;
     }
     public static List<PropertyDto> ToDtos(this IEnumerable<Property> entities)
     {

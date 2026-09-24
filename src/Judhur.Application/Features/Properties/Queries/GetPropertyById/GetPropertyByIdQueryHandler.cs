@@ -38,6 +38,8 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
         {
             return userInfo.Errors;
         }
-        return property.ToDto(userInfo.Value);
+        var response = property.ToDto();
+        response.User = userInfo.Value;
+        return response;
     }
 }

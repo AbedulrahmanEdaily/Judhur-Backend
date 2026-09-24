@@ -23,7 +23,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
 {
     private readonly ISender _sender = sender;
     [HttpGet]
-    [ProducesResponseType(typeof(PaginatedList<PropertyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedList<PropertySummaryDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Retrieves a paginated list of properties.")]

@@ -1,13 +1,17 @@
-using Judhur.Application.Common.Models;
 using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;
 
-public class PropertyDto
+/// <summary>
+/// The shape returned by the property listing/search endpoint — only what a results
+/// card needs to display. Deliberately excludes the fields <see cref="PropertyDto"/>
+/// carries for the single-property page (description, exact address, coordinates,
+/// legal fields, ownership document, seller info).
+/// </summary>
+public sealed class PropertySummaryDto
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
     public decimal Price { get; set; }
     public PaymentType PaymentType { get; set; }
     public PropertyType PropertyType { get; set; }
@@ -15,11 +19,4 @@ public class PropertyDto
     public decimal Area { get; set; }
     public string City { get; set; } = string.Empty;
     public string? Region { get; set; }
-    public string FullAddress { get; set; } = string.Empty;
-    public double Latitude { get; set; }
-    public double Longitude { get; set; }
-    public LandClassification LandClassification { get; set; }
-    public LegalStatus LegalStatus { get; set; }
-    public UserInfoDto? User { get; set; }
-
 }

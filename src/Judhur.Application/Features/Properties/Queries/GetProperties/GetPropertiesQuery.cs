@@ -20,7 +20,7 @@ public sealed record GetPropertiesQuery(
     PropertyType? PropertyType,
     string SortColumn = "createdAt",
     string SortDirection = "desc"
-    ) : ICachedQuery<Result<PaginatedList<PropertyDto>>>
+    ) : ICachedQuery<Result<PaginatedList<PropertySummaryDto>>>
 {
     public string CacheKey =>
     $"property:p={Page}:ps={PageSize}" +

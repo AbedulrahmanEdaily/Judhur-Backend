@@ -1,7 +1,6 @@
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
-using Judhur.Application.Features.Properties.Mapper;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Properties;
 using Judhur.Domain.Properties.Enums;
@@ -12,11 +11,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Judhur.Application.Features.Properties.Queries.GetProperties;
 
-public sealed class GetPropertiesQueryHandler(IAppDbContext context) : IRequestHandler<GetPropertiesQuery, Result<PaginatedList<PropertyDto>>>
+public sealed class GetPropertiesQueryHandler(IAppDbContext context) : IRequestHandler<GetPropertiesQuery, Result<PaginatedList<PropertySummaryDto>>>
 {
     private readonly IAppDbContext _context = context;
 
-    public async Task<Result<PaginatedList<PropertyDto>>> Handle(GetPropertiesQuery request, CancellationToken cancellationToken)
+    public async Task<Result<PaginatedList<PropertySummaryDto>>> Handle(GetPropertiesQuery request, CancellationToken cancellationToken)
     {
         if (request.Page <= 0)
         {
@@ -37,9 +36,20 @@ public sealed class GetPropertiesQueryHandler(IAppDbContext context) : IRequestH
         var items = await propertyQuery
         .Skip((request.Page - 1) * request.PageSize)
         .Take(request.PageSize)
-        .Select(p => p.ToDto())
+        .Select(p => new PropertySummaryDto
+        {
+            Id = p.Id,
+            Title = p.Title,
+            Price = p.Price,
+            PaymentType = p.PaymentType,
+            PropertyType = p.PropertyType,
+            PropertyStatus = p.PropertyStatus,
+            Area = p.Area,
+            City = p.City,
+            Region = p.Region
+        })
         .ToListAsync(cancellationToken);
-        return new PaginatedList<PropertyDto>
+        return new PaginatedList<PropertySummaryDto>
         {
             Items = items,
             PageNumber = request.Page,
