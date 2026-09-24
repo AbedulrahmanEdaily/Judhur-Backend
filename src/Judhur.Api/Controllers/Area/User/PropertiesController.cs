@@ -1,7 +1,12 @@
 using Asp.Versioning;
 
+using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
+using Judhur.Application.Features.Properties.Dto;
+using Judhur.Application.Features.Properties.Queries.GetProperties;
 using Judhur.Application.Features.Properties.Queries.GetPropertyById;
+using Judhur.Api.Mapping;
+using Judhur.Contracts.Requests;
 using Judhur.Domain.Common;
 
 using MediatR;
@@ -17,12 +22,40 @@ namespace Judhur.Api.Controllers.Area.User;
 public sealed class PropertiesController(ISender sender) : ApiController
 {
     private readonly ISender _sender = sender;
-
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedList<PropertyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    [EndpointSummary("Retrieves a paginated list of properties.")]
+    [EndpointDescription("Returns a paginated, filterable, and sortable list of published (approved and active) properties.")]
+    [EndpointName("GetProperties")]
+    public async Task<IActionResult> Get([FromQuery] PropertyFilterRequest filters,
+        [FromQuery] PageRequest pageRequest,
+        CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetPropertiesQuery(
+            pageRequest.Page,
+            pageRequest.PageSize,
+            filters.SearchTerm,
+            filters.MinPrice,
+            filters.MaxPrice,
+            filters.City,
+            filters.LandClassification.ToDomain(),
+            filters.LegalStatus.ToDomain(),
+            filters.PaymentType.ToDomain(),
+            filters.PropertyStatus.ToDomain(),
+            filters.PropertyType.ToDomain(),
+            filters.SortColumn,
+            filters.SortDirection
+        ));
+        return result.Match(response => Ok(response), Problem);
+    }
     [HttpGet("{propertyId:guid}", Name = "GetPropertyById")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Retrieves a property by its ID.")]
+    [EndpointDescription("Returns 404 if the property does not exist, is not approved, or is inactive.")]
     [EndpointName("GetPropertyById")]
     public async Task<IActionResult> GetById(Guid propertyId, CancellationToken ct)
     {

@@ -1,0 +1,106 @@
+using Judhur.Application.Common.Interfaces;
+using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Properties.Dto;
+using Judhur.Application.Features.Properties.Mapper;
+using Judhur.Domain.Common.Results;
+using Judhur.Domain.Properties;
+using Judhur.Domain.Properties.Enums;
+
+using MediatR;
+
+using Microsoft.EntityFrameworkCore;
+
+namespace Judhur.Application.Features.Properties.Queries.GetProperties;
+
+public sealed class GetPropertiesQueryHandler(IAppDbContext context) : IRequestHandler<GetPropertiesQuery, Result<PaginatedList<PropertyDto>>>
+{
+    private readonly IAppDbContext _context = context;
+
+    public async Task<Result<PaginatedList<PropertyDto>>> Handle(GetPropertiesQuery request, CancellationToken cancellationToken)
+    {
+        if (request.Page <= 0)
+        {
+            return PropertyErrors.PageInvalid;
+        }
+        if (request.PageSize is <= 0 or > 100)
+        {
+            return PropertyErrors.PageSizeInvalid;
+        }
+        var propertyQuery = _context.Properties.AsNoTracking().Where(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive).AsQueryable();
+        propertyQuery = ApplyFilters(propertyQuery, request);
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            propertyQuery = ApplySearchTerm(propertyQuery, request.SearchTerm);
+        }
+        propertyQuery = ApplySorting(propertyQuery, request.SortColumn, request.SortDirection);
+        var count = await propertyQuery.CountAsync(cancellationToken);
+        var items = await propertyQuery
+        .Skip((request.Page - 1) * request.PageSize)
+        .Take(request.PageSize)
+        .Select(p => p.ToDto())
+        .ToListAsync(cancellationToken);
+        return new PaginatedList<PropertyDto>
+        {
+            Items = items,
+            PageNumber = request.Page,
+            PageSize = request.PageSize,
+            TotalCount = count,
+            TotalPages = (int)Math.Ceiling(count / (double)request.PageSize)
+        };
+    }
+    private IQueryable<Property> ApplySorting(IQueryable<Property> query, string sortColumn, string sortDirection)
+    {
+        var isDescending = sortDirection.Equals("desc", StringComparison.CurrentCultureIgnoreCase);
+        return sortColumn.ToLower() switch
+        {
+            "createdat" => isDescending ? query.OrderByDescending(p => p.CreatedAtUtc) : query.OrderBy(p => p.CreatedAtUtc),
+            "city" => isDescending ? query.OrderByDescending(p => p.City) : query.OrderBy(p => p.City),
+            "price" => isDescending ? query.OrderByDescending(p => p.Price) : query.OrderBy(p => p.Price),
+            "landclassification" => isDescending ? query.OrderByDescending(p => p.LandClassification) : query.OrderBy(p => p.LandClassification),
+            _ => query.OrderByDescending(p => p.CreatedAtUtc)
+        };
+    }
+
+    private IQueryable<Property> ApplySearchTerm(IQueryable<Property> query, string searchTerm)
+    {
+        var normalized = searchTerm.Trim().ToLower();
+        return query.Where(p => p.Title.ToLower().Contains(normalized));
+    }
+
+    private IQueryable<Property> ApplyFilters(IQueryable<Property> query, GetPropertiesQuery searchQuery)
+    {
+        if (searchQuery.MinPrice.HasValue)
+        {
+            query = query.Where(p => p.Price >= searchQuery.MinPrice.Value);
+        }
+        if (searchQuery.MaxPrice.HasValue)
+        {
+            query = query.Where(p => p.Price <= searchQuery.MaxPrice.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(searchQuery.City))
+        {
+            query = query.Where(p => p.City == searchQuery.City);
+        }
+        if (searchQuery.LandClassification.HasValue)
+        {
+            query = query.Where(p => p.LandClassification == searchQuery.LandClassification);
+        }
+        if (searchQuery.LegalStatus.HasValue)
+        {
+            query = query.Where(p => p.LegalStatus == searchQuery.LegalStatus);
+        }
+        if (searchQuery.PaymentType.HasValue)
+        {
+            query = query.Where(p => p.PaymentType == searchQuery.PaymentType);
+        }
+        if (searchQuery.PropertyStatus.HasValue)
+        {
+            query = query.Where(p => p.PropertyStatus == searchQuery.PropertyStatus);
+        }
+        if (searchQuery.PropertyType.HasValue)
+        {
+            query = query.Where(p => p.PropertyType == searchQuery.PropertyType);
+        }
+        return query;
+    }
+}
