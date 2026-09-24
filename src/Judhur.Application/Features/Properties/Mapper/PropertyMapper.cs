@@ -1,3 +1,4 @@
+using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Domain.Properties;
 
@@ -27,6 +28,12 @@ public static class PropertyMapper
             LegalStatus = entity.LegalStatus,
             OwnershipDocumentUrl = entity.OwnershipDocumentUrl
         };
+    }
+    public static PropertyDto ToDto(this Property entity, UserInfoDto userInfo)
+    {
+        var dto = entity.ToDto();
+        dto.User = userInfo;
+        return dto;
     }
     public static List<PropertyDto> ToDtos(this IEnumerable<Property> entities)
     {

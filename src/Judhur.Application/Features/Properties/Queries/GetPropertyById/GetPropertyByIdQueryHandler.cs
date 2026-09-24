@@ -12,10 +12,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Queries.GetPropertyById;
 
-public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHandler> logger, IAppDbContext context) : IRequestHandler<GetPropertyByIdQuery, Result<PropertyDto>>
+public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHandler> logger, IAppDbContext context, IIdentityService identityService) : IRequestHandler<GetPropertyByIdQuery, Result<PropertyDto>>
 {
     private readonly ILogger<GetPropertyByIdQueryHandler> _logger = logger;
     private readonly IAppDbContext _context = context;
+    private readonly IIdentityService _identityService = identityService;
+
 
     public async Task<Result<PropertyDto>> Handle(GetPropertyByIdQuery request, CancellationToken cancellationToken)
     {
@@ -31,6 +33,11 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
             _logger.LogWarning("Property with id {PropertyId} was not found", request.PropertyId);
             return PropertyErrors.NotFound;
         }
-        return property.ToDto();
+        var userInfo = await _identityService.GetUserInfoAsync(property.SellerId.ToString(), cancellationToken);
+        if (userInfo.IsError)
+        {
+            return userInfo.Errors;
+        }
+        return property.ToDto(userInfo.Value);
     }
 }

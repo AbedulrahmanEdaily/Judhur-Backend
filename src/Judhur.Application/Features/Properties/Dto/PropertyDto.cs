@@ -1,10 +1,11 @@
+using Judhur.Application.Common.Models;
 using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;
 
 public class PropertyDto
 {
-    public Guid Id {get;set;}
+    public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal Price { get; set; }
@@ -20,5 +21,6 @@ public class PropertyDto
     public LandClassification LandClassification { get; set; }
     public LegalStatus LegalStatus { get; set; }
     public string OwnershipDocumentUrl { get; set; } = string.Empty;
+    public UserInfoDto? User { get; set; }
 
 }

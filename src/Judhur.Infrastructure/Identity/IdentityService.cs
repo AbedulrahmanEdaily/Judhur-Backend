@@ -213,4 +213,13 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new AppUserDto(user.Id, user.Email, roles);
     }
 
+    public async Task<Result<UserInfoDto>> GetUserInfoAsync(string userId, CancellationToken ct = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        return new UserInfoDto(user.Id, user.FullName, user.PhoneNumber, user.ProfileImageUrl);
+    }
 }
