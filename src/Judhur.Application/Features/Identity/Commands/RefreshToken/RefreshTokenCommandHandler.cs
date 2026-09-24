@@ -25,34 +25,35 @@ public sealed class RefreshTokenCommandHandler(IAppDbContext context, ITokenProv
         var principal = _tokenProvider.GetPrincipalFromExpiredToken(request.ExpiredAccessToken);
         if (principal is null)
         {
-            _logger.LogError("Expired access token is not valid");
+            _logger.LogWarning("Refresh rejected: expired access token is not valid");
             return ApplicationError.ExpiredAccessTokenInvalid;
         }
         var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
-            _logger.LogError("Invalid userId claim");
+            _logger.LogWarning("Refresh rejected: access token has no valid user id claim");
             return ApplicationError.UserIdClaimInvalid;
         }
         var getUserResult = await _identityService.GetUserByIdAsync(userId.ToString(), cancellationToken);
         if (getUserResult.IsError)
         {
-            _logger.LogError("Get user by id error occurred: {ErrorDescription}", getUserResult.TopError.Description);
+            _logger.LogWarning("Refresh rejected for user {UserId}: {ErrorCode}", userId, getUserResult.TopError.Code);
             return getUserResult.Errors;
         }
         var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(r => r.Token == request.RefreshToken && r.UserId == userId, cancellationToken);
         var nowUtc = _timeProvider.GetUtcNow();
         if (refreshToken is null || refreshToken.IsExpired(nowUtc))
         {
-            _logger.LogError("Refresh token has expired");
+            _logger.LogWarning("Refresh rejected for user {UserId}: refresh token missing or expired", userId);
             return RefreshTokenErrors.Expired;
         }
         var generateTokenResult = await _tokenProvider.GenerateJwtTokenAsync(getUserResult.Value, cancellationToken);
         if (generateTokenResult.IsError)
         {
-            _logger.LogError("Generate token error occurred: {ErrorDescription}", generateTokenResult.TopError.Description);
+            _logger.LogError("Token generation failed for user {UserId}: {ErrorCode}", userId, generateTokenResult.TopError.Code);
             return generateTokenResult.Errors;
         }
+        _logger.LogInformation("Tokens refreshed for user {UserId}", userId);
         return generateTokenResult.Value;
     }
 }
