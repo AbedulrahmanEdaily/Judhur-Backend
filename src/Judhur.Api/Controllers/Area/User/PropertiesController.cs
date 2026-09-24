@@ -1,6 +1,7 @@
 using Asp.Versioning;
 
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
+using Judhur.Application.Features.Properties.Queries.GetPropertyById;
 using Judhur.Domain.Common;
 
 using MediatR;
@@ -17,11 +18,16 @@ public sealed class PropertiesController(ISender sender) : ApiController
 {
     private readonly ISender _sender = sender;
 
-    [HttpGet("{propertyId:guid}",Name ="GetPropertyById")]
+    [HttpGet("{propertyId:guid}", Name = "GetPropertyById")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    [EndpointSummary("Retrieves a property by its ID.")]
     [EndpointName("GetPropertyById")]
-    public IActionResult Get(Guid propertyId)
+    public async Task<IActionResult> GetById(Guid propertyId, CancellationToken ct)
     {
-        return Ok(propertyId);
+        var result = await _sender.Send(new GetPropertyByIdQuery(propertyId), ct);
+        return result.Match(response => Ok(response), Problem);
     }
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
