@@ -8,21 +8,25 @@ using Judhur.Domain.Properties.Enums;
 using MediatR;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Queries.GetProperties;
 
-public sealed class GetPropertiesQueryHandler(IAppDbContext context) : IRequestHandler<GetPropertiesQuery, Result<PaginatedList<PropertySummaryDto>>>
+public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler> logger, IAppDbContext context) : IRequestHandler<GetPropertiesQuery, Result<PaginatedList<PropertySummaryDto>>>
 {
+    private readonly ILogger<GetPropertiesQueryHandler> _logger = logger;
     private readonly IAppDbContext _context = context;
 
     public async Task<Result<PaginatedList<PropertySummaryDto>>> Handle(GetPropertiesQuery request, CancellationToken cancellationToken)
     {
         if (request.Page <= 0)
         {
+            _logger.LogWarning("Get properties rejected: invalid page {Page}", request.Page);
             return PropertyErrors.PageInvalid;
         }
         if (request.PageSize is <= 0 or > 100)
         {
+            _logger.LogWarning("Get properties rejected: invalid page size {PageSize}", request.PageSize);
             return PropertyErrors.PageSizeInvalid;
         }
         var propertyQuery = _context.Properties.AsNoTracking().Where(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive).AsQueryable();
@@ -49,6 +53,7 @@ public sealed class GetPropertiesQueryHandler(IAppDbContext context) : IRequestH
             Region = p.Region
         })
         .ToListAsync(cancellationToken);
+        _logger.LogInformation("Retrieved {Count} of {TotalCount} properties (page {Page}, size {PageSize})", items.Count, count, request.Page, request.PageSize);
         return new PaginatedList<PropertySummaryDto>
         {
             Items = items,

@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
 using Judhur.Application.Features.Properties.Dto;
+using Judhur.Application.Features.Properties.Queries.GetMyProperties;
 using Judhur.Application.Features.Properties.Queries.GetProperties;
 using Judhur.Application.Features.Properties.Queries.GetPropertyById;
 using Judhur.Api.Mapping;
@@ -47,7 +48,19 @@ public sealed class PropertiesController(ISender sender) : ApiController
             filters.PropertyType.ToDomain(),
             filters.SortColumn,
             filters.SortDirection
-        ));
+        ), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+    [HttpGet("mine")]
+    [ProducesResponseType(typeof(List<MyPropertyDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    [EndpointSummary("Retrieves the current user's own properties.")]
+    [EndpointDescription("Returns every property owned by the authenticated user in any moderation state (pending, approved, rejected) and whether active or not, newest first. Includes the rejection reason for rejected listings. Not cached.")]
+    [EndpointName("GetMyProperties")]
+    public async Task<IActionResult> GetMine(CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetMyPropertiesQuery(), ct);
         return result.Match(response => Ok(response), Problem);
     }
     [HttpGet("{propertyId:guid}", Name = "GetPropertyById")]

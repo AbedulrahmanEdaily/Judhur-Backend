@@ -21,6 +21,7 @@ public sealed class CreatePropertyCommandHandler(ILogger<CreatePropertyCommandHa
     {
         if (_user.Id is not { } sellerId)
         {
+            _logger.LogWarning("Create property rejected: request has no authenticated user");
             return ApplicationError.Unauthenticated;
         }
         var propertyResult = Property.Create(
@@ -43,13 +44,13 @@ public sealed class CreatePropertyCommandHandler(ILogger<CreatePropertyCommandHa
             sellerId);
         if (propertyResult.IsError)
         {
-            _logger.LogError("Failed to create Property {Error}", propertyResult.TopError.Description);
+            _logger.LogWarning("Create property failed for seller {SellerId}: {Error}", sellerId, propertyResult.TopError.Code);
             return propertyResult.Errors;
         }
         var property = propertyResult.Value;
         _context.Properties.Add(property);
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Property with Id '{Id}' created successfully", property.Id);
+        _logger.LogInformation("Property {PropertyId} created by seller {SellerId}", property.Id, sellerId);
         return property.ToDto();
     }
 }

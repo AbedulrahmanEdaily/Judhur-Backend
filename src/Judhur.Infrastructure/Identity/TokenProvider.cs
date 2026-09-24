@@ -45,7 +45,7 @@ public sealed class TokenProvider(
         var descriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddYears(1),
+            Expires = expiresOnUtc.UtcDateTime,
             Issuer = _jwtSettings.Issuer,
             Audience = _jwtSettings.Audience,
             SigningCredentials = new SigningCredentials(

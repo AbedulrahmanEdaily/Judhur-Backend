@@ -36,10 +36,12 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
         var userInfo = await _identityService.GetUserInfoAsync(property.SellerId.ToString(), cancellationToken);
         if (userInfo.IsError)
         {
+            _logger.LogWarning("Failed to load seller {SellerId} for property {PropertyId}: {Error}", property.SellerId, property.Id, userInfo.TopError.Code);
             return userInfo.Errors;
         }
         var response = property.ToDto();
         response.User = userInfo.Value;
+        _logger.LogInformation("Property {PropertyId} retrieved", property.Id);
         return response;
     }
 }
