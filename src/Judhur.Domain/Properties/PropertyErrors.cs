@@ -151,4 +151,15 @@ public static class PropertyErrors
     public static readonly Error RejectionReasonTooLong = Error.Validation(
         "PropertyErrors.RejectionReasonTooLong",
         $"لا يمكن أن يتجاوز سبب الرفض {Property.MaxRejectionReasonLength} حرف");
+    public static readonly Error NotFound = Error.NotFound(
+        "PropertyErrors.NotFound",
+        "العقار غير موجود");
+
+    public static readonly Error PageInvalid = Error.Validation(
+        "PropertyErrors.PageInvalid",
+        "رقم الصفحة يجب أن يكون أكبر من صفر");
+
+    public static readonly Error PageSizeInvalid = Error.Validation(
+        "PropertyErrors.PageSizeInvalid",
+        "حجم الصفحة يجب أن يكون بين 1 و100");
 }

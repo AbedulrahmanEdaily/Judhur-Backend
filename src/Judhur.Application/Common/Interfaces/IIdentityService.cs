@@ -43,4 +43,5 @@ public interface IIdentityService
         Guid userId,
         CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
+    Task<Result<UserInfoDto>> GetUserInfoAsync(string userId, CancellationToken ct = default);
 }

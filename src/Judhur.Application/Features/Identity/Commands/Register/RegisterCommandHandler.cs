@@ -6,17 +6,21 @@ using Judhur.Domain.Common.Results;
 
 using MediatR;
 
+using Microsoft.Extensions.Logging;
+
 namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed class RegisterCommandHandler(
     IIdentityService identityService,
     IDeferredDispatcher dispatcher,
-    IPublisher publisher) : IRequestHandler<RegisterCommand, Result<Success>>
+    IPublisher publisher,
+    ILogger<RegisterCommandHandler> logger) : IRequestHandler<RegisterCommand, Result<Success>>
 {
 
     private readonly IIdentityService _identityService = identityService;
     private readonly IDeferredDispatcher _dispatcher = dispatcher;
     private readonly IPublisher _publisher = publisher;
+    private readonly ILogger<RegisterCommandHandler> _logger = logger;
 
     public async Task<Result<Success>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
@@ -32,10 +36,12 @@ public sealed class RegisterCommandHandler(
         var userResult = await _identityService.CreateNewUserAsync(register, cancellationToken);
         if (userResult.IsError)
         {
+            _logger.LogWarning("Registration failed: {ErrorCode}", userResult.TopError.Code);
             return userResult.Errors;
         }
         var userId = userResult.Value;
-        _dispatcher.Defer(ct=> _publisher.Publish(new UserRegistered(userId),ct));
+        _dispatcher.Defer(ct => _publisher.Publish(new UserRegistered(userId), ct));
+        _logger.LogInformation("User {UserId} registered", userId);
         return Result.Success;
     }
 

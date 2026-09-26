@@ -16,4 +16,7 @@ public static class ApplicationError
     public static readonly Error TokenGenerationFailed = Error.Failure(
         code: "Auth.TokenGeneration.Failed",
         description: "Failed to generate new JWT token.");
+    public static readonly Error Unauthenticated = Error.Unauthorized(
+        code: "Auth.NotAuthenticated",
+        description: "يجب تسجيل الدخول لتنفيذ هذا الإجراء.");
 }
