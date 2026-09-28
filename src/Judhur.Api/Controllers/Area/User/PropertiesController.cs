@@ -2,7 +2,11 @@ using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
+using Judhur.Application.Features.Properties.Commands.DeactivateProperty;
 using Judhur.Application.Features.Properties.Commands.DeleteProperty;
+using Judhur.Application.Features.Properties.Commands.MarkPropertyAsRented;
+using Judhur.Application.Features.Properties.Commands.MarkPropertyAsSold;
+using Judhur.Application.Features.Properties.Commands.ReactivateProperty;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 using Judhur.Application.Features.Properties.Dto;
@@ -129,6 +133,58 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> DeleteAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
         var result = await _sender.Send(new DeletePropertyCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("{propertyId:guid}/deactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Deactivates a property.")]
+    [EndpointDescription("Hides a property owned by the authenticated user from public search and details, without deleting it. Works in any moderation state. Returns 409 if the property is already inactive, 404 if it does not exist or belongs to another user.")]
+    [EndpointName("DeactivateProperty")]
+    public async Task<IActionResult> DeactivateAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new DeactivatePropertyCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("{propertyId:guid}/reactivate")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Reactivates a property.")]
+    [EndpointDescription("Makes a deactivated property owned by the authenticated user visible again. Only approved properties can be reactivated, so this never skips moderation. Returns 409 if the property is already active or not approved, 404 if it does not exist or belongs to another user.")]
+    [EndpointName("ReactivateProperty")]
+    public async Task<IActionResult> ReactivateAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new ReactivatePropertyCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("{propertyId:guid}/mark-sold")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Marks a property as sold.")]
+    [EndpointDescription("Changes the status of an approved property that is for sale to Sold. The listing stays visible with a sold badge. Returns 409 if the property is not approved or not for sale, 404 if it does not exist or belongs to another user.")]
+    [EndpointName("MarkPropertyAsSold")]
+    public async Task<IActionResult> MarkAsSoldAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new MarkPropertyAsSoldCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("{propertyId:guid}/mark-rented")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Marks a property as rented.")]
+    [EndpointDescription("Changes the status of an approved property that is for rent to Rented. The listing stays visible with a rented badge. Returns 409 if the property is not approved or not for rent, 404 if it does not exist or belongs to another user.")]
+    [EndpointName("MarkPropertyAsRented")]
+    public async Task<IActionResult> MarkAsRentedAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new MarkPropertyAsRentedCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }
