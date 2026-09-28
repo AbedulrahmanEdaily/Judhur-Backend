@@ -5,6 +5,7 @@ using Judhur.Application.Features.Properties.Commands.AddPropertyImage;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
 using Judhur.Application.Features.Properties.Commands.DeactivateProperty;
 using Judhur.Application.Features.Properties.Commands.DeleteProperty;
+using Judhur.Application.Features.Properties.Commands.DeletePropertyImage;
 using Judhur.Application.Features.Properties.Commands.MarkPropertyAsRented;
 using Judhur.Application.Features.Properties.Commands.MarkPropertyAsSold;
 using Judhur.Application.Features.Properties.Commands.ReactivateProperty;
@@ -221,5 +222,19 @@ public sealed class PropertiesController(ISender sender) : ApiController
             file.Length,
             isMainImage), ct);
         return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpDelete("{propertyId:guid}/images/{imageId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Deletes an image from a property.")]
+    [EndpointDescription("Deletes an image from a property owned by the authenticated user and removes the file from storage. The main image cannot be deleted; set another image as main first. An approved property must keep at least 3 images. Returns 404 if the property or image does not exist.")]
+    [EndpointName("DeletePropertyImage")]
+    public async Task<IActionResult> DeleteImageAsync([FromRoute] Guid propertyId, [FromRoute] Guid imageId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new DeletePropertyImageCommand(propertyId, imageId), ct);
+        return result.Match(_ => NoContent(), Problem);
     }
 }
