@@ -2,6 +2,7 @@ using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
+using Judhur.Application.Features.Properties.Commands.DeleteProperty;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 using Judhur.Application.Features.Properties.Dto;
@@ -115,6 +116,19 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> UpdateDescriptionAsync([FromRoute] Guid propertyId, [FromBody] UpdatePropertyDescriptionCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request with { PropertyId = propertyId }, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpDelete("{propertyId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Deletes a property.")]
+    [EndpointDescription("Soft-deletes a property owned by the authenticated user: it disappears from search, details and the owner's list, while its conversations and reports are kept. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointName("DeleteProperty")]
+    public async Task<IActionResult> DeleteAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new DeletePropertyCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }

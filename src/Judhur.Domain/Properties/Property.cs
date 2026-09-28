@@ -105,6 +105,10 @@ public sealed class Property : AuditableEntity
 
     public bool IsActive { get; private set; }
 
+    public bool IsDeleted { get; private set; }
+
+    public DateTimeOffset? DeletedAtUtc { get; private set; }
+
     public IReadOnlyCollection<PropertyImage> PropertyImages => _propertyImages.AsReadOnly();
 
     public PropertyImage? MainImage => _propertyImages.FirstOrDefault(i => i.IsMainImage);
@@ -350,6 +354,22 @@ public sealed class Property : AuditableEntity
         IsActive = true;
 
         return Result.Updated;
+    }
+
+    // Soft delete: the row stays so conversations and reports about this property are kept.
+    // The global query filter in PropertyConfiguration hides deleted properties from every query.
+    public Result<Deleted> Delete(DateTimeOffset deletedAtUtc)
+    {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
+        IsDeleted = true;
+        DeletedAtUtc = deletedAtUtc;
+        IsActive = false;
+
+        return Result.Deleted;
     }
 
     public Result<Updated> AddImage(Guid imageId, string fileUrl, string publicId, bool isMainImage)

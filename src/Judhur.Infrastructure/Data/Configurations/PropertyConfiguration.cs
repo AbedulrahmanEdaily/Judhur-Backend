@@ -11,6 +11,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
     public void Configure(EntityTypeBuilder<Property> builder)
     {
         builder.HasKey(i => i.Id);
+        builder.HasQueryFilter(p => !p.IsDeleted);
         builder.Ignore(p => p.MainImage);
         builder.HasMany(p => p.PropertyImages)
             .WithOne()

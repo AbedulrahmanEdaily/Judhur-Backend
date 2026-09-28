@@ -109,6 +109,8 @@ namespace Judhur.Infrastructure.Migrations
                     ReviewedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ReviewedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     CreatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     LastModifiedUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
