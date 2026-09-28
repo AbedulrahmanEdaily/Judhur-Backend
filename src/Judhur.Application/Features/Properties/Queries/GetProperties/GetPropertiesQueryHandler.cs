@@ -50,7 +50,11 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             PropertyStatus = p.PropertyStatus,
             Area = p.Area,
             City = p.City,
-            Region = p.Region
+            Region = p.Region,
+            MainImageUrl = p.PropertyImages
+                .Where(i => i.IsMainImage)
+                .Select(i => i.FileUrl)
+                .FirstOrDefault()
         })
         .ToListAsync(cancellationToken);
         _logger.LogInformation("Retrieved {Count} of {TotalCount} properties (page {Page}, size {PageSize})", items.Count, count, request.Page, request.PageSize);

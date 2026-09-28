@@ -21,5 +21,6 @@ public class PropertyDto
     public LandClassification LandClassification { get; set; }
     public LegalStatus LegalStatus { get; set; }
     public UserInfoDto? User { get; set; }
+    public List<PropertyImageDto> Images { get; set; } = [];
 
 }

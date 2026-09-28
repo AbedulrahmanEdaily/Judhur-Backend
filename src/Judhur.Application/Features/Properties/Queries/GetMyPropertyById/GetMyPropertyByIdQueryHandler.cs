@@ -50,7 +50,11 @@ public sealed class GetMyPropertyByIdQueryHandler(IUser user, IAppDbContext cont
                 RejectionReason = p.RejectionReason,
                 ReviewedAtUtc = p.ReviewedAtUtc,
                 IsActive = p.IsActive,
-                CreatedAtUtc = p.CreatedAtUtc
+                CreatedAtUtc = p.CreatedAtUtc,
+                Images = p.PropertyImages
+                    .OrderBy(i => i.DisplayOrder)
+                    .Select(i => new PropertyImageDto(i.Id, i.FileUrl, i.DisplayOrder, i.IsMainImage))
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
         if (property is null)

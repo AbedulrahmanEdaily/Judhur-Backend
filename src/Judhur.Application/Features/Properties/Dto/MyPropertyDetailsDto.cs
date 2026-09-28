@@ -29,4 +29,5 @@ public sealed class MyPropertyDetailsDto
     public DateTimeOffset? ReviewedAtUtc { get; set; }
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
+    public List<PropertyImageDto> Images { get; set; } = [];
 }

@@ -23,6 +23,7 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
     {
         var property = await _context.Properties
         .AsNoTracking()
+        .Include(p => p.PropertyImages)
         .FirstOrDefaultAsync(
             p => p.Id == request.PropertyId
                 && p.ModerationStatus == ModerationStatus.Approved

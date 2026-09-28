@@ -13,4 +13,5 @@ public sealed class PropertySummaryDto
     public decimal Area { get; set; }
     public string City { get; set; } = string.Empty;
     public string? Region { get; set; }
+    public string? MainImageUrl { get; set; }
 }

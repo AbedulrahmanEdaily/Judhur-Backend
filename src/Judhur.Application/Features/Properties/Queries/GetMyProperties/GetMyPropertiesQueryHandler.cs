@@ -41,7 +41,11 @@ public sealed class GetMyPropertiesQueryHandler(IAppDbContext context, IUser use
                 ModerationStatus = p.ModerationStatus,
                 RejectionReason = p.RejectionReason,
                 IsActive = p.IsActive,
-                CreatedAtUtc = p.CreatedAtUtc
+                CreatedAtUtc = p.CreatedAtUtc,
+                MainImageUrl = p.PropertyImages
+                    .Where(i => i.IsMainImage)
+                    .Select(i => i.FileUrl)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
         _logger.LogInformation("Retrieved {Count} properties for seller {SellerId}", properties.Count, sellerId);
