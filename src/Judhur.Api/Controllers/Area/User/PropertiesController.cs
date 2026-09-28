@@ -11,6 +11,7 @@ using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Queries.GetMyProperties;
+using Judhur.Application.Features.Properties.Queries.GetMyPropertyById;
 using Judhur.Application.Features.Properties.Queries.GetProperties;
 using Judhur.Application.Features.Properties.Queries.GetPropertyById;
 using Judhur.Api.Mapping;
@@ -69,6 +70,18 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> GetMine(CancellationToken ct)
     {
         var result = await _sender.Send(new GetMyPropertiesQuery(), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+    [HttpGet("mine/{propertyId:guid}")]
+    [ProducesResponseType(typeof(MyPropertyDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Retrieves one of the current user's own properties.")]
+    [EndpointDescription("Returns the full details of a property owned by the authenticated user in any moderation state, including moderation status, rejection reason and the ownership document. Used to show the owner's listing and to pre-fill the edit form. Not cached. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointName("GetMyPropertyById")]
+    public async Task<IActionResult> GetMineById([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetMyPropertyByIdQuery(propertyId), ct);
         return result.Match(response => Ok(response), Problem);
     }
     [HttpGet("{propertyId:guid}", Name = "GetPropertyById")]
