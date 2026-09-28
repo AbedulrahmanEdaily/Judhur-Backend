@@ -1,7 +1,10 @@
 using System.Text;
 
+using CloudinaryDotNet;
+
 using Judhur.Application.Common.Interfaces;
 using Judhur.Infrastructure.Data;
+using Judhur.Infrastructure.CloudinaryStorage;
 using Judhur.Infrastructure.Common;
 using Judhur.Infrastructure.Data.Interceptors;
 using Judhur.Infrastructure.Email;
@@ -27,8 +30,24 @@ public static class DependencyInjection
         services.AddPersistence(configuration)
                 .AddEmail(configuration)
                 .AddIdentityServices(configuration)
-                .AddCaching();
+                .AddCaching()
+                .AddCloudinary(configuration);
 
+        return services;
+    }
+
+    private static IServiceCollection AddCloudinary(this IServiceCollection services, IConfiguration configuration)
+    {
+        var cloudinarySettings = CloudinarySettings.Bind(configuration);
+        var account = new Account
+        {
+            ApiKey = cloudinarySettings.ApiKey,
+            Cloud = cloudinarySettings.CloudName,
+            ApiSecret = cloudinarySettings.ApiSecret
+        };
+        var cloudinary = new Cloudinary(account);
+        services.AddSingleton<ICloudinary>(cloudinary);
+        services.AddScoped<IFileStorage, CloudinaryFileStorage>();
         return services;
     }
 

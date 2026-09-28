@@ -19,4 +19,11 @@ public static class ApplicationError
     public static readonly Error Unauthenticated = Error.Unauthorized(
         code: "Auth.NotAuthenticated",
         description: "يجب تسجيل الدخول لتنفيذ هذا الإجراء.");
+    public static readonly Error UploadFailed = Error.Failure(
+        code: "Storage.UploadFailed",
+        description: "تعذّر رفع الملف، يرجى المحاولة لاحقًا.");
+
+    public static readonly Error DeleteFailed = Error.Failure(
+        code: "Storage.DeleteFailed",
+        description: "تعذّر حذف الملف، يرجى المحاولة لاحقًا.");
 }
