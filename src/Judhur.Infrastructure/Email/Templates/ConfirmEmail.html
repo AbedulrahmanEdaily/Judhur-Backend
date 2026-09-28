@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>تأكيد البريد الإلكتروني</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body style="margin:0; padding:0; background-color:#f6f8f7;">
+  <div style="display:none; max-height:0; overflow:hidden; opacity:0;">
+    خطوة واحدة لتفعيل حسابك في جذور: أكّد بريدك الإلكتروني.
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f6f8f7;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="rtl"
+          style="max-width:520px; background-color:#ffffff; border:1px solid #e2e8e4; border-radius:20px;">
+          <tr>
+            <td style="padding:40px 32px; font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif; text-align:center;">
+
+              <img src="cid:judhur-logo" width="56" height="56" alt="جذور"
+                style="display:block; margin:0 auto 24px auto; border:0;">
+
+              <h1 style="margin:0 0 12px 0; font-size:24px; line-height:36px; font-weight:700; color:#0e1a16;">
+                أكّد بريدك الإلكتروني
+              </h1>
+
+              <p style="margin:0 0 8px 0; font-size:15px; line-height:26px; color:#5f6b65;">
+                مرحبًا {{FullName}}،
+              </p>
+              <p style="margin:0 0 28px 0; font-size:15px; line-height:26px; color:#5f6b65;">
+                شكرًا لتسجيلك في منصة جذور. لإكمال إنشاء حسابك، يرجى تأكيد بريدك الإلكتروني بالضغط على الزر أدناه.
+                الرابط صالح لمدة 24 ساعة.
+              </p>
+
+              <!-- Button -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="#0f7a56" style="border-radius:12px;">
+                    <a href="{{ConfirmLink}}" target="_blank"
+                      style="display:block; padding:14px 24px; font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif; font-size:16px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:12px;">
+                      تأكيد البريد الإلكتروني
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Note -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                style="margin-top:24px;">
+                <tr>
+                  <td
+                    style="background-color:#eef2f0; border-radius:12px; padding:14px 16px; text-align:right; font-size:13px; line-height:22px; color:#5f6b65;">
+                    إذا لم تقم بإنشاء حساب في جذور، يمكنك تجاهل هذه الرسالة بأمان.
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Fallback link -->
+              <p style="margin:24px 0 6px 0; font-size:13px; line-height:22px; color:#8a948f; text-align:right;">
+                إذا لم يعمل الزر، انسخ الرابط التالي والصقه في المتصفح:
+              </p>
+              <p dir="ltr" style="margin:0; font-size:12px; line-height:20px; text-align:left; word-break:break-all;">
+                <a href="{{ConfirmLink}}" target="_blank"
+                  style="color:#0f7a56; text-decoration:underline;">{{ConfirmLink}}</a>
+              </p>
+
+            </td>
+          </tr>
+        </table>
+
+        <!-- Footer -->
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+          <tr>
+            <td
+              style="padding:20px 16px 0 16px; font-family:'Cairo','Segoe UI',Tahoma,Arial,sans-serif; text-align:center; font-size:12px; line-height:20px; color:#8a948f;">
+              هذه رسالة آلية، يرجى عدم الرد عليها.<br>
+              © {{Year}} جذور — منصة العقارات الفلسطينية
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>

@@ -22,4 +22,8 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Email\Templates\*.html;Email\Templates\*.png" LogicalName="EmailTemplates.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

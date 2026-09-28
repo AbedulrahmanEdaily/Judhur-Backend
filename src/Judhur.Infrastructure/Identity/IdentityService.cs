@@ -15,6 +15,8 @@ namespace Judhur.Infrastructure.Identity;
 public sealed class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, FrontendSettings frontendSettings,
     TimeProvider timeProvider) : IIdentityService
 {
+    private const int ResetCodeLifetimeMinutes = 5;
+
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly FrontendSettings _frontendSettings = frontendSettings;
@@ -136,7 +138,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         }
         var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
         user.ResetCode = code;
-        user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(5);
+        user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(ResetCodeLifetimeMinutes);
         var updateResult = await _userManager.UpdateAsync(user);
         return updateResult.Succeeded ? user.Id : null;
     }
@@ -152,10 +154,13 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         var link = $"{_frontendSettings.ConfirmEmailUrl}" +
                     $"?userId={user!.Id}" +
                     $"&token={Uri.EscapeDataString(token)}";
-        return new EmailMessage(
-            user.Email!,
-            "تأكيد البريد الإلكتروني",
-            $"""<div dir="rtl"><p>مرحبًا بك في منصة جذور.</p><p><a href="{link}">اضغط هنا لتأكيد بريدك الإلكتروني</a></p></div>""");
+        var html = EmailTemplates.Render("ConfirmEmail", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ConfirmLink"] = link,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(user.Email!, "تأكيد البريد الإلكتروني", html);
     }
 
     public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -165,10 +170,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return UserNoLongerExists();
         }
-        return new EmailMessage(
-            user.Email,
-            "رمز استعادة كلمة المرور",
-            $"""<div dir="rtl"><p>رمز استعادة كلمة المرور الخاص بك هو <strong>{user.ResetCode}</strong>، وتنتهي صلاحيته خلال 5 دقائق.</p></div>""");
+        var html = EmailTemplates.Render("ResetPasswordCode", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ResetCode"] = user.ResetCode,
+            ["ExpiryMinutes"] = ResetCodeLifetimeMinutes.ToString(),
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(user.Email, "رمز استعادة كلمة المرور", html);
     }
     private static Error UserNoLongerExists()
         => Error.NotFound("Identity.UserNotFound", "المستخدم لم يعد موجودًا.");
@@ -199,7 +208,12 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return UserNoLongerExists();
         }
-        return new EmailMessage(user.Email, "تم تغيير كلمة المرور", """<div dir="rtl"><p>تم تغيير كلمة المرور الخاصة بحسابك.</p><p>إن لم تقم بهذا التغيير، يرجى التواصل معنا فورًا.</p></div>""");
+        var html = EmailTemplates.Render("PasswordChanged", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(user.Email, "تم تغيير كلمة المرور", html);
     }
 
     public async Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)
