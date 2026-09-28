@@ -10,13 +10,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 
-public sealed class UpdatePropertyDetailsCommandHandler(IAppDbContext context, ILogger<UpdatePropertyDetailsCommandHandler> logger, IUser user) : IRequestHandler<UpdatePropertyDetailsCommand, Result<Success>>
+public sealed class UpdatePropertyDetailsCommandHandler(IAppDbContext context, ILogger<UpdatePropertyDetailsCommandHandler> logger, IUser user) : IRequestHandler<UpdatePropertyDetailsCommand, Result<Updated>>
 {
     private readonly IAppDbContext _context = context;
     private readonly ILogger<UpdatePropertyDetailsCommandHandler> _logger = logger;
     private readonly IUser _user = user;
 
-    public async Task<Result<Success>> Handle(UpdatePropertyDetailsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<Updated>> Handle(UpdatePropertyDetailsCommand request, CancellationToken cancellationToken)
     {
         if (_user.Id is not { } sellerId)
         {
@@ -32,7 +32,7 @@ public sealed class UpdatePropertyDetailsCommandHandler(IAppDbContext context, I
         }
         var result = property.UpdateDetails(
             request.Title,
-            request.Description,
+            property.Description,
             request.Price,
             request.PaymentType,
             request.PropertyType,
@@ -51,6 +51,6 @@ public sealed class UpdatePropertyDetailsCommandHandler(IAppDbContext context, I
         }
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Property {PropertyId} updated by seller {SellerId}", property.Id, sellerId);
-        return Result.Success;
+        return Result.Updated;
     }
 }

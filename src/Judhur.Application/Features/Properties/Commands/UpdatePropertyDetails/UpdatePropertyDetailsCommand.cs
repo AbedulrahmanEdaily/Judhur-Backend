@@ -9,7 +9,6 @@ namespace Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 public sealed record UpdatePropertyDetailsCommand(
     [property: JsonIgnore] Guid PropertyId,
     string Title,
-    string? Description,
     decimal Price,
     PaymentType PaymentType,
     PropertyType PropertyType,
@@ -21,7 +20,7 @@ public sealed record UpdatePropertyDetailsCommand(
     double Longitude,
     LandClassification LandClassification,
     LegalStatus LegalStatus
-) : IInvalidateCacheCommand<Result<Success>>
+) : IInvalidateCacheCommand<Result<Updated>>
 {
     string[] IInvalidateCacheCommand.Tags => ["properties"];
 }

@@ -16,9 +16,6 @@ public sealed class UpdatePropertyDetailsCommandValidator : AbstractValidator<Up
             .NotEmpty().WithMessage("العنوان مطلوب.")
             .MaximumLength(Property.MaxTitleLength);
 
-        RuleFor(p => p.Description)
-            .MaximumLength(Property.MaxDescriptionLength);
-
         RuleFor(p => p.Price)
             .GreaterThan(0).WithMessage("السعر يجب أن يكون أكبر من صفر.");
 

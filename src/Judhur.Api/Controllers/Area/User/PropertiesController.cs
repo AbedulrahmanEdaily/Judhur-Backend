@@ -2,6 +2,7 @@ using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
+using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Queries.GetMyProperties;
@@ -90,15 +91,28 @@ public sealed class PropertiesController(ISender sender) : ApiController
         var result = await _sender.Send(request, ct);
         return result.Match(response => CreatedAtRoute(routeName: "GetPropertyById", routeValues: new { version = "1", propertyId = response.Id }, value: response), Problem);
     }
-    [HttpPut("{propertyId:guid}")]
+    [HttpPut("{propertyId:guid}/details")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [EndpointSummary("Updates a property's details.")]
-    [EndpointDescription("Replaces the editable details of a property owned by the authenticated user. Any change sends the listing back to Pending moderation, so it disappears from public search until an admin approves it again. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointDescription("Replaces the editable details of a property owned by the authenticated user (everything except the description, which has its own endpoint). Any change sends the listing back to Pending moderation, so it disappears from public search until an admin approves it again. Returns 404 if the property does not exist or belongs to another user.")]
     [EndpointName("UpdatePropertyDetails")]
     public async Task<IActionResult> UpdateDetailsAsync([FromRoute] Guid propertyId, [FromBody] UpdatePropertyDetailsCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request with { PropertyId = propertyId }, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPut("{propertyId:guid}/description")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Updates a property's description.")]
+    [EndpointDescription("Replaces the description of a property owned by the authenticated user. Send null or an empty value to clear it. Unlike the details endpoint, this does not send the listing back to moderation. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointName("UpdatePropertyDescription")]
+    public async Task<IActionResult> UpdateDescriptionAsync([FromRoute] Guid propertyId, [FromBody] UpdatePropertyDescriptionCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request with { PropertyId = propertyId }, ct);
         return result.Match(_ => NoContent(), Problem);

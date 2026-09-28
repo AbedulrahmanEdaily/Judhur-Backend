@@ -248,11 +248,7 @@ public sealed class Property : AuditableEntity
         {
             return PropertyErrors.DescriptionTooLong;
         }
-
         Description = description;
-
-        ResetModeration();
-
         return Result.Updated;
     }
 
