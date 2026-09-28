@@ -23,11 +23,22 @@ public static class DependencyInjection
                 .AddExceptionHandling()
                 .AddControllerWithJsonConfiguration()
                 .AddApiDocumentation()
+                .AddConfiguredCors()
                 .AddRateLimiting()
                 .AddIdentityInfrastructure();
         return services;
     }
-
+    public static IServiceCollection AddConfiguredCors(this IServiceCollection services)
+    {
+        services.AddCors(options => options.AddPolicy("frontend"
+            ,
+            policy => policy
+                .WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()));
+        return services;
+    }
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
         services.ConfigureAll<OpenApiOptions>(options =>
@@ -130,6 +141,7 @@ public static class DependencyInjection
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
         app.UseRouting();
+        app.UseCors("frontend");
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
