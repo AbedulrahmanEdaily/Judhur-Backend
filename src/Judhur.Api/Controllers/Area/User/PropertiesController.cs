@@ -2,6 +2,7 @@ using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
+using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Queries.GetMyProperties;
 using Judhur.Application.Features.Properties.Queries.GetProperties;
@@ -30,6 +31,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [EndpointSummary("Retrieves a paginated list of properties.")]
     [EndpointDescription("Returns a paginated, filterable, and sortable list of published (approved and active) properties.")]
     [EndpointName("GetProperties")]
+    [AllowAnonymous]
     public async Task<IActionResult> Get([FromQuery] PropertyFilterRequest filters,
         [FromQuery] PageRequest pageRequest,
         CancellationToken ct)
@@ -70,6 +72,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [EndpointSummary("Retrieves a property by its ID.")]
     [EndpointDescription("Returns 404 if the property does not exist, is not approved, or is inactive.")]
     [EndpointName("GetPropertyById")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetById(Guid propertyId, CancellationToken ct)
     {
         var result = await _sender.Send(new GetPropertyByIdQuery(propertyId), ct);
@@ -86,5 +89,18 @@ public sealed class PropertiesController(ISender sender) : ApiController
     {
         var result = await _sender.Send(request, ct);
         return result.Match(response => CreatedAtRoute(routeName: "GetPropertyById", routeValues: new { version = "1", propertyId = response.Id }, value: response), Problem);
+    }
+    [HttpPut("{propertyId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Updates a property's details.")]
+    [EndpointDescription("Replaces the editable details of a property owned by the authenticated user. Any change sends the listing back to Pending moderation, so it disappears from public search until an admin approves it again. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointName("UpdatePropertyDetails")]
+    public async Task<IActionResult> UpdateDetailsAsync([FromRoute] Guid propertyId, [FromBody] UpdatePropertyDetailsCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request with { PropertyId = propertyId }, ct);
+        return result.Match(_ => NoContent(), Problem);
     }
 }
