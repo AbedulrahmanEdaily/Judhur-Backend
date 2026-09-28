@@ -1,6 +1,7 @@
 using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Properties.Commands.AddPropertyImage;
 using Judhur.Application.Features.Properties.Commands.CreateProperty;
 using Judhur.Application.Features.Properties.Commands.DeactivateProperty;
 using Judhur.Application.Features.Properties.Commands.DeleteProperty;
@@ -199,5 +200,26 @@ public sealed class PropertiesController(ISender sender) : ApiController
     {
         var result = await _sender.Send(new MarkPropertyAsRentedCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("{propertyId:guid}/images")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(PropertyImageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Uploads an image for a property.")]
+    [EndpointDescription("Uploads a JPG, PNG or WEBP image (max 5 MB) to a property owned by the authenticated user. A property can have up to 10 images. The first image becomes the main image automatically; send isMainImage=true to make a later one the main image. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointName("AddPropertyImage")]
+    public async Task<IActionResult> AddImageAsync([FromRoute] Guid propertyId, IFormFile file, [FromForm] bool isMainImage, CancellationToken ct)
+    {
+        await using var content = file.OpenReadStream();
+        var result = await _sender.Send(new AddPropertyImageCommand(
+            propertyId,
+            content,
+            file.FileName,
+            file.ContentType,
+            file.Length,
+            isMainImage), ct);
+        return result.Match(response => Ok(response), Problem);
     }
 }

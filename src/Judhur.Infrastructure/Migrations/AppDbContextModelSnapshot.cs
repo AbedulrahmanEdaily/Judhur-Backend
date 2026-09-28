@@ -352,7 +352,6 @@ namespace Judhur.Infrastructure.Migrations
             modelBuilder.Entity("Judhur.Domain.Properties.PropertyImages.PropertyImage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("DisplayOrder")
