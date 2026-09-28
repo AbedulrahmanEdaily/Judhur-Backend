@@ -15,37 +15,37 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
     public RegisterCommandValidator()
     {
         RuleFor(r => r.UserName)
-            .NotEmpty().WithMessage("UserName cannot be null or empty")
-            .MaximumLength(MaxUserNameLength).WithMessage($"UserName cannot exceed {MaxUserNameLength} characters");
+            .NotEmpty().WithMessage("اسم المستخدم مطلوب.")
+            .MaximumLength(MaxUserNameLength).WithMessage($"لا يمكن أن يتجاوز اسم المستخدم {MaxUserNameLength} حرف.");
 
         RuleFor(r => r.FullName)
-            .NotEmpty().WithMessage("FullName cannot be null or empty")
-            .MaximumLength(MaxFullNameLength).WithMessage($"FullName cannot exceed {MaxFullNameLength} characters");
+            .NotEmpty().WithMessage("الاسم الكامل مطلوب.")
+            .MaximumLength(MaxFullNameLength).WithMessage($"لا يمكن أن يتجاوز الاسم الكامل {MaxFullNameLength} حرف.");
 
         RuleFor(r => r.Email)
-            .NotEmpty().WithMessage("Email cannot be null or empty")
-            .EmailAddress().WithMessage("Email is not a valid email address")
-            .MaximumLength(MaxEmailLength).WithMessage($"Email cannot exceed {MaxEmailLength} characters");
+            .NotEmpty().WithMessage("البريد الإلكتروني مطلوب.")
+            .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة.")
+            .MaximumLength(MaxEmailLength).WithMessage($"لا يمكن أن يتجاوز البريد الإلكتروني {MaxEmailLength} حرف.");
 
         RuleFor(r => r.City)
-            .NotEmpty().WithMessage("City cannot be null or empty")
-            .MaximumLength(MaxCityLength).WithMessage($"City cannot exceed {MaxCityLength} characters");
+            .NotEmpty().WithMessage("المدينة مطلوبة.")
+            .MaximumLength(MaxCityLength).WithMessage($"لا يمكن أن يتجاوز اسم المدينة {MaxCityLength} حرف.");
 
         RuleFor(r => r.Password)
-            .NotEmpty().WithMessage("Password cannot be null or empty")
-            .MinimumLength(MinPasswordLength).WithMessage($"Password must be at least {MinPasswordLength} characters")
-            .Matches("[A-Z]").WithMessage("Password must contain at least one uppercase letter")
-            .Matches("[a-z]").WithMessage("Password must contain at least one lowercase letter")
-            .Matches("[0-9]").WithMessage("Password must contain at least one digit");
+            .NotEmpty().WithMessage("كلمة المرور مطلوبة.")
+            .MinimumLength(MinPasswordLength).WithMessage($"يجب ألا تقل كلمة المرور عن {MinPasswordLength} أحرف.")
+            .Matches("[A-Z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف إنجليزي كبير واحد على الأقل.")
+            .Matches("[a-z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف إنجليزي صغير واحد على الأقل.")
+            .Matches("[0-9]").WithMessage("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.");
 
         RuleFor(r => r.PhoneNumber)
-            .NotEmpty().WithMessage("PhoneNumber cannot be null or empty")
-            .Matches(@"^(?:\+?(?:970|972)\d{9}|05\d{8})$").WithMessage("Invalid PhoneNumber");
+            .NotEmpty().WithMessage("رقم الهاتف مطلوب.")
+            .Matches(@"^(?:\+?(?:970|972)\d{9}|05\d{8})$").WithMessage("رقم الهاتف غير صالح.");
 
         RuleFor(r => r.Bio)
-        .MaximumLength(MaxBioLength).WithMessage($"Bio cannot exceed {MaxBioLength} characters");
+        .MaximumLength(MaxBioLength).WithMessage($"لا يمكن أن تتجاوز النبذة التعريفية {MaxBioLength} حرف.");
 
         RuleFor(r => r.ProfileImageUrl)
-        .MaximumLength(MaxProfileImageUrlLength).WithMessage($"Profile image cannot exceed {MaxProfileImageUrlLength} characters");
+        .MaximumLength(MaxProfileImageUrlLength).WithMessage($"لا يمكن أن يتجاوز رابط صورة الملف الشخصي {MaxProfileImageUrlLength} حرف.");
     }
 }

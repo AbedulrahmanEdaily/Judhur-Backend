@@ -7,6 +7,6 @@ public sealed class LogoutCommandValidator : AbstractValidator<LogoutCommand>
     public LogoutCommandValidator()
     {
         RuleFor(r => r.RefreshToken)
-            .NotEmpty().WithMessage("Refresh token required.");
+            .NotEmpty().WithMessage("رمز التحديث مطلوب.");
     }
 }

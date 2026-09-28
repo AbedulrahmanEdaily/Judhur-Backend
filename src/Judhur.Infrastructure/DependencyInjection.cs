@@ -76,7 +76,8 @@ public static class DependencyInjection
         .AddRoles<IdentityRole<Guid>>()
         .AddEntityFrameworkStores<AppDbContext>()
         .AddDefaultTokenProviders()
-        .AddSignInManager();
+        .AddSignInManager()
+        .AddErrorDescriber<ArabicIdentityErrorDescriber>();
 
         services.AddAuthentication(options =>
         {

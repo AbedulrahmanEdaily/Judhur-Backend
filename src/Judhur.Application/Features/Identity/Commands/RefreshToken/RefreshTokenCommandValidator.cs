@@ -7,9 +7,9 @@ public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshToke
     public RefreshTokenCommandValidator()
     {
         RuleFor(r => r.RefreshToken)
-            .NotEmpty().WithMessage("Refresh token required.");
+            .NotEmpty().WithMessage("رمز التحديث مطلوب.");
 
         RuleFor(r => r.ExpiredAccessToken)
-            .NotEmpty().WithMessage("Access token required.");
+            .NotEmpty().WithMessage("رمز الوصول مطلوب.");
     }
 }

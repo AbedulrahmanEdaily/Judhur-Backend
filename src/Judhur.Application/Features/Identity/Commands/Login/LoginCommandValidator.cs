@@ -8,10 +8,10 @@ public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
     {
         RuleFor(l => l.Email)
             .Cascade(CascadeMode.Stop)
-            .NotEmpty().WithMessage("Email cannot be null or empty")
-            .EmailAddress().WithMessage("Email is not a valid email address");
+            .NotEmpty().WithMessage("البريد الإلكتروني مطلوب.")
+            .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة.");
 
         RuleFor(l => l.Password)
-            .NotEmpty().WithMessage("Password cannot be null or empty");
+            .NotEmpty().WithMessage("كلمة المرور مطلوبة.");
     }
 }

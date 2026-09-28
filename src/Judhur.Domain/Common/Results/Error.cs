@@ -15,25 +15,25 @@ public readonly record struct Error
 
     public ErrorKind Type { get; }
 
-    public static Error Failure(string code = nameof(Failure), string description = "General failure.")
+    public static Error Failure(string code = nameof(Failure), string description = "حدث خطأ عام.")
         => new(code, description, ErrorKind.Failure);
 
-    public static Error Unexpected(string code = nameof(Unexpected), string description = "Unexpected error.")
+    public static Error Unexpected(string code = nameof(Unexpected), string description = "حدث خطأ غير متوقع.")
         => new(code, description, ErrorKind.Unexpected);
 
-    public static Error Validation(string code = nameof(Validation), string description = "Validation error")
+    public static Error Validation(string code = nameof(Validation), string description = "البيانات المدخلة غير صالحة.")
         => new(code, description, ErrorKind.Validation);
 
-    public static Error Conflict(string code = nameof(Conflict), string description = "Conflict error")
+    public static Error Conflict(string code = nameof(Conflict), string description = "يوجد تعارض مع بيانات موجودة.")
         => new(code, description, ErrorKind.Conflict);
 
-    public static Error NotFound(string code = nameof(NotFound), string description = "Not found error")
+    public static Error NotFound(string code = nameof(NotFound), string description = "العنصر المطلوب غير موجود.")
         => new(code, description, ErrorKind.NotFound);
 
-    public static Error Unauthorized(string code = nameof(Unauthorized), string description = "Unauthorized error")
+    public static Error Unauthorized(string code = nameof(Unauthorized), string description = "يجب تسجيل الدخول لتنفيذ هذا الإجراء.")
         => new(code, description, ErrorKind.Unauthorized);
 
-    public static Error Forbidden(string code = nameof(Forbidden), string description = "Forbidden error")
+    public static Error Forbidden(string code = nameof(Forbidden), string description = "ليست لديك صلاحية لتنفيذ هذا الإجراء.")
         => new(code, description, ErrorKind.Forbidden);
 
     public static Error Create(int type, string code, string description)

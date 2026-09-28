@@ -7,6 +7,6 @@ public sealed class GetPropertyByIdQueryValidator : AbstractValidator<GetPropert
     public GetPropertyByIdQueryValidator()
     {
         RuleFor(p => p.PropertyId)
-        .NotEmpty().WithMessage("PropertyId is required");
+        .NotEmpty().WithMessage("معرّف العقار مطلوب.");
     }
 }

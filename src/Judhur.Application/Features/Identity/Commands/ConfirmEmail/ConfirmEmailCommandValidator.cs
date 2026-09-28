@@ -7,8 +7,8 @@ public sealed class ConfirmEmailCommandValidator : AbstractValidator<ConfirmEmai
     public ConfirmEmailCommandValidator()
     {
         RuleFor(c => c.UserId)
-            .NotEmpty().WithMessage("UserId cannot be empty");
+            .NotEmpty().WithMessage("معرّف المستخدم مطلوب.");
         RuleFor(c => c.Token)
-            .NotEmpty().WithMessage("Token cannot be null or empty");
+            .NotEmpty().WithMessage("رمز التأكيد مطلوب.");
     }
 }

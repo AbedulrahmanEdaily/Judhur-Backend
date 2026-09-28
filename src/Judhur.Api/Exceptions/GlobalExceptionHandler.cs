@@ -13,14 +13,14 @@ public class GlobalExceptionHandler(IProblemDetailsService problemDetailsService
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         var detail = environment.IsDevelopment()
             ? exception.Message
-            : "An unexpected error occurred. If the problem persists, contact support with the request id below.";
+            : "حدث خطأ غير متوقع. إذا تكررت المشكلة، يرجى التواصل مع الدعم مع ذكر رقم الطلب أدناه.";
         return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
             Exception = exception,
             ProblemDetails = new ProblemDetails
             {
-                Title = "An unexpected error occurred",
+                Title = "حدث خطأ غير متوقع",
                 Detail = detail,
             },
         });
