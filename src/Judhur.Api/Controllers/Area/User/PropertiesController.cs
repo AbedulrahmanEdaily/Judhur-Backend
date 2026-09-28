@@ -9,6 +9,7 @@ using Judhur.Application.Features.Properties.Commands.DeletePropertyImage;
 using Judhur.Application.Features.Properties.Commands.MarkPropertyAsRented;
 using Judhur.Application.Features.Properties.Commands.MarkPropertyAsSold;
 using Judhur.Application.Features.Properties.Commands.ReactivateProperty;
+using Judhur.Application.Features.Properties.Commands.SetMainPropertyImage;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 using Judhur.Application.Features.Properties.Dto;
@@ -235,6 +236,19 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> DeleteImageAsync([FromRoute] Guid propertyId, [FromRoute] Guid imageId, CancellationToken ct)
     {
         var result = await _sender.Send(new DeletePropertyImageCommand(propertyId, imageId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPut("{propertyId:guid}/images/{imageId:guid}/main")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Sets the main image of a property.")]
+    [EndpointDescription("Makes the given image the main image of a property owned by the authenticated user; the previous main image becomes a normal image. Returns 404 if the property or image does not exist.")]
+    [EndpointName("SetMainPropertyImage")]
+    public async Task<IActionResult> SetMainImageAsync([FromRoute] Guid propertyId, [FromRoute] Guid imageId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new SetMainPropertyImageCommand(propertyId, imageId), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }
