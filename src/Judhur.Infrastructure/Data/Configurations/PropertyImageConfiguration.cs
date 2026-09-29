@@ -14,8 +14,5 @@ public sealed class PropertyImageConfiguration : IEntityTypeConfiguration<Proper
         builder.Property(i => i.FileUrl).HasMaxLength(PropertyImage.MaxFileUrlLength);
         builder.Property(i => i.PublicId).HasMaxLength(PropertyImage.MaxPublicIdLength);
         builder.HasIndex(i => new { i.PropertyId, i.DisplayOrder }).IsUnique();
-        builder.HasIndex(i => i.PropertyId)
-            .IsUnique()
-            .HasFilter("[IsMainImage] = 1");
     }
 }

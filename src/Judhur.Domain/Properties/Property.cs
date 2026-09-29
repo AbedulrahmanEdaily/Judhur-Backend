@@ -330,6 +330,18 @@ public sealed class Property : AuditableEntity
         return Result.Updated;
     }
 
+    public Result<Updated> ResubmitForReview()
+    {
+        if (ModerationStatus != ModerationStatus.Rejected)
+        {
+            return PropertyErrors.CannotResubmitUnrejectedProperty;
+        }
+
+        ResetModeration();
+
+        return Result.Updated;
+    }
+
     public Result<Updated> MarkAsSold()
         => ChangeMarketStatus(PropertyStatus.ForSale, PropertyStatus.Sold);
 

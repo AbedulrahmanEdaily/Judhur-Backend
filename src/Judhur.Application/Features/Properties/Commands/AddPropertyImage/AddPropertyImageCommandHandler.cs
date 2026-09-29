@@ -53,7 +53,7 @@ public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext con
         if (addResult.IsError)
         {
             _logger.LogWarning("Add property image {PropertyId} failed: {ErrorCode}", property.Id, addResult.TopError.Code);
-            await _fileStorage.DeleteFileAsync(storedFile.PublicId, cancellationToken);
+            await _fileStorage.DeleteFileAsync(storedFile.PublicId, CancellationToken.None);
             return addResult.Errors;
         }
         try

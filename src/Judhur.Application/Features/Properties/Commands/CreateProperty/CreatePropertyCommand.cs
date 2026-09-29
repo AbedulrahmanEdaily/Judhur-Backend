@@ -1,7 +1,8 @@
-using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Properties.Enums;
+
+using MediatR;
 
 namespace Judhur.Application.Features.Properties.Commands.CreateProperty;
 
@@ -19,7 +20,4 @@ public sealed record CreatePropertyCommand(
     double Latitude,
     double Longitude,
     LandClassification LandClassification,
-    LegalStatus LegalStatus) : IInvalidateCacheCommand<Result<PropertyDto>>
-{
-    string[] IInvalidateCacheCommand.Tags => ["properties"];
-}
+    LegalStatus LegalStatus) : IRequest<Result<PropertyDto>>;

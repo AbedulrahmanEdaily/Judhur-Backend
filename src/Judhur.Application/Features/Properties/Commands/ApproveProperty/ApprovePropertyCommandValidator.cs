@@ -7,6 +7,6 @@ public sealed class ApprovePropertyCommandValidator : AbstractValidator<ApproveP
     public ApprovePropertyCommandValidator()
     {
         RuleFor(p => p.PropertyId)
-            .NotEmpty().WithMessage("معرف العقار مطلوب.");
+            .NotEmpty().WithMessage("معرّف العقار مطلوب.");
     }
 }

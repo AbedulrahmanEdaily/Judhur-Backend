@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Judhur.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260929105742_InitialCreate")]
+    [Migration("20260929135825_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -376,10 +376,6 @@ namespace Judhur.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PropertyId")
-                        .IsUnique()
-                        .HasFilter("[IsMainImage] = 1");
 
                     b.HasIndex("PropertyId", "DisplayOrder")
                         .IsUnique();

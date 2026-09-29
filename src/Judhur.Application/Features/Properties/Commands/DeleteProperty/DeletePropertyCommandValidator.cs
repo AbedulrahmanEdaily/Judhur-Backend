@@ -7,6 +7,6 @@ public sealed class DeletePropertyCommandValidator : AbstractValidator<DeletePro
     public DeletePropertyCommandValidator()
     {
         RuleFor(p => p.PropertyId)
-            .NotEmpty().WithMessage("معرف العقار مطلوب.");
+            .NotEmpty().WithMessage("معرّف العقار مطلوب.");
     }
 }

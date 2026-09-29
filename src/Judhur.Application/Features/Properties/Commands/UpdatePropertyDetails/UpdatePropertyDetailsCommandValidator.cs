@@ -10,7 +10,7 @@ public sealed class UpdatePropertyDetailsCommandValidator : AbstractValidator<Up
     public UpdatePropertyDetailsCommandValidator()
     {
         RuleFor(p => p.PropertyId)
-            .NotEmpty().WithMessage("معرف العقار مطلوب");
+            .NotEmpty().WithMessage("معرّف العقار مطلوب.");
 
         RuleFor(p => p.Title)
             .NotEmpty().WithMessage("العنوان مطلوب.")

@@ -13,9 +13,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Queries.GetPendingProperties;
 
-public sealed class GetPendingPropertiesQueryHandler(IUser user, IAppDbContext context, ILogger<GetPendingPropertiesQueryHandler> logger) : IRequestHandler<GetPendingPropertiesQuery, Result<PaginatedList<PendingPropertyDto>>>
+public sealed class GetPendingPropertiesQueryHandler(IAppDbContext context, ILogger<GetPendingPropertiesQueryHandler> logger) : IRequestHandler<GetPendingPropertiesQuery, Result<PaginatedList<PendingPropertyDto>>>
 {
-    private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
     private readonly ILogger<GetPendingPropertiesQueryHandler> _logger = logger;
 
@@ -40,6 +39,7 @@ public sealed class GetPendingPropertiesQueryHandler(IUser user, IAppDbContext c
         var count = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(p => p.CreatedAtUtc)
+            .ThenBy(p => p.Id)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .Select(p => new PendingPropertyDto

@@ -41,7 +41,9 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
             return userInfo.Errors;
         }
         var response = property.ToDto();
-        response.User = userInfo.Value;
+        response.User = request.IncludeSellerPhone
+            ? userInfo.Value
+            : userInfo.Value with { PhoneNumber = null };
         _logger.LogInformation("Property {PropertyId} retrieved", property.Id);
         return response;
     }

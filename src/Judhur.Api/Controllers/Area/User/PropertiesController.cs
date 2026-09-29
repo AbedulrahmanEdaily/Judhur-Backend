@@ -9,6 +9,7 @@ using Judhur.Application.Features.Properties.Commands.DeletePropertyImage;
 using Judhur.Application.Features.Properties.Commands.MarkPropertyAsRented;
 using Judhur.Application.Features.Properties.Commands.MarkPropertyAsSold;
 using Judhur.Application.Features.Properties.Commands.ReactivateProperty;
+using Judhur.Application.Features.Properties.Commands.ResubmitPropertyForReview;
 using Judhur.Application.Features.Properties.Commands.SetMainPropertyImage;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
@@ -93,12 +94,12 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Retrieves a property by its ID.")]
-    [EndpointDescription("Returns 404 if the property does not exist, is not approved, or is inactive.")]
+    [EndpointDescription("Returns the full property with its images and seller info. The seller's phone number is only included for signed-in users and is null for guests. Returns 404 if the property does not exist, is not approved, or is inactive.")]
     [EndpointName("GetPropertyById")]
     [AllowAnonymous]
     public async Task<IActionResult> GetById(Guid propertyId, CancellationToken ct)
     {
-        var result = await _sender.Send(new GetPropertyByIdQuery(propertyId), ct);
+        var result = await _sender.Send(new GetPropertyByIdQuery(propertyId, User.Identity?.IsAuthenticated == true), ct);
         return result.Match(response => Ok(response), Problem);
     }
     [HttpPost]
@@ -176,6 +177,19 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> ReactivateAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
         var result = await _sender.Send(new ReactivatePropertyCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+    [HttpPost("{propertyId:guid}/resubmit")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Resubmits a rejected property for review.")]
+    [EndpointDescription("Sends a rejected property owned by the authenticated user back to pending review and clears the rejection reason. Use it after fixing what the admin asked for, such as replacing images, since image changes do not reset moderation on their own. Returns 409 if the property is not rejected, 404 if it does not exist or belongs to another user.")]
+    [EndpointName("ResubmitPropertyForReview")]
+    public async Task<IActionResult> ResubmitAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new ResubmitPropertyForReviewCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
     }
     [HttpPost("{propertyId:guid}/mark-sold")]

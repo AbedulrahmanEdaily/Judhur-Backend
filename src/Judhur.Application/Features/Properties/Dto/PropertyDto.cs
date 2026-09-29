@@ -3,7 +3,7 @@ using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;
 
-public class PropertyDto
+public sealed class PropertyDto
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;

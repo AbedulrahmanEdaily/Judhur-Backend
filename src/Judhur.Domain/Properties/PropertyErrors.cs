@@ -92,6 +92,10 @@ public static class PropertyErrors
         "PropertyErrors.CannotRejectApprovedProperty",
         "لا يمكن رفض عقار مصرح به");
 
+    public static readonly Error CannotResubmitUnrejectedProperty = Error.Conflict(
+        "PropertyErrors.CannotResubmitUnrejectedProperty",
+        "لا يمكن إعادة إرسال العقار للمراجعة إلا إذا كان مرفوضاً");
+
     public static readonly Error AlreadyDeactivated = Error.Conflict(
         "PropertyErrors.AlreadyDeactivated",
         "العقار معطل بالفعل");

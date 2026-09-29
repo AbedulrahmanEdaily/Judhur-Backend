@@ -374,10 +374,6 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId")
-                        .IsUnique()
-                        .HasFilter("[IsMainImage] = 1");
-
                     b.HasIndex("PropertyId", "DisplayOrder")
                         .IsUnique();
 

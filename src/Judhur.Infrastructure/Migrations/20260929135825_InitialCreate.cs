@@ -485,13 +485,6 @@ namespace Judhur.Infrastructure.Migrations
                 column: "SellerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_PropertyImages_PropertyId",
-                table: "PropertyImages",
-                column: "PropertyId",
-                unique: true,
-                filter: "[IsMainImage] = 1");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_PropertyImages_PropertyId_DisplayOrder",
                 table: "PropertyImages",
                 columns: new[] { "PropertyId", "DisplayOrder" },

@@ -78,7 +78,6 @@ public sealed class GetPropertyForReviewQueryHandler(
         {
             property.Seller = sellerResult.Value;
         }
-        property.Seller = sellerResult.Value;
         if (result.OwnershipDocumentPublicId is not null)
         {
             var expiresAtUtc = _timeProvider.GetUtcNow().Add(DocumentLinkLifetime);
