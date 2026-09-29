@@ -102,7 +102,7 @@ namespace Judhur.Infrastructure.Migrations
                     Longitude = table.Column<double>(type: "float", nullable: false),
                     LandClassification = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     LegalStatus = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    OwnershipDocumentUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    OwnershipDocumentPublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     SellerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ModerationStatus = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),

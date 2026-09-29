@@ -19,8 +19,7 @@ public sealed record CreatePropertyCommand(
     double Latitude,
     double Longitude,
     LandClassification LandClassification,
-    LegalStatus LegalStatus,
-    string OwnershipDocumentUrl) : IInvalidateCacheCommand<Result<PropertyDto>>
+    LegalStatus LegalStatus) : IInvalidateCacheCommand<Result<PropertyDto>>
 {
     string[] IInvalidateCacheCommand.Tags => ["properties"];
 }

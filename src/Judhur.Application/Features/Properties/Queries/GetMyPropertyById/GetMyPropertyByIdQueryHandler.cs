@@ -45,7 +45,7 @@ public sealed class GetMyPropertyByIdQueryHandler(IUser user, IAppDbContext cont
                 Longitude = p.Longitude,
                 LandClassification = p.LandClassification,
                 LegalStatus = p.LegalStatus,
-                OwnershipDocumentUrl = p.OwnershipDocumentUrl,
+                HasOwnershipDocument = p.OwnershipDocumentPublicId != null,
                 ModerationStatus = p.ModerationStatus,
                 RejectionReason = p.RejectionReason,
                 ReviewedAtUtc = p.ReviewedAtUtc,

@@ -12,6 +12,7 @@ using Judhur.Application.Features.Properties.Commands.ReactivateProperty;
 using Judhur.Application.Features.Properties.Commands.SetMainPropertyImage;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 using Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
+using Judhur.Application.Features.Properties.Commands.UploadOwnershipDocument;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Queries.GetMyProperties;
 using Judhur.Application.Features.Properties.Queries.GetMyPropertyById;
@@ -105,7 +106,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [EndpointSummary("Creates a new property listing.")]
-    [EndpointDescription("Creates a property owned by the authenticated user, starting in Pending moderation.")]
+    [EndpointDescription("Creates a property owned by the authenticated user, starting in Pending moderation. Upload the images and the ownership document afterwards; both are required before the listing can be approved.")]
     [EndpointName("CreateProperty")]
     public async Task<IActionResult> CreateAsync([FromBody] CreatePropertyCommand request, CancellationToken ct)
     {
@@ -249,6 +250,27 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> SetMainImageAsync([FromRoute] Guid propertyId, [FromRoute] Guid imageId, CancellationToken ct)
     {
         var result = await _sender.Send(new SetMainPropertyImageCommand(propertyId, imageId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPut("{propertyId:guid}/ownership-document")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Uploads or replaces a property's ownership document.")]
+    [EndpointDescription("Uploads the ownership document of a property owned by the authenticated user, as a PDF or a photo (JPG, PNG or WEBP, max 10 MB). The file is stored privately and only admins can view it through a temporary link. Replacing the document of an approved or rejected property sends it back to moderation. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointName("UploadOwnershipDocument")]
+    public async Task<IActionResult> UploadOwnershipDocumentAsync([FromRoute] Guid propertyId, IFormFile file, CancellationToken ct)
+    {
+        await using var content = file.OpenReadStream();
+        var result = await _sender.Send(new UploadOwnershipDocumentCommand(
+            propertyId,
+            content,
+            file.FileName,
+            file.ContentType,
+            file.Length), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }

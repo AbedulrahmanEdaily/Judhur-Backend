@@ -144,9 +144,9 @@ public static class PropertyErrors
         "PropertyErrors.FullAddressTooLong",
         $"لا يمكن أن يتجاوز العنوان الكامل {Property.MaxFullAddressLength} حرف");
 
-    public static readonly Error OwnershipDocumentUrlTooLong = Error.Validation(
-        "PropertyErrors.OwnershipDocumentUrlTooLong",
-        $"لا يمكن أن يتجاوز رابط وثيقة الملكية {Property.MaxOwnershipDocumentUrlLength} حرف");
+    public static readonly Error OwnershipDocumentPublicIdTooLong = Error.Validation(
+        "PropertyErrors.OwnershipDocumentPublicIdTooLong",
+        $"لا يمكن أن يتجاوز معرّف وثيقة الملكية {Property.MaxOwnershipDocumentPublicIdLength} حرف");
 
     public static readonly Error RejectionReasonTooLong = Error.Validation(
         "PropertyErrors.RejectionReasonTooLong",

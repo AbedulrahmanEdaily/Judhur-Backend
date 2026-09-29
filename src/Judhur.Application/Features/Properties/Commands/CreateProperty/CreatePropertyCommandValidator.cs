@@ -45,9 +45,5 @@ public sealed class CreatePropertyCommandValidator : AbstractValidator<CreatePro
 
         RuleFor(p => p.LandClassification).IsInEnum().WithMessage("تصنيف الأرض غير صالح.");
         RuleFor(p => p.LegalStatus).IsInEnum().WithMessage("الوضع القانوني للعقار غير صالح.");
-
-        RuleFor(p => p.OwnershipDocumentUrl)
-            .NotEmpty().WithMessage("وثيقة الملكية مطلوبة.")
-            .MaximumLength(Property.MaxOwnershipDocumentUrlLength).WithMessage($"لا يمكن أن يتجاوز رابط وثيقة الملكية {Property.MaxOwnershipDocumentUrlLength} حرف.");
     }
 }

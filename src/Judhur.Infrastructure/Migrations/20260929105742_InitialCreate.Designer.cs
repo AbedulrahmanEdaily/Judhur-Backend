@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Judhur.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260928191256_InitialCreate")]
+    [Migration("20260929105742_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -293,10 +293,9 @@ namespace Judhur.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
-                    b.Property<string>("OwnershipDocumentUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<string>("OwnershipDocumentPublicId")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("PaymentType")
                         .IsRequired()

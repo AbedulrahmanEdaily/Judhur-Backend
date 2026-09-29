@@ -23,7 +23,7 @@ public sealed class MyPropertyDetailsDto
     public double Longitude { get; set; }
     public LandClassification LandClassification { get; set; }
     public LegalStatus LegalStatus { get; set; }
-    public string OwnershipDocumentUrl { get; set; } = string.Empty;
+    public bool HasOwnershipDocument { get; set; }
     public ModerationStatus ModerationStatus { get; set; }
     public string? RejectionReason { get; set; }
     public DateTimeOffset? ReviewedAtUtc { get; set; }
