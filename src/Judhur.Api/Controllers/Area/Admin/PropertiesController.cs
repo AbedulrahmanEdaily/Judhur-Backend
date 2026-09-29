@@ -1,6 +1,7 @@
 using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Properties.Commands.ApproveProperty;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Queries.GetPendingProperties;
 using Judhur.Application.Features.Properties.Queries.GetPropertyForReview;
@@ -35,7 +36,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
         var result = await _sender.Send(new GetPendingPropertiesQuery(pageRequest.Page, pageRequest.PageSize), ct);
         return result.Match(response => Ok(response), Problem);
     }
-    
+
     [HttpGet("{propertyId:guid}")]
     [ProducesResponseType(typeof(PropertyForReviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -48,5 +49,21 @@ public sealed class PropertiesController(ISender sender) : ApiController
     {
         var result = await _sender.Send(new GetPropertyForReviewQuery(propertyId), ct);
         return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPost("{propertyId:guid}/approve")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Approves a property.")]
+    [EndpointDescription("Approves a property so it becomes visible in public search and details. Returns 400 if the property has fewer than 3 images, no main image or no ownership document, 409 if it is already approved, and 404 if it does not exist.")]
+    [EndpointName("ApproveProperty")]
+    public async Task<IActionResult> ApproveAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new ApprovePropertyCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
     }
 }
