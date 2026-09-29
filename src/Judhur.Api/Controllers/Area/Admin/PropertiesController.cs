@@ -2,6 +2,7 @@ using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Commands.ApproveProperty;
+using Judhur.Application.Features.Properties.Commands.RejectProperty;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Queries.GetPendingProperties;
 using Judhur.Application.Features.Properties.Queries.GetPropertyForReview;
@@ -64,6 +65,22 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> ApproveAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
         var result = await _sender.Send(new ApprovePropertyCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPost("{propertyId:guid}/reject")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Rejects a property.")]
+    [EndpointDescription("Rejects a property with a reason of up to 500 characters that the owner sees on their listing. Returns 400 if the reason is missing or too long, 409 if the property is already approved or already rejected, and 404 if it does not exist.")]
+    [EndpointName("RejectProperty")]
+    public async Task<IActionResult> RejectAsync([FromRoute] Guid propertyId, [FromBody] RejectPropertyCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request with { PropertyId = propertyId }, ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }

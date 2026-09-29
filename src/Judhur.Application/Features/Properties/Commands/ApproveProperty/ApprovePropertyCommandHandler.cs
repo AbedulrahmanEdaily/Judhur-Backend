@@ -33,7 +33,7 @@ public sealed class ApprovePropertyCommandHandler(IUser user, IAppDbContext cont
         var result = property.Approve(adminId, _timeProvider.GetUtcNow());
         if (result.IsError)
         {
-            _logger.LogWarning("Approve property {PropertyId} failed:{Error}", request.PropertyId, result.TopError.Code);
+            _logger.LogWarning("Approve property {PropertyId} failed: {Error}", request.PropertyId, result.TopError.Code);
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
