@@ -11,6 +11,7 @@ using Judhur.Application.Common.Interfaces;
 
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -23,11 +24,22 @@ public static class DependencyInjection
                 .AddExceptionHandling()
                 .AddControllerWithJsonConfiguration()
                 .AddApiDocumentation()
+                .AddConfiguredCors()
                 .AddRateLimiting()
                 .AddIdentityInfrastructure();
         return services;
     }
-
+    public static IServiceCollection AddConfiguredCors(this IServiceCollection services)
+    {
+        services.AddCors(options => options.AddPolicy("frontend"
+            ,
+            policy => policy
+                .WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials()));
+        return services;
+    }
     public static IServiceCollection AddApiDocumentation(this IServiceCollection services)
     {
         services.ConfigureAll<OpenApiOptions>(options =>
@@ -113,6 +125,29 @@ public static class DependencyInjection
         {
             context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
             context.ProblemDetails.Extensions["requestId"] = context.HttpContext.TraceIdentifier;
+
+            // Responses produced by the framework itself (auth middleware, unknown route, rate limiter,
+            // invalid JSON body) come with English default titles; replace them with Arabic ones.
+            var status = context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode;
+            var title = context.ProblemDetails.Title;
+            if (string.IsNullOrEmpty(title)
+                || title == ReasonPhrases.GetReasonPhrase(status)
+                || title == "One or more validation errors occurred.")
+            {
+                context.ProblemDetails.Title = status switch
+                {
+                    400 => "البيانات المدخلة غير صالحة.",
+                    401 => "يجب تسجيل الدخول لتنفيذ هذا الإجراء.",
+                    403 => "ليست لديك صلاحية لتنفيذ هذا الإجراء.",
+                    404 => "المورد المطلوب غير موجود.",
+                    405 => "طريقة الطلب غير مدعومة.",
+                    409 => "يوجد تعارض مع بيانات موجودة.",
+                    415 => "نوع المحتوى غير مدعوم.",
+                    429 => "لقد تجاوزت الحد المسموح من المحاولات، يرجى المحاولة لاحقًا.",
+                    500 => "حدث خطأ غير متوقع.",
+                    _ => title,
+                };
+            }
         });
         return services;
     }
@@ -130,6 +165,7 @@ public static class DependencyInjection
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
         app.UseRouting();
+        app.UseCors("frontend");
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();

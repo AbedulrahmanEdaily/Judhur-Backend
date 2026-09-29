@@ -92,6 +92,10 @@ public static class PropertyErrors
         "PropertyErrors.CannotRejectApprovedProperty",
         "لا يمكن رفض عقار مصرح به");
 
+    public static readonly Error CannotResubmitUnrejectedProperty = Error.Conflict(
+        "PropertyErrors.CannotResubmitUnrejectedProperty",
+        "لا يمكن إعادة إرسال العقار للمراجعة إلا إذا كان مرفوضاً");
+
     public static readonly Error AlreadyDeactivated = Error.Conflict(
         "PropertyErrors.AlreadyDeactivated",
         "العقار معطل بالفعل");
@@ -144,9 +148,9 @@ public static class PropertyErrors
         "PropertyErrors.FullAddressTooLong",
         $"لا يمكن أن يتجاوز العنوان الكامل {Property.MaxFullAddressLength} حرف");
 
-    public static readonly Error OwnershipDocumentUrlTooLong = Error.Validation(
-        "PropertyErrors.OwnershipDocumentUrlTooLong",
-        $"لا يمكن أن يتجاوز رابط وثيقة الملكية {Property.MaxOwnershipDocumentUrlLength} حرف");
+    public static readonly Error OwnershipDocumentPublicIdTooLong = Error.Validation(
+        "PropertyErrors.OwnershipDocumentPublicIdTooLong",
+        $"لا يمكن أن يتجاوز معرّف وثيقة الملكية {Property.MaxOwnershipDocumentPublicIdLength} حرف");
 
     public static readonly Error RejectionReasonTooLong = Error.Validation(
         "PropertyErrors.RejectionReasonTooLong",

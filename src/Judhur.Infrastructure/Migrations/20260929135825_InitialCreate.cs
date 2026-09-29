@@ -102,13 +102,15 @@ namespace Judhur.Infrastructure.Migrations
                     Longitude = table.Column<double>(type: "float", nullable: false),
                     LandClassification = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     LegalStatus = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
-                    OwnershipDocumentUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    OwnershipDocumentPublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     SellerId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ModerationStatus = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
                     RejectionReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     ReviewedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ReviewedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
+                    DeletedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true),
                     CreatedAtUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
                     CreatedBy = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     LastModifiedUtc = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
@@ -481,13 +483,6 @@ namespace Judhur.Infrastructure.Migrations
                 name: "IX_Properties_SellerId",
                 table: "Properties",
                 column: "SellerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PropertyImages_PropertyId",
-                table: "PropertyImages",
-                column: "PropertyId",
-                unique: true,
-                filter: "[IsMainImage] = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PropertyImages_PropertyId_DisplayOrder",

@@ -15,7 +15,7 @@ public sealed class Property : AuditableEntity
     public const int MaxCityLength = 100;
     public const int MaxRegionLength = 100;
     public const int MaxFullAddressLength = 500;
-    public const int MaxOwnershipDocumentUrlLength = 500;
+    public const int MaxOwnershipDocumentPublicIdLength = 300;
     public const int MaxRejectionReasonLength = 500;
     
     private readonly List<PropertyImage> _propertyImages = [];
@@ -39,7 +39,6 @@ public sealed class Property : AuditableEntity
         double longitude,
         LandClassification landClassification,
         LegalStatus legalStatus,
-        string ownershipDocumentUrl,
         Guid sellerId)
         : base(id)
     {
@@ -57,7 +56,6 @@ public sealed class Property : AuditableEntity
         Longitude = longitude;
         LandClassification = landClassification;
         LegalStatus = legalStatus;
-        OwnershipDocumentUrl = ownershipDocumentUrl;
         SellerId = sellerId;
         ModerationStatus = ModerationStatus.Pending;
         IsActive = true;
@@ -91,7 +89,7 @@ public sealed class Property : AuditableEntity
 
     public LegalStatus LegalStatus { get; private set; }
 
-    public string OwnershipDocumentUrl { get; private set; } = null!;
+    public string? OwnershipDocumentPublicId { get; private set; }
 
     public Guid SellerId { get; private set; }
 
@@ -104,6 +102,10 @@ public sealed class Property : AuditableEntity
     public DateTimeOffset? ReviewedAtUtc { get; private set; }
 
     public bool IsActive { get; private set; }
+
+    public bool IsDeleted { get; private set; }
+
+    public DateTimeOffset? DeletedAtUtc { get; private set; }
 
     public IReadOnlyCollection<PropertyImage> PropertyImages => _propertyImages.AsReadOnly();
 
@@ -125,7 +127,6 @@ public sealed class Property : AuditableEntity
         double longitude,
         LandClassification landClassification,
         LegalStatus legalStatus,
-        string ownershipDocumentUrl,
         Guid sellerId)
     {
         var detailsError = ValidateDetails(
@@ -153,16 +154,6 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.InitialPropertyStatusInvalid;
         }
 
-        if (string.IsNullOrWhiteSpace(ownershipDocumentUrl))
-        {
-            return PropertyErrors.OwnershipDocumentRequired;
-        }
-
-        if (ownershipDocumentUrl.Length > MaxOwnershipDocumentUrlLength)
-        {
-            return PropertyErrors.OwnershipDocumentUrlTooLong;
-        }
-
         if (sellerId == Guid.Empty)
         {
             return PropertyErrors.SellerRequired;
@@ -184,7 +175,6 @@ public sealed class Property : AuditableEntity
             longitude,
             landClassification,
             legalStatus,
-            ownershipDocumentUrl,
             sellerId);
     }
 
@@ -248,9 +238,23 @@ public sealed class Property : AuditableEntity
         {
             return PropertyErrors.DescriptionTooLong;
         }
-
         Description = description;
+        return Result.Updated;
+    }
 
+    public Result<Updated> SetOwnershipDocument(string publicId)
+    {
+        if (string.IsNullOrWhiteSpace(publicId))
+        {
+            return PropertyErrors.OwnershipDocumentRequired;
+        }
+
+        if (publicId.Length > MaxOwnershipDocumentPublicIdLength)
+        {
+            return PropertyErrors.OwnershipDocumentPublicIdTooLong;
+        }
+
+        OwnershipDocumentPublicId = publicId;
         ResetModeration();
 
         return Result.Updated;
@@ -276,6 +280,11 @@ public sealed class Property : AuditableEntity
         if (MainImage is null)
         {
             return PropertyErrors.MainImageRequired;
+        }
+
+        if (OwnershipDocumentPublicId is null)
+        {
+            return PropertyErrors.OwnershipDocumentRequired;
         }
 
         ModerationStatus = ModerationStatus.Approved;
@@ -321,6 +330,18 @@ public sealed class Property : AuditableEntity
         return Result.Updated;
     }
 
+    public Result<Updated> ResubmitForReview()
+    {
+        if (ModerationStatus != ModerationStatus.Rejected)
+        {
+            return PropertyErrors.CannotResubmitUnrejectedProperty;
+        }
+
+        ResetModeration();
+
+        return Result.Updated;
+    }
+
     public Result<Updated> MarkAsSold()
         => ChangeMarketStatus(PropertyStatus.ForSale, PropertyStatus.Sold);
 
@@ -354,6 +375,22 @@ public sealed class Property : AuditableEntity
         IsActive = true;
 
         return Result.Updated;
+    }
+
+    // Soft delete: the row stays so conversations and reports about this property are kept.
+    // The global query filter in PropertyConfiguration hides deleted properties from every query.
+    public Result<Deleted> Delete(DateTimeOffset deletedAtUtc)
+    {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
+        IsDeleted = true;
+        DeletedAtUtc = deletedAtUtc;
+        IsActive = false;
+
+        return Result.Deleted;
     }
 
     public Result<Updated> AddImage(Guid imageId, string fileUrl, string publicId, bool isMainImage)

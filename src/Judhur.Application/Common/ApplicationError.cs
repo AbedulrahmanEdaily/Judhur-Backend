@@ -6,17 +6,24 @@ public static class ApplicationError
 {
     public static readonly Error ExpiredAccessTokenInvalid = Error.Unauthorized(
         code: "Auth.ExpiredAccessToken.Invalid",
-        description: "Expired access token is not valid.");
+        description: "الجلسة غير صالحة، يرجى تسجيل الدخول مجددًا.");
     public static readonly Error UserIdClaimInvalid = Error.Unauthorized(
         code: "Auth.UserIdClaim.Invalid",
-        description: "Invalid userId claim.");
+        description: "بيانات الجلسة غير صالحة، يرجى تسجيل الدخول مجددًا.");
     public static readonly Error UserNotFound = Error.NotFound(
         code: "Auth.User.NotFound",
-        description: "User not found.");
+        description: "المستخدم غير موجود.");
     public static readonly Error TokenGenerationFailed = Error.Failure(
         code: "Auth.TokenGeneration.Failed",
-        description: "Failed to generate new JWT token.");
+        description: "تعذّر إنشاء رمز الدخول، يرجى المحاولة لاحقًا.");
     public static readonly Error Unauthenticated = Error.Unauthorized(
         code: "Auth.NotAuthenticated",
         description: "يجب تسجيل الدخول لتنفيذ هذا الإجراء.");
+    public static readonly Error UploadFailed = Error.Failure(
+        code: "Storage.UploadFailed",
+        description: "تعذّر رفع الملف، يرجى المحاولة لاحقًا.");
+
+    public static readonly Error DeleteFailed = Error.Failure(
+        code: "Storage.DeleteFailed",
+        description: "تعذّر حذف الملف، يرجى المحاولة لاحقًا.");
 }

@@ -25,8 +25,8 @@ public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsServi
             Exception = exception,
             ProblemDetails = new ProblemDetails
             {
-                Title = "Conflict",
-                Detail = "This action conflicts with existing data. Someone may have already done the same thing.",
+                Title = "تعارض في البيانات",
+                Detail = "هذا الإجراء يتعارض مع بيانات موجودة، ربما قام أحد بتنفيذ الإجراء نفسه مسبقًا.",
             },
         });
     }

@@ -4,9 +4,9 @@ using Judhur.Domain.Common.Results;
 
 namespace Judhur.Application.Features.Properties.Queries.GetPropertyById;
 
-public sealed record GetPropertyByIdQuery(Guid PropertyId) : ICachedQuery<Result<PropertyDto>>
+public sealed record GetPropertyByIdQuery(Guid PropertyId, bool IncludeSellerPhone) : ICachedQuery<Result<PropertyDto>>
 {
-    public string CacheKey => $"properties:{PropertyId}";
+    public string CacheKey => $"properties:{PropertyId}:{(IncludeSellerPhone ? "member" : "guest")}";
 
     public string[] Tags => ["properties"];
 

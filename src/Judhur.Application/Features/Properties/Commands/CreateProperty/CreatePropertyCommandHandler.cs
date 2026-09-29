@@ -40,7 +40,6 @@ public sealed class CreatePropertyCommandHandler(ILogger<CreatePropertyCommandHa
             request.Longitude,
             request.LandClassification,
             request.LegalStatus,
-            request.OwnershipDocumentUrl,
             sellerId);
         if (propertyResult.IsError)
         {

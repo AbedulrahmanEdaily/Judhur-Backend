@@ -9,17 +9,17 @@ public sealed class ChangePasswordCommandValidator : AbstractValidator<ChangePas
     public ChangePasswordCommandValidator()
     {
         RuleFor(r => r.Code)
-            .NotEmpty().WithMessage("Reset password code required.");
+            .NotEmpty().WithMessage("رمز استعادة كلمة المرور مطلوب.");
 
         RuleFor(r => r.Email)
-            .NotEmpty().WithMessage("Email required.")
-            .EmailAddress().WithMessage("Email is not a valid email address.");
+            .NotEmpty().WithMessage("البريد الإلكتروني مطلوب.")
+            .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة.");
 
         RuleFor(r => r.Password)
-            .NotEmpty().WithMessage("Password cannot be null or empty")
-            .MinimumLength(MinPasswordLength).WithMessage($"Password must be at least {MinPasswordLength} characters")
-            .Matches("[A-Z]").WithMessage("Password must contain at least one uppercase letter")
-            .Matches("[a-z]").WithMessage("Password must contain at least one lowercase letter")
-            .Matches("[0-9]").WithMessage("Password must contain at least one digit");
+            .NotEmpty().WithMessage("كلمة المرور مطلوبة.")
+            .MinimumLength(MinPasswordLength).WithMessage($"يجب ألا تقل كلمة المرور عن {MinPasswordLength} أحرف.")
+            .Matches("[A-Z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف إنجليزي كبير واحد على الأقل.")
+            .Matches("[a-z]").WithMessage("يجب أن تحتوي كلمة المرور على حرف إنجليزي صغير واحد على الأقل.")
+            .Matches("[0-9]").WithMessage("يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.");
     }
 }

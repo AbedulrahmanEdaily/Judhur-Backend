@@ -245,6 +245,9 @@ namespace Judhur.Infrastructure.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("DeletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("Description")
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
@@ -255,6 +258,9 @@ namespace Judhur.Infrastructure.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
                     b.Property<string>("LandClassification")
@@ -284,10 +290,9 @@ namespace Judhur.Infrastructure.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
 
-                    b.Property<string>("OwnershipDocumentUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<string>("OwnershipDocumentPublicId")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("PaymentType")
                         .IsRequired()
@@ -346,7 +351,6 @@ namespace Judhur.Infrastructure.Migrations
             modelBuilder.Entity("Judhur.Domain.Properties.PropertyImages.PropertyImage", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("DisplayOrder")
@@ -369,10 +373,6 @@ namespace Judhur.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PropertyId")
-                        .IsUnique()
-                        .HasFilter("[IsMainImage] = 1");
 
                     b.HasIndex("PropertyId", "DisplayOrder")
                         .IsUnique();

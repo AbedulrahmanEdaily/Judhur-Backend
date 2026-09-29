@@ -15,6 +15,8 @@ namespace Judhur.Infrastructure.Identity;
 public sealed class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, FrontendSettings frontendSettings,
     TimeProvider timeProvider) : IIdentityService
 {
+    private const int ResetCodeLifetimeMinutes = 5;
+
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly FrontendSettings _frontendSettings = frontendSettings;
@@ -77,14 +79,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return Error.Forbidden(
                 "Identity.LockedOut",
-                "This account is temporarily locked after too many failed attempts. Try again later.");
+                "تم قفل الحساب مؤقتًا بسبب كثرة المحاولات الفاشلة، يرجى المحاولة لاحقًا.");
         }
 
         if (signInResult.IsNotAllowed)
         {
             return Error.Forbidden(
                 "Identity.EmailNotConfirmed",
-                "Confirm your email address before signing in.");
+                "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.");
         }
 
         if (!signInResult.Succeeded)
@@ -95,14 +97,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         var roles = await _userManager.GetRolesAsync(user);
         if (roles.Count == 0)
         {
-            return Error.Failure("Identity.NoRoleAssigned", "The account has no role assigned.");
+            return Error.Failure("Identity.NoRoleAssigned", "لا يملك هذا الحساب أي صلاحية، يرجى التواصل مع الدعم.");
         }
 
         return new AppUserDto(user.Id, user.Email!, roles);
     }
 
     private static Error InvalidCredentials()
-        => Error.Unauthorized("Identity.InvalidCredentials", "Invalid email or password.");
+        => Error.Unauthorized("Identity.InvalidCredentials", "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
 
     public async Task<Result<Success>> ConfirmEmailAsync(Guid userId, string token, CancellationToken cancellationToken = default)
     {
@@ -126,7 +128,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     private static Error InvalidConfirmationToken()
     => Error.Validation(
         "Identity.InvalidConfirmationToken",
-        "The confirmation link is invalid or has expired.");
+        "رابط التأكيد غير صالح أو منتهي الصلاحية.");
     public async Task<Guid?> SendResetPasswordCodeAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -136,7 +138,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         }
         var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
         user.ResetCode = code;
-        user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(5);
+        user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(ResetCodeLifetimeMinutes);
         var updateResult = await _userManager.UpdateAsync(user);
         return updateResult.Succeeded ? user.Id : null;
     }
@@ -152,10 +154,13 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         var link = $"{_frontendSettings.ConfirmEmailUrl}" +
                     $"?userId={user!.Id}" +
                     $"&token={Uri.EscapeDataString(token)}";
-        return new EmailMessage(
-            user.Email!,
-            "Confirm your email address",
-            $"""<p>Welcome to Judhur.</p><p><a href="{link}">Confirm your email address</a></p>""");
+        var html = EmailTemplates.Render("ConfirmEmail", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ConfirmLink"] = link,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(user.Email!, "تأكيد البريد الإلكتروني", html);
     }
 
     public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -165,20 +170,24 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return UserNoLongerExists();
         }
-        return new EmailMessage(
-            user.Email,
-            "Your password reset code",
-            $"""<p>Your password reset code is <strong>{user.ResetCode}</strong>. It expires in 5 minutes.</p>""");
+        var html = EmailTemplates.Render("ResetPasswordCode", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ResetCode"] = user.ResetCode,
+            ["ExpiryMinutes"] = ResetCodeLifetimeMinutes.ToString(),
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(user.Email, "رمز استعادة كلمة المرور", html);
     }
     private static Error UserNoLongerExists()
-        => Error.NotFound("Identity.UserNotFound", "The user no longer exists.");
+        => Error.NotFound("Identity.UserNotFound", "المستخدم لم يعد موجودًا.");
 
     public async Task<Result<Guid>> ChangePasswordAsync(string email, string password, string code, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null || user.ResetCode != code || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
         {
-            return Error.Validation("Identity.InvalidResetCode", "The reset code is incorrect or has expired.");
+            return Error.Validation("Identity.InvalidResetCode", "رمز الاستعادة غير صحيح أو منتهي الصلاحية.");
         }
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var result = await _userManager.ResetPasswordAsync(user, token, password);
@@ -199,7 +208,12 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return UserNoLongerExists();
         }
-        return new EmailMessage(user.Email, "Password changed", "<p>Your password has been changed.</p>");
+        var html = EmailTemplates.Render("PasswordChanged", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(user.Email, "تم تغيير كلمة المرور", html);
     }
 
     public async Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default)

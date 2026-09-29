@@ -23,6 +23,7 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
     {
         var property = await _context.Properties
         .AsNoTracking()
+        .Include(p => p.PropertyImages)
         .FirstOrDefaultAsync(
             p => p.Id == request.PropertyId
                 && p.ModerationStatus == ModerationStatus.Approved
@@ -40,7 +41,9 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
             return userInfo.Errors;
         }
         var response = property.ToDto();
-        response.User = userInfo.Value;
+        response.User = request.IncludeSellerPhone
+            ? userInfo.Value
+            : userInfo.Value with { PhoneNumber = null };
         _logger.LogInformation("Property {PropertyId} retrieved", property.Id);
         return response;
     }

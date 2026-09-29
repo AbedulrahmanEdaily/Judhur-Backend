@@ -26,6 +26,9 @@ public static class PropertyMapper
             Longitude = entity.Longitude,
             LandClassification = entity.LandClassification,
             LegalStatus = entity.LegalStatus,
+            Images = [.. entity.PropertyImages
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new PropertyImageDto(i.Id, i.FileUrl, i.DisplayOrder, i.IsMainImage))],
         };
     }
     public static List<PropertyDto> ToDtos(this IEnumerable<Property> entities)

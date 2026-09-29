@@ -8,7 +8,7 @@ public sealed class ResendConfirmationCommandValidator : AbstractValidator<Resen
     {
         RuleFor(r => r.Email)
             .Cascade(CascadeMode.Stop)
-            .NotEmpty().WithMessage("Email cannot be null or empty")
-            .EmailAddress().WithMessage("Email is not a valid email address");
+            .NotEmpty().WithMessage("البريد الإلكتروني مطلوب.")
+            .EmailAddress().WithMessage("صيغة البريد الإلكتروني غير صحيحة.");
     }
 }

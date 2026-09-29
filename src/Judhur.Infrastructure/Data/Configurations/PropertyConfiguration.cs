@@ -11,6 +11,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
     public void Configure(EntityTypeBuilder<Property> builder)
     {
         builder.HasKey(i => i.Id);
+        builder.HasQueryFilter(p => !p.IsDeleted);
         builder.Ignore(p => p.MainImage);
         builder.HasMany(p => p.PropertyImages)
             .WithOne()
@@ -27,7 +28,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
         builder.Property(p => p.City).HasMaxLength(Property.MaxCityLength);
         builder.Property(p => p.Region).HasMaxLength(Property.MaxRegionLength);
         builder.Property(p => p.FullAddress).HasMaxLength(Property.MaxFullAddressLength);
-        builder.Property(p => p.OwnershipDocumentUrl).HasMaxLength(Property.MaxOwnershipDocumentUrlLength);
+        builder.Property(p => p.OwnershipDocumentPublicId).HasMaxLength(Property.MaxOwnershipDocumentPublicIdLength);
         builder.Property(p => p.RejectionReason).HasMaxLength(Property.MaxRejectionReasonLength);
         builder.Property(p => p.Price).HasPrecision(18, 2);
         builder.Property(p => p.Area).HasPrecision(10, 2);

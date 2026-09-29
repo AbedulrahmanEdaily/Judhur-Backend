@@ -35,7 +35,8 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
         {
             propertyQuery = ApplySearchTerm(propertyQuery, request.SearchTerm);
         }
-        propertyQuery = ApplySorting(propertyQuery, request.SortColumn, request.SortDirection);
+        propertyQuery = ApplySorting(propertyQuery, request.SortColumn, request.SortDirection)
+            .ThenBy(p => p.Id);
         var count = await propertyQuery.CountAsync(cancellationToken);
         var items = await propertyQuery
         .Skip((request.Page - 1) * request.PageSize)
@@ -50,7 +51,11 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             PropertyStatus = p.PropertyStatus,
             Area = p.Area,
             City = p.City,
-            Region = p.Region
+            Region = p.Region,
+            MainImageUrl = p.PropertyImages
+                .Where(i => i.IsMainImage)
+                .Select(i => i.FileUrl)
+                .FirstOrDefault()
         })
         .ToListAsync(cancellationToken);
         _logger.LogInformation("Retrieved {Count} of {TotalCount} properties (page {Page}, size {PageSize})", items.Count, count, request.Page, request.PageSize);
@@ -63,10 +68,10 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             TotalPages = (int)Math.Ceiling(count / (double)request.PageSize)
         };
     }
-    private IQueryable<Property> ApplySorting(IQueryable<Property> query, string sortColumn, string sortDirection)
+    private IOrderedQueryable<Property> ApplySorting(IQueryable<Property> query, string sortColumn, string sortDirection)
     {
-        var isDescending = sortDirection.Equals("desc", StringComparison.CurrentCultureIgnoreCase);
-        return sortColumn.ToLower() switch
+        var isDescending = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase);
+        return sortColumn.ToLowerInvariant() switch
         {
             "createdat" => isDescending ? query.OrderByDescending(p => p.CreatedAtUtc) : query.OrderBy(p => p.CreatedAtUtc),
             "city" => isDescending ? query.OrderByDescending(p => p.City) : query.OrderBy(p => p.City),
@@ -78,7 +83,7 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
 
     private IQueryable<Property> ApplySearchTerm(IQueryable<Property> query, string searchTerm)
     {
-        var normalized = searchTerm.Trim().ToLower();
+        var normalized = searchTerm.Trim().ToLowerInvariant();
         return query.Where(p => p.Title.ToLower().Contains(normalized));
     }
 

@@ -21,4 +21,5 @@ public sealed class MyPropertyDto
     public string? RejectionReason { get; set; }
     public bool IsActive { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
+    public string? MainImageUrl { get; set; }
 }
