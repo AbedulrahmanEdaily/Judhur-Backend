@@ -28,9 +28,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Judhur.Api.Controllers.Area.User;
-
+[Area("User")]
 [ApiVersion(1)]
-[Route("api/v{version:apiVersion}/[controller]")]
+[Route("api/v{version:apiVersion}/[Area]/[controller]")]
 [Authorize(Roles = Roles.User)]
 public sealed class PropertiesController(ISender sender) : ApiController
 {
