@@ -1,6 +1,7 @@
 using Asp.Versioning;
 
 using Judhur.Application.Features.Favorites.Commands.AddFavorite;
+using Judhur.Application.Features.Favorites.Commands.RemoveFavorite;
 using Judhur.Domain.Common;
 
 using MediatR;
@@ -31,6 +32,21 @@ public sealed class FavoritesController(ISender sender) : ApiController
     public async Task<IActionResult> AddAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
         var result = await _sender.Send(new AddFavoriteCommand(propertyId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpDelete("{propertyId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Removes a property from the user's favorites.")]
+    [EndpointDescription("Removes a property from the authenticated user's favorites. Works even if the property is no longer publicly visible. Returns 404 if the property is not in the user's favorites.")]
+    [EndpointName("RemoveFavorite")]
+    public async Task<IActionResult> RemoveAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new RemoveFavoriteCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }
