@@ -1,20 +1,30 @@
 using Judhur.Domain.Common;
+using Judhur.Infrastructure.Data.Seed;
 using Judhur.Infrastructure.Identity;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Judhur.Infrastructure.Data;
 
-public class ApplicationDbContextInitializer(ILogger<ApplicationDbContextInitializer> logger, AppDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole<Guid>> roleManager)
+public class ApplicationDbContextInitializer(
+    ILogger<ApplicationDbContextInitializer> logger,
+    AppDbContext context,
+    UserManager<ApplicationUser> userManager,
+    RoleManager<IdentityRole<Guid>> roleManager,
+    IHostEnvironment environment,
+    TimeProvider timeProvider)
 {
     private readonly ILogger<ApplicationDbContextInitializer> _logger = logger;
     private readonly AppDbContext _context = context;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<IdentityRole<Guid>> _roleManager = roleManager;
+    private readonly IHostEnvironment _environment = environment;
+    private readonly TimeProvider _timeProvider = timeProvider;
 
     public async Task InitializeAsync()
     {
@@ -157,6 +167,7 @@ public class ApplicationDbContextInitializer(ILogger<ApplicationDbContextInitial
                 Email = "user@judhur.com",
                 FullName = "Faheem Hasson",
                 UserName = "Faheem",
+                PhoneNumber = "0599123456",
                 EmailConfirmed = true,
                 City = "Nablus"
             };
@@ -213,6 +224,84 @@ public class ApplicationDbContextInitializer(ILogger<ApplicationDbContextInitial
                     user.Email);
             }
         }
+
+        if (!_environment.IsDevelopment())
+        {
+            return;
+        }
+
+        await SeedDevelopmentDataAsync(admin, user);
+    }
+
+    private async Task SeedDevelopmentDataAsync(ApplicationUser admin, ApplicationUser user)
+    {
+        if (string.IsNullOrEmpty(user.PhoneNumber))
+        {
+            user.PhoneNumber = "0599123456";
+            await _userManager.UpdateAsync(user);
+        }
+
+        var layla = await EnsureSellerAsync("layla@judhur.com", "ليلى منصور", "layla", "0598765432", "رام الله");
+        var samer = await EnsureSellerAsync("samer@judhur.com", "سامر عودة", "samer", "0569876543", "الخليل");
+        if (layla is null || samer is null)
+        {
+            _logger.LogError("Development sellers could not be created, skipping property seeding");
+            return;
+        }
+
+        await PropertySeeder.SeedAsync(
+            _context,
+            admin.Id,
+            [user.Id, layla.Id, samer.Id],
+            user.Id,
+            _timeProvider.GetUtcNow(),
+            _logger);
+    }
+
+    private async Task<ApplicationUser?> EnsureSellerAsync(string email, string fullName, string userName, string phoneNumber, string city)
+    {
+        var seller = await _userManager.FindByEmailAsync(email);
+        if (seller is null)
+        {
+            seller = new ApplicationUser
+            {
+                Id = Guid.CreateVersion7(),
+                Email = email,
+                FullName = fullName,
+                UserName = userName,
+                PhoneNumber = phoneNumber,
+                EmailConfirmed = true,
+                City = city
+            };
+
+            var createResult = await _userManager.CreateAsync(seller, "User@12345");
+            if (!createResult.Succeeded)
+            {
+                _logger.LogError(
+                    "Failed to create seller {Email}. Errors: {Errors}",
+                    email,
+                    string.Join(" | ", createResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
+                return null;
+            }
+
+            _logger.LogInformation("Seller {Email} created successfully.", email);
+        }
+
+        if (!await _userManager.IsInRoleAsync(seller, Roles.User))
+        {
+            var roleResult = await _userManager.AddToRoleAsync(seller, Roles.User);
+            if (!roleResult.Succeeded)
+            {
+                _logger.LogError(
+                    "Failed to assign role {Role} to seller {Email}. Errors: {Errors}",
+                    Roles.User,
+                    email,
+                    string.Join(" | ", roleResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
+                return null;
+            }
+        }
+
+        return seller;
     }
 }
     public static class InitializerExtensions
