@@ -158,4 +158,8 @@ public static class PropertyErrors
     public static readonly Error NotFound = Error.NotFound(
         "PropertyErrors.NotFound",
         "العقار غير موجود");
+
+    public static readonly Error TooManyCitiesInFilter = Error.Validation(
+        "PropertyErrors.TooManyCitiesInFilter",
+        "لا يمكن اختيار أكثر من 20 مدينة في البحث");
 }

@@ -30,6 +30,11 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             _logger.LogWarning("Get properties rejected: invalid page size {PageSize}", request.PageSize);
             return ApplicationError.PageSizeInvalid;
         }
+        if (request.Cities.Count > GetPropertiesQuery.MaxCities)
+        {
+            _logger.LogWarning("Get properties rejected: {CityCount} cities requested, the limit is {MaxCities}", request.Cities.Count, GetPropertiesQuery.MaxCities);
+            return PropertyErrors.TooManyCitiesInFilter;
+        }
         var propertyQuery = _context.Properties.AsNoTracking().Where(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive).AsQueryable();
         propertyQuery = ApplyFilters(propertyQuery, request);
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
@@ -98,29 +103,29 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
         {
             query = query.Where(p => p.Price <= searchQuery.MaxPrice.Value);
         }
-        if (!string.IsNullOrWhiteSpace(searchQuery.City))
+        if (searchQuery.Cities.Count > 0)
         {
-            query = query.Where(p => p.City == searchQuery.City);
+            query = query.Where(p => searchQuery.Cities.Contains(p.City));
         }
-        if (searchQuery.LandClassification.HasValue)
+        if (searchQuery.LandClassifications.Count > 0)
         {
-            query = query.Where(p => p.LandClassification == searchQuery.LandClassification);
+            query = query.Where(p => searchQuery.LandClassifications.Contains(p.LandClassification));
         }
-        if (searchQuery.LegalStatus.HasValue)
+        if (searchQuery.LegalStatuses.Count > 0)
         {
-            query = query.Where(p => p.LegalStatus == searchQuery.LegalStatus);
+            query = query.Where(p => searchQuery.LegalStatuses.Contains(p.LegalStatus));
         }
-        if (searchQuery.PaymentType.HasValue)
+        if (searchQuery.PaymentTypes.Count > 0)
         {
-            query = query.Where(p => p.PaymentType == searchQuery.PaymentType);
+            query = query.Where(p => searchQuery.PaymentTypes.Contains(p.PaymentType));
         }
-        if (searchQuery.PropertyStatus.HasValue)
+        if (searchQuery.PropertyStatuses.Count > 0)
         {
-            query = query.Where(p => p.PropertyStatus == searchQuery.PropertyStatus);
+            query = query.Where(p => searchQuery.PropertyStatuses.Contains(p.PropertyStatus));
         }
-        if (searchQuery.PropertyType.HasValue)
+        if (searchQuery.PropertyTypes.Count > 0)
         {
-            query = query.Where(p => p.PropertyType == searchQuery.PropertyType);
+            query = query.Where(p => searchQuery.PropertyTypes.Contains(p.PropertyType));
         }
         return query;
     }
