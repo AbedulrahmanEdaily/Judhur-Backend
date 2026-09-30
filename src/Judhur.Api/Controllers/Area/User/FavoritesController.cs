@@ -2,6 +2,10 @@ using Asp.Versioning;
 
 using Judhur.Application.Features.Favorites.Commands.AddFavorite;
 using Judhur.Application.Features.Favorites.Commands.RemoveFavorite;
+using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Favorites.Queries.GetMyFavorites;
+using Judhur.Application.Features.Properties.Dto;
+using Judhur.Contracts.Requests;
 using Judhur.Domain.Common;
 
 using MediatR;
@@ -48,5 +52,19 @@ public sealed class FavoritesController(ISender sender) : ApiController
     {
         var result = await _sender.Send(new RemoveFavoriteCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(PaginatedList<PropertySummaryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Lists the user's favorite properties.")]
+    [EndpointDescription("Returns the authenticated user's favorite properties, most recently added first, in the same shape as the public search results. Properties that are no longer publicly visible are left out but stay in the favorites, so they reappear if the property becomes visible again.")]
+    [EndpointName("GetMyFavorites")]
+    public async Task<IActionResult> GetMineAsync([FromQuery] PageRequest request, CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetMyFavoritesQuery(request.Page, request.PageSize), ct);
+        return result.Match(response => Ok(response), Problem);
     }
 }

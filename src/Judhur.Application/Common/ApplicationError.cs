@@ -26,4 +26,12 @@ public static class ApplicationError
     public static readonly Error DeleteFailed = Error.Failure(
         code: "Storage.DeleteFailed",
         description: "تعذّر حذف الملف، يرجى المحاولة لاحقًا.");
+
+    public static readonly Error PageInvalid = Error.Validation(
+        code: "Pagination.PageInvalid",
+        description: "رقم الصفحة يجب أن يكون أكبر من صفر.");
+
+    public static readonly Error PageSizeInvalid = Error.Validation(
+        code: "Pagination.PageSizeInvalid",
+        description: "حجم الصفحة يجب أن يكون بين 1 و100.");
 }

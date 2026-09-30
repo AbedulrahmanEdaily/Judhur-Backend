@@ -23,12 +23,12 @@ public sealed class GetPendingPropertiesQueryHandler(IAppDbContext context, ILog
         if (request.Page <= 0)
         {
             _logger.LogWarning("Get pending properties rejected: invalid page {Page}", request.Page);
-            return PropertyErrors.PageInvalid;
+            return ApplicationError.PageInvalid;
         }
         if (request.PageSize is <= 0 or > 100)
         {
             _logger.LogWarning("Get pending properties rejected: invalid page size {PageSize}", request.PageSize);
-            return PropertyErrors.PageSizeInvalid;
+            return ApplicationError.PageSizeInvalid;
         }
         var query = _context.Properties
             .AsNoTracking()
