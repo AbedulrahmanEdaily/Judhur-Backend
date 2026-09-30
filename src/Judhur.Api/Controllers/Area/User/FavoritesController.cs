@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Judhur.Application.Features.Favorites.Commands.AddFavorite;
 using Judhur.Application.Features.Favorites.Commands.RemoveFavorite;
 using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Favorites.Queries.GetMyFavoriteIds;
 using Judhur.Application.Features.Favorites.Queries.GetMyFavorites;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Contracts.Requests;
@@ -65,6 +66,19 @@ public sealed class FavoritesController(ISender sender) : ApiController
     public async Task<IActionResult> GetMineAsync([FromQuery] PageRequest request, CancellationToken ct)
     {
         var result = await _sender.Send(new GetMyFavoritesQuery(request.Page, request.PageSize), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpGet("ids")]
+    [ProducesResponseType(typeof(List<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [EndpointSummary("Lists the ids of the user's favorite properties.")]
+    [EndpointDescription("Returns the ids of every publicly visible property in the authenticated user's favorites, without pagination. Used by the frontend to mark favorite properties in search results and details, since those responses are cached for everyone and cannot carry per-user data.")]
+    [EndpointName("GetMyFavoriteIds")]
+    public async Task<IActionResult> GetMineIdsAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetMyFavoriteIdsQuery(), ct);
         return result.Match(response => Ok(response), Problem);
     }
 }
