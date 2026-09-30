@@ -1,3 +1,4 @@
+using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
@@ -22,12 +23,12 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
         if (request.Page <= 0)
         {
             _logger.LogWarning("Get properties rejected: invalid page {Page}", request.Page);
-            return PropertyErrors.PageInvalid;
+            return ApplicationError.PageInvalid;
         }
         if (request.PageSize is <= 0 or > 100)
         {
             _logger.LogWarning("Get properties rejected: invalid page size {PageSize}", request.PageSize);
-            return PropertyErrors.PageSizeInvalid;
+            return ApplicationError.PageSizeInvalid;
         }
         var propertyQuery = _context.Properties.AsNoTracking().Where(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive).AsQueryable();
         propertyQuery = ApplyFilters(propertyQuery, request);
