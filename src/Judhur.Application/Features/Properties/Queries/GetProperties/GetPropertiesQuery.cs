@@ -12,29 +12,37 @@ public sealed record GetPropertiesQuery(
     string? SearchTerm,
     decimal? MinPrice,
     decimal? MaxPrice,
-    string? City,
-    LandClassification? LandClassification,
-    LegalStatus? LegalStatus,
-    PaymentType? PaymentType,
-    PropertyStatus? PropertyStatus,
-    PropertyType? PropertyType,
+    IReadOnlyList<string> Cities,
+    IReadOnlyList<LandClassification> LandClassifications,
+    IReadOnlyList<LegalStatus> LegalStatuses,
+    IReadOnlyList<PaymentType> PaymentTypes,
+    IReadOnlyList<PropertyStatus> PropertyStatuses,
+    IReadOnlyList<PropertyType> PropertyTypes,
     string SortColumn = "createdAt",
     string SortDirection = "desc"
     ) : ICachedQuery<Result<PaginatedList<PropertySummaryDto>>>
 {
+    public const int MaxCities = 20;
+
     public string CacheKey =>
     $"property:p={Page}:ps={PageSize}" +
     $":q={SearchTerm ?? "-"}" +
     $":sort={SortColumn}:{SortDirection}" +
     $":price:min={MinPrice?.ToString() ?? "-"}:max={MaxPrice?.ToString() ?? "-"}" +
-    $":city={City ?? "-"}" +
-    $":land={LandClassification?.ToString() ?? "-"}" +
-    $":legalStatus={LegalStatus?.ToString() ?? "-"}" +
-    $":payment={PaymentType?.ToString() ?? "-"}" +
-    $":status={PropertyStatus?.ToString() ?? "-"}" +
-    $":propertyType={PropertyType?.ToString() ?? "-"}";
+    $":city={KeyOf(Cities.Select(c => c.ToLowerInvariant()))}" +
+    $":land={KeyOf(LandClassifications)}" +
+    $":legalStatus={KeyOf(LegalStatuses)}" +
+    $":payment={KeyOf(PaymentTypes)}" +
+    $":status={KeyOf(PropertyStatuses)}" +
+    $":propertyType={KeyOf(PropertyTypes)}";
 
     public string[] Tags => ["properties"];
 
     public TimeSpan Expiration => TimeSpan.FromMinutes(10);
+
+    private static string KeyOf<T>(IEnumerable<T> values)
+    {
+        var ordered = values.Select(v => v!.ToString()).Order(StringComparer.Ordinal).ToList();
+        return ordered.Count == 0 ? "-" : string.Join(",", ordered);
+    }
 }
