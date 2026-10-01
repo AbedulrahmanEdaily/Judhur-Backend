@@ -1,6 +1,7 @@
 using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Notifications.Commands.MarkAsRead;
 using Judhur.Application.Features.Notifications.Dto;
 using Judhur.Application.Features.Notifications.Queries.GetMyNotifications;
 using Judhur.Application.Features.Notifications.Queries.GetUnreadNotificationsCount;
@@ -44,5 +45,19 @@ public sealed class NotificationsController(ISender sender) : ApiController
     {
         var result = await _sender.Send(new GetUnreadNotificationsCountQuery(), ct);
         return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPost("{notificationId:guid}/read")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Marks one notification as read.")]
+    [EndpointDescription("Marks a notification of the authenticated user as read. Calling it again on a notification that is already read also returns 204, so the client can call it every time a notification is opened. Returns 404 if the notification does not exist or belongs to another user.")]
+    [EndpointName("MarkNotificationAsRead")]
+    public async Task<IActionResult> MarkAsReadAsync([FromRoute] Guid notificationId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new MarkAsReadCommand(notificationId), ct);
+        return result.Match(_ => NoContent(), Problem);
     }
 }

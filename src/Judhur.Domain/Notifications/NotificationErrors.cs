@@ -10,5 +10,5 @@ public static class NotificationErrors
     public static readonly Error TitleTooLong = Error.Validation("NotificationErrors.TitleTooLong", $"لا يمكن أن يتجاوز عنوان الإشعار {Notification.MaxTitleLength} حرف");
     public static readonly Error BodyRequired = Error.Validation("NotificationErrors.BodyRequired", "نص الإشعار مطلوب");
     public static readonly Error BodyTooLong = Error.Validation("NotificationErrors.BodyTooLong", $"لا يمكن أن يتجاوز نص الإشعار {Notification.MaxBodyLength} حرف");
-    public static readonly Error NotFound = Error.NotFound("NotificationErrors.NotFound", $"الإشعار غير موجود");
+    public static readonly Error NotFound = Error.NotFound("NotificationErrors.NotFound", "الإشعار غير موجود");
 }
