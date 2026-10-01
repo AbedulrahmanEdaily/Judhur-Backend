@@ -9,6 +9,8 @@ public interface ICachedQuery
     string[] Tags { get; }
 
     TimeSpan Expiration { get; }
+
+    bool IsCacheable => true;
 }
 
 public interface ICachedQuery<TResponse> : IRequest<TResponse>, ICachedQuery;

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 
@@ -17,24 +18,27 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApi(this IServiceCollection services)
+    public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddCustomProblemDetails()
                 .AddCustomApiVersioning()
                 .AddExceptionHandling()
                 .AddControllerWithJsonConfiguration()
                 .AddApiDocumentation()
-                .AddConfiguredCors()
+                .AddConfiguredCors(configuration)
                 .AddRateLimiting()
                 .AddIdentityInfrastructure();
         return services;
     }
-    public static IServiceCollection AddConfiguredCors(this IServiceCollection services)
+    public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
     {
+        var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is { Length: > 0 } origins
+            ? origins
+            : throw new InvalidOperationException("Configuration value 'Cors:AllowedOrigins' is missing.");
         services.AddCors(options => options.AddPolicy("frontend"
             ,
             policy => policy
-                .WithOrigins("http://localhost:5173")
+                .WithOrigins(allowedOrigins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials()));
@@ -120,6 +124,26 @@ public static class DependencyInjection
 
             options.AddPolicy(RateLimitPolicies.SetMyPassword, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(15),
+                    }));
+
+            options.AddPolicy(RateLimitPolicies.Login, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                    }));
+
+            options.AddPolicy(RateLimitPolicies.Register, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
                     factory: _ => new FixedWindowRateLimiterOptions
                     {
@@ -184,8 +208,8 @@ public static class DependencyInjection
         app.UseHttpsRedirection();
         app.UseRouting();
         app.UseCors("frontend");
-        app.UseRateLimiter();
         app.UseAuthentication();
+        app.UseRateLimiter();
         app.UseAuthorization();
         return app;
     }

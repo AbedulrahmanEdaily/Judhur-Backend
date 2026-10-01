@@ -33,12 +33,14 @@ public sealed class AccountController(ISender sender) : ApiController
     private readonly ISender _sender = sender;
 
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitPolicies.Register)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [EndpointSummary("Create a new user")]
-    [EndpointDescription("Create a new user")]
+    [EndpointSummary("Registers a new user.")]
+    [EndpointDescription("Creates an account with the User role and sends a confirmation email. The email is the login; there is no user name. Limited to 5 requests per 15 minutes per IP. Returns 409 Identity.DuplicateEmail when the email is already registered.")]
     [EndpointName("RegisterUser")]
     public async Task<IActionResult> RegisterAsync([FromBody] RegisterCommand request, CancellationToken ct)
     {
@@ -47,13 +49,15 @@ public sealed class AccountController(ISender sender) : ApiController
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitPolicies.Login)]
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Generates an access and refresh token for a valid user.")]
-    [EndpointDescription("Authenticates a user using provided credentials and returns a JWT token pair.")]
+    [EndpointDescription("Authenticates a user with email and password and returns a JWT token pair. A wrong email or password returns 401 Identity.InvalidCredentials; a correct password on an unconfirmed account returns 403 Identity.EmailNotConfirmed; a locked account returns 403 Identity.LockedOut. Limited to 10 requests per minute per IP.")]
     [EndpointName("LoginUser")]
     public async Task<IActionResult> LoginAsync([FromBody] LoginCommand request, CancellationToken ct)
     {
@@ -132,6 +136,8 @@ public sealed class AccountController(ISender sender) : ApiController
     [HttpPost("refresh-token")]
     [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Refreshes access token using a valid refresh token.")]
     [EndpointDescription("Exchanges an expired access token and a valid refresh token for a new token pair.")]

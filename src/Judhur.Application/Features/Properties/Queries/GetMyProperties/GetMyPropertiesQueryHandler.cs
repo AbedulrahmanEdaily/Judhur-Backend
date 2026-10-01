@@ -27,6 +27,7 @@ public sealed class GetMyPropertiesQueryHandler(IAppDbContext context, IUser use
             .AsNoTracking()
             .Where(p => p.SellerId == sellerId)
             .OrderByDescending(p => p.CreatedAtUtc)
+            .ThenBy(p => p.Id)
             .Select(p => new MyPropertyDto
             {
                 Id = p.Id,

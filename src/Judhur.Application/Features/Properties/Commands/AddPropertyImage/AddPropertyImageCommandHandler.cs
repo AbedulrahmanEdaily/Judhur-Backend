@@ -45,6 +45,7 @@ public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext con
         );
         if (uploadResult.IsError)
         {
+            _logger.LogWarning("Add property image failed for property {PropertyId}: upload error {ErrorCode}", property.Id, uploadResult.TopError.Code);
             return uploadResult.Errors;
         }
         var storedFile = uploadResult.Value;

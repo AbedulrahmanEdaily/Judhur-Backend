@@ -17,6 +17,8 @@ public sealed class Property : AuditableEntity
     public const int MaxFullAddressLength = 500;
     public const int MaxOwnershipDocumentPublicIdLength = 300;
     public const int MaxRejectionReasonLength = 500;
+    public const decimal MaxPrice = 1_000_000_000_000m;
+    public const decimal MaxArea = 10_000_000m;
     
     private readonly List<PropertyImage> _propertyImages = [];
 
@@ -429,6 +431,7 @@ public sealed class Property : AuditableEntity
         }
 
         _propertyImages.Add(image);
+        ResetModeration();
 
         return Result.Updated;
     }
@@ -466,10 +469,16 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.ImageNotFound;
         }
 
+        if (image.IsMainImage)
+        {
+            return Result.Updated;
+        }
+
         foreach (var existing in _propertyImages)
         {
             existing.SetAsMainImage(existing.Id == imageId);
         }
+        ResetModeration();
 
         return Result.Updated;
     }
@@ -509,6 +518,11 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.PriceInvalid;
         }
 
+        if (price > MaxPrice)
+        {
+            return PropertyErrors.PriceTooHigh;
+        }
+
         if (!Enum.IsDefined(paymentType))
         {
             return PropertyErrors.PaymentInvalid;
@@ -522,6 +536,11 @@ public sealed class Property : AuditableEntity
         if (area <= 0)
         {
             return PropertyErrors.AreaInvalid;
+        }
+
+        if (area > MaxArea)
+        {
+            return PropertyErrors.AreaTooHigh;
         }
 
         if (string.IsNullOrWhiteSpace(city))

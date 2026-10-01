@@ -7,4 +7,6 @@ public static class RateLimitPolicies
     public const string ChangePassword = "change-password";
     public const string GoogleLogin = "google-login";
     public const string SetMyPassword = "set-my-password";
+    public const string Login = "login";
+    public const string Register = "register";
 }

@@ -33,6 +33,7 @@ public sealed class GetPendingPropertiesQueryHandler(IAppDbContext context, ILog
         var query = _context.Properties
             .AsNoTracking()
             .Where(p => p.ModerationStatus == ModerationStatus.Pending
+                && p.IsActive
                 && p.OwnershipDocumentPublicId != null
                 && p.PropertyImages.Count >= Property.MinImages
                 && p.PropertyImages.Any(i => i.IsMainImage));

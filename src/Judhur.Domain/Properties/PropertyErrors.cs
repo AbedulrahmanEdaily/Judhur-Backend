@@ -12,6 +12,10 @@ public static class PropertyErrors
         "PropertyErrors.PriceInvalid",
         "السعر يجب أن يكون أكبر من صفر");
 
+    public static readonly Error PriceTooHigh = Error.Validation(
+        "PropertyErrors.PriceTooHigh",
+        "السعر أكبر من الحد المسموح.");
+
     public static readonly Error PaymentInvalid = Error.Validation(
         "PropertyErrors.PaymentInvalid",
         "طريقة الدفع غير صالحة");
@@ -35,6 +39,10 @@ public static class PropertyErrors
     public static readonly Error AreaInvalid = Error.Validation(
         "PropertyErrors.AreaInvalid",
         "المساحة يجب أن تكون أكبر من صفر");
+
+    public static readonly Error AreaTooHigh = Error.Validation(
+        "PropertyErrors.AreaTooHigh",
+        "المساحة أكبر من الحد المسموح.");
 
     public static readonly Error CityRequired = Error.Validation(
         "PropertyErrors.CityRequired",

@@ -10,19 +10,20 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Infrastructure.Email;
 
-internal sealed class EmailSender(ILogger<EmailSender> logger, IConfiguration configuration) : IEmailSender
+internal sealed class EmailSender(ILogger<EmailSender> logger, IConfiguration configuration, EmailSettings settings) : IEmailSender
 {
     private readonly ILogger<EmailSender> _logger = logger;
     private readonly IConfiguration _configuration = configuration;
+    private readonly EmailSettings _settings = settings;
 
     public async Task SendEmailAsync(EmailMessage message, CancellationToken cancellationToken)
     {
-        var fromAddress = new MailAddress("dylyb7883@gmail.com", "Judhur");
-        using var client = new SmtpClient("smtp.gmail.com", 587)
+        var fromAddress = new MailAddress(_settings.SenderAddress, _settings.SenderName);
+        using var client = new SmtpClient(_settings.SmtpHost, _settings.SmtpPort)
         {
             EnableSsl = true,
             UseDefaultCredentials = false,
-            Credentials = new NetworkCredential("dylyb7883@gmail.com", _configuration["EmailPassword"])
+            Credentials = new NetworkCredential(_settings.SenderAddress, _configuration["EmailPassword"])
         };
         using var mailMessage = new MailMessage
         {

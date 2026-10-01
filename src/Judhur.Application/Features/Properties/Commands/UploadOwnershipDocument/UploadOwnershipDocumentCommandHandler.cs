@@ -39,6 +39,7 @@ public sealed class UploadOwnershipDocumentCommandHandler(IUser user, IAppDbCont
             cancellationToken);
         if (uploadResult.IsError)
         {
+            _logger.LogWarning("Upload ownership document failed for property {PropertyId}: upload error {ErrorCode}", property.Id, uploadResult.TopError.Code);
             return uploadResult.Errors;
         }
         var newPublicId = uploadResult.Value;

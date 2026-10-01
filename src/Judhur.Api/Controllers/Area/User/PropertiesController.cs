@@ -78,7 +78,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
         var result = await _sender.Send(new GetMyPropertiesQuery(), ct);
         return result.Match(response => Ok(response), Problem);
     }
-    [HttpGet("mine/{propertyId:guid}")]
+    [HttpGet("mine/{propertyId:guid}", Name = "GetMyPropertyById")]
     [ProducesResponseType(typeof(MyPropertyDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -113,7 +113,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     public async Task<IActionResult> CreateAsync([FromBody] CreatePropertyCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
-        return result.Match(response => CreatedAtRoute(routeName: "GetPropertyById", routeValues: new { version = "1", propertyId = response.Id }, value: response), Problem);
+        return result.Match(response => CreatedAtRoute(routeName: "GetMyPropertyById", routeValues: new { version = "1", propertyId = response.Id }, value: response), Problem);
     }
     [HttpPut("{propertyId:guid}/details")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
