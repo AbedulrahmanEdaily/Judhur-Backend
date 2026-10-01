@@ -15,4 +15,5 @@ public record PropertyFilterRequest
     public List<PaymentType>? PaymentType { get; set; }
     public List<PropertyStatus>? PropertyStatus { get; set; }
     public List<PropertyType>? PropertyType { get; set; }
+    public Guid? SellerId { get; set; }
 }

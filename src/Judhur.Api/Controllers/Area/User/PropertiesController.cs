@@ -41,7 +41,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Retrieves a paginated list of properties.")]
-    [EndpointDescription("Returns a paginated, filterable, and sortable list of published (approved and active) properties. City, propertyType, propertyStatus, paymentType, landClassification and legalStatus accept several values by repeating the key (for example ?city=Nablus&city=Ramallah); values of the same filter are combined with OR, and different filters with AND. Up to 20 cities can be sent.")]
+    [EndpointDescription("Returns a paginated, filterable, and sortable list of published (approved and active) properties. City, propertyType, propertyStatus, paymentType, landClassification and legalStatus accept several values by repeating the key (for example ?city=Nablus&city=Ramallah); values of the same filter are combined with OR, and different filters with AND. Up to 20 cities can be sent. Send sellerId to list only the published properties of one seller, as on the public seller page.")]
     [EndpointName("GetProperties")]
     [AllowAnonymous]
     public async Task<IActionResult> Get([FromQuery] PropertyFilterRequest filters,
@@ -60,6 +60,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
             filters.PaymentType.ToDomain(),
             filters.PropertyStatus.ToDomain(),
             filters.PropertyType.ToDomain(),
+            filters.SellerId,
             filters.SortColumn,
             filters.SortDirection
         ), ct);

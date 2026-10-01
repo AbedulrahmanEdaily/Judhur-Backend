@@ -16,6 +16,9 @@ public static class ApplicationError
     public static readonly Error UserNotFound = Error.NotFound(
         code: "Auth.User.NotFound",
         description: "المستخدم غير موجود.");
+    public static readonly Error SellerNotFound = Error.NotFound(
+        code: "Seller.NotFound",
+        description: "البائع غير موجود.");
     public static readonly Error TokenGenerationFailed = Error.Failure(
         code: "Auth.TokenGeneration.Failed",
         description: "تعذّر إنشاء رمز الدخول، يرجى المحاولة لاحقًا.");

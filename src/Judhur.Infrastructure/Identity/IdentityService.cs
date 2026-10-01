@@ -334,6 +334,22 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return Result.Success;
     }
 
+    public async Task<Result<SellerInfo>> GetSellerInfoAsync(Guid sellerId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(sellerId.ToString());
+        if (user?.Email is null || await _userManager.IsInRoleAsync(user, Roles.Admin))
+        {
+            return ApplicationError.SellerNotFound;
+        }
+        return new SellerInfo(
+            user.Id,
+            user.FullName,
+            user.ProfileImageUrl,
+            user.City,
+            user.Bio,
+            user.CreatedAtUtc);
+    }
+
     private static Error CurrentPasswordRequired()
         => Error.Validation("Identity.CurrentPasswordRequired", "كلمة المرور الحالية مطلوبة.");
 

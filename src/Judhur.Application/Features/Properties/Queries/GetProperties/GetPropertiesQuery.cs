@@ -18,6 +18,7 @@ public sealed record GetPropertiesQuery(
     IReadOnlyList<PaymentType> PaymentTypes,
     IReadOnlyList<PropertyStatus> PropertyStatuses,
     IReadOnlyList<PropertyType> PropertyTypes,
+    Guid? SellerId,
     string SortColumn = "createdAt",
     string SortDirection = "desc"
     ) : ICachedQuery<Result<PaginatedList<PropertySummaryDto>>>
@@ -34,7 +35,8 @@ public sealed record GetPropertiesQuery(
     $":legalStatus={KeyOf(LegalStatuses)}" +
     $":payment={KeyOf(PaymentTypes)}" +
     $":status={KeyOf(PropertyStatuses)}" +
-    $":propertyType={KeyOf(PropertyTypes)}";
+    $":propertyType={KeyOf(PropertyTypes)}" +
+    $":seller={SellerId?.ToString() ?? "-"}";
 
     public string[] Tags => ["properties"];
 

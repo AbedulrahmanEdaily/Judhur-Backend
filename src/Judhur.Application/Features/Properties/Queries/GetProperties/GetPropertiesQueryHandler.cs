@@ -127,6 +127,10 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
         {
             query = query.Where(p => searchQuery.PropertyTypes.Contains(p.PropertyType));
         }
+        if (searchQuery.SellerId is { } sellerId)
+        {
+            query = query.Where(p => p.SellerId == sellerId);
+        }
         return query;
     }
 }
