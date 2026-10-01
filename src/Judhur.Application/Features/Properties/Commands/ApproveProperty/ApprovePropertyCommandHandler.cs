@@ -1,5 +1,6 @@
 using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
+using Judhur.Application.Features.Properties.Events;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Properties;
 
@@ -10,12 +11,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.ApproveProperty;
 
-public sealed class ApprovePropertyCommandHandler(IUser user, IAppDbContext context, ILogger<ApprovePropertyCommandHandler> logger, TimeProvider timeProvider) : IRequestHandler<ApprovePropertyCommand, Result<Updated>>
+public sealed class ApprovePropertyCommandHandler(IUser user, IAppDbContext context, ILogger<ApprovePropertyCommandHandler> logger, TimeProvider timeProvider, IDeferredDispatcher dispatcher, IPublisher publisher) : IRequestHandler<ApprovePropertyCommand, Result<Updated>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
     private readonly ILogger<ApprovePropertyCommandHandler> _logger = logger;
     private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly IDeferredDispatcher _dispatcher = dispatcher;
+    private readonly IPublisher _publisher = publisher;
 
     public async Task<Result<Updated>> Handle(ApprovePropertyCommand request, CancellationToken cancellationToken)
     {
@@ -37,6 +40,7 @@ public sealed class ApprovePropertyCommandHandler(IUser user, IAppDbContext cont
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
+        _dispatcher.Defer(ct => _publisher.Publish(new PropertyApproved(property.Id, property.SellerId, property.Title), ct));
         _logger.LogInformation("Property {PropertyId} approved by admin {AdminId}", property.Id, adminId);
         return Result.Updated;
     }
