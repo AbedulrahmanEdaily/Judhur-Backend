@@ -9,6 +9,7 @@ using Judhur.Infrastructure.Common;
 using Judhur.Infrastructure.Data.Interceptors;
 using Judhur.Infrastructure.Email;
 using Judhur.Infrastructure.Identity;
+using Judhur.Infrastructure.Identity.GoogleLogin;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -123,7 +124,8 @@ public static class DependencyInjection
 
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ITokenProvider, TokenProvider>();
-
+        services.AddSingleton(GoogleSettings.Bind(configuration));
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         return services;
     }
 

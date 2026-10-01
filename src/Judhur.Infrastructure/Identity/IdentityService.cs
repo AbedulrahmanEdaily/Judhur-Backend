@@ -16,6 +16,9 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     TimeProvider timeProvider) : IIdentityService
 {
     private const int ResetCodeLifetimeMinutes = 5;
+    private const string GoogleLoginProvider = "Google";
+    private const int MaxFullNameLength = 150;
+    private const int MaxProfileImageUrlLength = 500;
 
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -77,9 +80,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
         if (signInResult.IsLockedOut)
         {
-            return Error.Forbidden(
-                "Identity.LockedOut",
-                "تم قفل الحساب مؤقتًا بسبب كثرة المحاولات الفاشلة، يرجى المحاولة لاحقًا.");
+            return LockedOut();
         }
 
         if (signInResult.IsNotAllowed)
@@ -94,6 +95,17 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             return InvalidCredentials();
         }
 
+        return await ToAppUserAsync(user);
+    }
+
+    private static Error InvalidCredentials()
+        => Error.Unauthorized("Identity.InvalidCredentials", "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+
+    private static Error LockedOut()
+        => Error.Forbidden("Identity.LockedOut", "تم قفل الحساب مؤقتًا بسبب كثرة المحاولات الفاشلة، يرجى المحاولة لاحقًا.");
+
+    private async Task<Result<AppUserDto>> ToAppUserAsync(ApplicationUser user)
+    {
         var roles = await _userManager.GetRolesAsync(user);
         if (roles.Count == 0)
         {
@@ -102,9 +114,6 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
         return new AppUserDto(user.Id, user.Email!, roles);
     }
-
-    private static Error InvalidCredentials()
-        => Error.Unauthorized("Identity.InvalidCredentials", "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
 
     public async Task<Result<Success>> ConfirmEmailAsync(Guid userId, string token, CancellationToken cancellationToken = default)
     {
@@ -235,5 +244,112 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             return ApplicationError.UserNotFound;
         }
         return new UserInfoDto(user.Id, user.FullName, user.PhoneNumber, user.ProfileImageUrl);
+    }
+
+    public async Task<Result<AppUserDto>> SignInWithGoogleAsync(GoogleUser googleUser, string? phoneNumber, string? city, CancellationToken cancellationToken = default)
+    {
+        if (!googleUser.EmailVerified)
+        {
+            return Error.Forbidden(
+                "Identity.GoogleEmailNotVerified",
+                "البريد الإلكتروني في حساب Google غير مؤكد، يرجى تأكيده ثم المحاولة مجددًا.");
+        }
+
+        var user = await _userManager.FindByLoginAsync(GoogleLoginProvider, googleUser.Subject);
+
+        if (user is null)
+        {
+            user = await _userManager.FindByEmailAsync(googleUser.Email);
+            if (user is not null)
+            {
+                var linkResult = await LinkGoogleLoginAsync(user, googleUser);
+                if (linkResult.IsError)
+                {
+                    return linkResult.Errors;
+                }
+            }
+        }
+
+        if (user is null)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(city))
+            {
+                return Error.Validation(
+                    "Identity.GoogleRegistrationIncomplete",
+                    "أكمل رقم الهاتف والمدينة لإنشاء حسابك.");
+            }
+
+            var createResult = await CreateGoogleUserAsync(googleUser, phoneNumber, city);
+            if (createResult.IsError)
+            {
+                return createResult.Errors;
+            }
+
+            user = createResult.Value;
+        }
+
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            return LockedOut();
+        }
+
+        return await ToAppUserAsync(user);
+    }
+
+    private async Task<Result<Success>> LinkGoogleLoginAsync(ApplicationUser user, GoogleUser googleUser)
+    {
+        var addLoginResult = await _userManager.AddLoginAsync(
+            user,
+            new UserLoginInfo(GoogleLoginProvider, googleUser.Subject, GoogleLoginProvider));
+        if (!addLoginResult.Succeeded)
+        {
+            return Translate(addLoginResult);
+        }
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                return Translate(updateResult);
+            }
+        }
+        return Result.Success;
+    }
+
+    private async Task<Result<ApplicationUser>> CreateGoogleUserAsync(GoogleUser googleUser, string phoneNumber, string city)
+    {
+        var fullName = googleUser.FullName.Length > MaxFullNameLength
+            ? googleUser.FullName[..MaxFullNameLength]
+            : googleUser.FullName;
+        var user = new ApplicationUser
+        {
+            Id = Guid.CreateVersion7(),
+            Email = googleUser.Email,
+            UserName = googleUser.Email,
+            EmailConfirmed = true,
+            FullName = fullName,
+            PhoneNumber = phoneNumber.Trim(),
+            City = city.Trim(),
+            ProfileImageUrl = googleUser.PictureUrl is { Length: <= MaxProfileImageUrlLength } pictureUrl ? pictureUrl : null
+        };
+        var createResult = await _userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+        {
+            return Translate(createResult);
+        }
+        var roleResult = await _userManager.AddToRoleAsync(user, Roles.User);
+        if (!roleResult.Succeeded)
+        {
+            return Translate(roleResult);
+        }
+        var addLoginResult = await _userManager.AddLoginAsync(
+            user,
+            new UserLoginInfo(GoogleLoginProvider, googleUser.Subject, GoogleLoginProvider));
+        if (!addLoginResult.Succeeded)
+        {
+            return Translate(addLoginResult);
+        }
+        return user;
     }
 }
