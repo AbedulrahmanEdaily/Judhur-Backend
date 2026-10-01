@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Commands.ChangePassword;
 using Judhur.Application.Features.Identity.Commands.ConfirmEmail;
+using Judhur.Application.Features.Identity.Commands.GoogleLogin;
 using Judhur.Application.Features.Identity.Commands.Login;
 using Judhur.Application.Features.Identity.Commands.Logout;
 using Judhur.Application.Features.Identity.Commands.RefreshToken;
@@ -48,6 +49,23 @@ public sealed class AccountController(ISender sender) : ApiController
     [EndpointDescription("Authenticates a user using provided credentials and returns a JWT token pair.")]
     [EndpointName("LoginUser")]
     public async Task<IActionResult> LoginAsync([FromBody] LoginCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPost("google")]
+    [EnableRateLimiting(RateLimitPolicies.GoogleLogin)]
+    [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Signs in with a Google account.")]
+    [EndpointDescription("Exchanges a Google ID token for the same token pair as the normal login. An existing account with the same email is linked automatically. A new account needs phoneNumber and city: without them the endpoint returns 400 with the error key Identity.GoogleRegistrationIncomplete, and the client sends the same ID token again with both fields. Returns 401 for an invalid or expired Google token, 403 when the Google email is not verified or the account is locked.")]
+    [EndpointName("GoogleLogin")]
+    public async Task<IActionResult> GoogleLoginAsync([FromBody] GoogleLoginCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
         return result.Match(response => Ok(response), Problem);

@@ -10,6 +10,9 @@ public static class ApplicationError
     public static readonly Error UserIdClaimInvalid = Error.Unauthorized(
         code: "Auth.UserIdClaim.Invalid",
         description: "بيانات الجلسة غير صالحة، يرجى تسجيل الدخول مجددًا.");
+    public static readonly Error InvalidGoogleToken = Error.Unauthorized(
+        code: "Identity.InvalidGoogleToken",
+        description: "تعذّر التحقق من حساب Google، يرجى المحاولة مجددًا.");
     public static readonly Error UserNotFound = Error.NotFound(
         code: "Auth.User.NotFound",
         description: "المستخدم غير موجود.");
