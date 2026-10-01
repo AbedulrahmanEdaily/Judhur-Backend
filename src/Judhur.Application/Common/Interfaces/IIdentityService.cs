@@ -46,5 +46,6 @@ public interface IIdentityService
     Task<Result<UserInfoDto>> GetUserInfoAsync(string userId, CancellationToken ct = default);
     Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default);
+    Task<Result<ReplacedProfileImage>> SetProfileImageAsync(Guid userId, StoredFile? image, CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> SignInWithGoogleAsync(GoogleUser googleUser, string? phoneNumber, string? city, CancellationToken cancellationToken = default);
 }

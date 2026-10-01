@@ -281,6 +281,30 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return await ToMyProfileAsync(user);
     }
 
+    public async Task<Result<ReplacedProfileImage>> SetProfileImageAsync(Guid userId, StoredFile? image, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+
+        var previous = new ReplacedProfileImage(user.ProfileImageUrl, user.ProfileImagePublicId);
+        if (image is null && previous.PreviousUrl is null)
+        {
+            return previous;
+        }
+
+        user.ProfileImageUrl = image?.Url;
+        user.ProfileImagePublicId = image?.PublicId;
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return Translate(updateResult);
+        }
+        return previous;
+    }
+
     private async Task<MyProfileDto> ToMyProfileAsync(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);

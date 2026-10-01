@@ -7,10 +7,12 @@ using Judhur.Application.Features.Identity.Commands.GoogleLogin;
 using Judhur.Application.Features.Identity.Commands.Login;
 using Judhur.Application.Features.Identity.Commands.Logout;
 using Judhur.Application.Features.Identity.Commands.RefreshToken;
+using Judhur.Application.Features.Identity.Commands.RemoveProfileImage;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
 using Judhur.Application.Features.Identity.Commands.UpdateMyProfile;
+using Judhur.Application.Features.Identity.Commands.UploadProfileImage;
 using Judhur.Application.Features.Identity.Dtos;
 using Judhur.Application.Features.Identity.Queries.GetMyProfile;
 
@@ -181,5 +183,42 @@ public sealed class AccountController(ISender sender) : ApiController
     {
         var result = await _sender.Send(request, ct);
         return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPut("me/photo")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ProfileImageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Uploads or replaces the profile image of the authenticated user.")]
+    [EndpointDescription("Uploads a JPG, PNG or WEBP image (max 5 MB) sent as the 'file' form field and sets it as the profile image of the signed-in user, replacing any previous one. The previous image is deleted from storage. Returns the new image URL. Returns 400 on an invalid file, 401 without a valid access token and 404 if the account no longer exists.")]
+    [EndpointName("UploadProfileImage")]
+    public async Task<IActionResult> UploadProfileImageAsync(IFormFile file, CancellationToken ct)
+    {
+        await using var content = file.OpenReadStream();
+        var result = await _sender.Send(new UploadProfileImageCommand(
+            content,
+            file.FileName,
+            file.ContentType,
+            file.Length), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpDelete("me/photo")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Removes the profile image of the authenticated user.")]
+    [EndpointDescription("Clears the profile image of the signed-in user and deletes it from storage. Calling it when the user has no image succeeds without changes. Returns 401 without a valid access token and 404 if the account no longer exists.")]
+    [EndpointName("RemoveProfileImage")]
+    public async Task<IActionResult> RemoveProfileImageAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new RemoveProfileImageCommand(), ct);
+        return result.Match(_ => NoContent(), Problem);
     }
 }
