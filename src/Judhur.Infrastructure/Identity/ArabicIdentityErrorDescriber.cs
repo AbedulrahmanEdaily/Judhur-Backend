@@ -18,7 +18,7 @@ public sealed class ArabicIdentityErrorDescriber : IdentityErrorDescriber
         => new() { Code = nameof(InvalidToken), Description = "الرمز غير صالح أو منتهي الصلاحية." };
 
     public override IdentityError PasswordMismatch()
-        => new() { Code = nameof(PasswordMismatch), Description = "كلمة المرور غير صحيحة." };
+        => new() { Code = nameof(PasswordMismatch), Description = "كلمة المرور الحالية غير صحيحة." };
 
     public override IdentityError InvalidUserName(string? userName)
         => new() { Code = nameof(InvalidUserName), Description = "اسم المستخدم غير صالح، يمكن أن يحتوي على أحرف إنجليزية وأرقام فقط." };

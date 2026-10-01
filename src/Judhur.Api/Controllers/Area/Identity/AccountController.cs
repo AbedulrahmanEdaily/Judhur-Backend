@@ -11,6 +11,7 @@ using Judhur.Application.Features.Identity.Commands.RemoveProfileImage;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
+using Judhur.Application.Features.Identity.Commands.SetMyPassword;
 using Judhur.Application.Features.Identity.Commands.UpdateMyProfile;
 using Judhur.Application.Features.Identity.Commands.UploadProfileImage;
 using Judhur.Application.Features.Identity.Dtos;
@@ -219,6 +220,23 @@ public sealed class AccountController(ISender sender) : ApiController
     public async Task<IActionResult> RemoveProfileImageAsync(CancellationToken ct)
     {
         var result = await _sender.Send(new RemoveProfileImageCommand(), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPut("me/password")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.SetMyPassword)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Changes or sets the password of the authenticated user.")]
+    [EndpointDescription("If the account already has a password, currentPassword is required and must match; the password is then replaced with newPassword. If the account has no password (created with Google), currentPassword is ignored and newPassword becomes the account password, which also enables email and password login. Use hasPassword from GET me to pick the form. A confirmation email is sent on success. Limited to 5 requests per 15 minutes. Returns 400 on validation errors or a wrong current password, 401 without a valid access token and 404 if the account no longer exists.")]
+    [EndpointName("SetMyPassword")]
+    public async Task<IActionResult> SetMyPasswordAsync([FromBody] SetMyPasswordCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }

@@ -305,6 +305,38 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return previous;
     }
 
+    public async Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+
+        IdentityResult result;
+        if (await _userManager.HasPasswordAsync(user))
+        {
+            if (string.IsNullOrEmpty(currentPassword))
+            {
+                return CurrentPasswordRequired();
+            }
+            result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        }
+        else
+        {
+            result = await _userManager.AddPasswordAsync(user, newPassword);
+        }
+
+        if (!result.Succeeded)
+        {
+            return Translate(result);
+        }
+        return Result.Success;
+    }
+
+    private static Error CurrentPasswordRequired()
+        => Error.Validation("Identity.CurrentPasswordRequired", "كلمة المرور الحالية مطلوبة.");
+
     private async Task<MyProfileDto> ToMyProfileAsync(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
