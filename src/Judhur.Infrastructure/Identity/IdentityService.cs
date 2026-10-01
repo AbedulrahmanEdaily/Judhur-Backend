@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 
 using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
@@ -6,16 +7,19 @@ using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Identity.Dtos;
 using Judhur.Domain.Common;
 using Judhur.Domain.Common.Results;
+using Judhur.Infrastructure.Data;
 using Judhur.Infrastructure.Email;
 
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Judhur.Infrastructure.Identity;
 
 public sealed class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, FrontendSettings frontendSettings,
-    TimeProvider timeProvider) : IIdentityService
+    TimeProvider timeProvider, AppDbContext context) : IIdentityService
 {
     private const int ResetCodeLifetimeMinutes = 5;
+    private const int MaxResetCodeAttempts = 5;
     private const string GoogleLoginProvider = "Google";
     private const int MaxFullNameLength = 150;
     private const int MaxProfileImageUrlLength = 500;
@@ -24,6 +28,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
     private readonly FrontendSettings _frontendSettings = frontendSettings;
     private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly AppDbContext _context = context;
 
     public async Task<Result<Guid>> CreateNewUserAsync(
         NewUserRegistration registration,
@@ -89,6 +94,11 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
         if (signInResult.IsNotAllowed)
         {
+            if (!await _userManager.CheckPasswordAsync(user, password))
+            {
+                await _userManager.AccessFailedAsync(user);
+                return InvalidCredentials();
+            }
             return Error.Forbidden(
                 "Identity.EmailNotConfirmed",
                 "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.");
@@ -152,6 +162,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
         user.ResetCode = code;
         user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(ResetCodeLifetimeMinutes);
+        user.ResetCodeFailedAttempts = 0;
         var updateResult = await _userManager.UpdateAsync(user);
         return updateResult.Succeeded ? user.Id : null;
     }
@@ -198,20 +209,38 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<Guid>> ChangePasswordAsync(string email, string password, string code, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
-        if (user is null || user.ResetCode != code || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
+        if (user?.ResetCode is null || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
         {
-            return Error.Validation("Identity.InvalidResetCode", "رمز الاستعادة غير صحيح أو منتهي الصلاحية.");
+            return InvalidResetCode();
+        }
+        var attemptReserved = await _context.Users
+            .Where(u => u.Id == user.Id && u.ResetCodeFailedAttempts < MaxResetCodeAttempts)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.ResetCodeFailedAttempts, u => u.ResetCodeFailedAttempts + 1), cancellationToken);
+        if (attemptReserved == 0 || !ResetCodeMatches(user.ResetCode, code))
+        {
+            return InvalidResetCode();
         }
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        ClearResetCode(user);
         var result = await _userManager.ResetPasswordAsync(user, token, password);
         if (!result.Succeeded)
         {
             return Translate(result);
         }
+        return user.Id;
+    }
+
+    private static Error InvalidResetCode()
+        => Error.Validation("Identity.InvalidResetCode", "رمز الاستعادة غير صحيح أو منتهي الصلاحية.");
+
+    private static bool ResetCodeMatches(string expected, string actual)
+        => CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(actual));
+
+    private static void ClearResetCode(ApplicationUser user)
+    {
         user.ResetCode = null;
         user.ResetCodeExpiresAt = null;
-        await _userManager.UpdateAsync(user);
-        return user.Id;
+        user.ResetCodeFailedAttempts = 0;
     }
 
     public async Task<Result<EmailMessage>> BuildPasswordResetChangedAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -431,6 +460,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         }
         if (!user.EmailConfirmed)
         {
+            if (await _userManager.HasPasswordAsync(user))
+            {
+                var removePasswordResult = await _userManager.RemovePasswordAsync(user);
+                if (!removePasswordResult.Succeeded)
+                {
+                    return Translate(removePasswordResult);
+                }
+            }
             user.EmailConfirmed = true;
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

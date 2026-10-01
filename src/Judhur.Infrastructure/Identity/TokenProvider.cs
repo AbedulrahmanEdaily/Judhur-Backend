@@ -68,11 +68,10 @@ public sealed class TokenProvider(
             return refreshTokenResult.Errors;
         }
 
-        var oldRefreshTokens = await _context.RefreshTokens
+        await _context.RefreshTokens
             .Where(refreshToken => refreshToken.UserId == user.UserId)
-            .ToListAsync(ct);
+            .ExecuteDeleteAsync(ct);
 
-        _context.RefreshTokens.RemoveRange(oldRefreshTokens);
         _context.RefreshTokens.Add(refreshTokenResult.Value);
         await _context.SaveChangesAsync(ct);
 

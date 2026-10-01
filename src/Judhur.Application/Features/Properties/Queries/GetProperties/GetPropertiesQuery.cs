@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
@@ -25,26 +28,41 @@ public sealed record GetPropertiesQuery(
 {
     public const int MaxCities = 20;
 
-    public string CacheKey =>
-    $"property:p={Page}:ps={PageSize}" +
-    $":q={SearchTerm ?? "-"}" +
-    $":sort={SortColumn}:{SortDirection}" +
-    $":price:min={MinPrice?.ToString() ?? "-"}:max={MaxPrice?.ToString() ?? "-"}" +
-    $":city={KeyOf(Cities.Select(c => c.ToLowerInvariant()))}" +
-    $":land={KeyOf(LandClassifications)}" +
-    $":legalStatus={KeyOf(LegalStatuses)}" +
-    $":payment={KeyOf(PaymentTypes)}" +
-    $":status={KeyOf(PropertyStatuses)}" +
-    $":propertyType={KeyOf(PropertyTypes)}" +
-    $":seller={SellerId?.ToString() ?? "-"}";
+    private static readonly string[] SortColumns = ["createdat", "price", "city", "landclassification"];
+
+    public string CacheKey
+    {
+        get
+        {
+            var sortColumn = SortColumn.ToLowerInvariant();
+            var isKnownSort = SortColumns.Contains(sortColumn);
+            var normalized = new
+            {
+                Page,
+                PageSize,
+                MinPrice,
+                MaxPrice,
+                SellerId,
+                Sort = isKnownSort ? sortColumn : SortColumns[0],
+                Descending = !isKnownSort || SortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase),
+                Cities = Ordered(Cities.Select(c => c.ToLowerInvariant())),
+                LandClassifications = Ordered(LandClassifications),
+                LegalStatuses = Ordered(LegalStatuses),
+                PaymentTypes = Ordered(PaymentTypes),
+                PropertyStatuses = Ordered(PropertyStatuses),
+                PropertyTypes = Ordered(PropertyTypes)
+            };
+            var hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(normalized));
+            return $"properties:search:{Convert.ToHexString(hash)}";
+        }
+    }
 
     public string[] Tags => ["properties"];
 
     public TimeSpan Expiration => TimeSpan.FromMinutes(10);
 
-    private static string KeyOf<T>(IEnumerable<T> values)
-    {
-        var ordered = values.Select(v => v!.ToString()).Order(StringComparer.Ordinal).ToList();
-        return ordered.Count == 0 ? "-" : string.Join(",", ordered);
-    }
+    public bool IsCacheable => string.IsNullOrWhiteSpace(SearchTerm);
+
+    private static string[] Ordered<T>(IEnumerable<T> values)
+        => [.. values.Select(v => v!.ToString()!).Distinct().Order(StringComparer.Ordinal)];
 }

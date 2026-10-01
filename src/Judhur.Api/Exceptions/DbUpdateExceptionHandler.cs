@@ -13,6 +13,20 @@ public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsServi
         Exception exception,
         CancellationToken cancellationToken)
     {
+        if (exception is DbUpdateConcurrencyException)
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+            return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = httpContext,
+                Exception = exception,
+                ProblemDetails = new ProblemDetails
+                {
+                    Title = "تعارض في البيانات",
+                    Detail = "تم تعديل هذه البيانات من طلب آخر في الوقت نفسه، يرجى تحديث الصفحة والمحاولة مجددًا.",
+                },
+            });
+        }
         if (exception is not DbUpdateException { InnerException: SqlException sqlException }
             || sqlException.Number is not (UniqueIndexViolation or UniqueConstraintViolation))
         {

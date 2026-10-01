@@ -5,6 +5,7 @@ using Judhur.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,7 @@ public class ApplicationDbContextInitializer(
     UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole<Guid>> roleManager,
     IHostEnvironment environment,
+    IConfiguration configuration,
     TimeProvider timeProvider)
 {
     private readonly ILogger<ApplicationDbContextInitializer> _logger = logger;
@@ -24,6 +26,7 @@ public class ApplicationDbContextInitializer(
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly RoleManager<IdentityRole<Guid>> _roleManager = roleManager;
     private readonly IHostEnvironment _environment = environment;
+    private readonly IConfiguration _configuration = configuration;
     private readonly TimeProvider _timeProvider = timeProvider;
 
     public async Task InitializeAsync()
@@ -49,6 +52,47 @@ public class ApplicationDbContextInitializer(
             _logger.LogError(e, "An error occurred while seeding the database.");
             throw;
         }
+    }
+
+    private async Task EnsureProductionAdminAsync()
+    {
+        var admins = await _userManager.GetUsersInRoleAsync(Roles.Admin);
+        if (admins.Count > 0)
+        {
+            return;
+        }
+
+        var settings = AdminSeedSettings.Bind(_configuration);
+        var admin = await _userManager.FindByEmailAsync(settings.Email);
+        if (admin is null)
+        {
+            admin = new ApplicationUser
+            {
+                Id = Guid.CreateVersion7(),
+                Email = settings.Email,
+                UserName = settings.Email,
+                FullName = settings.FullName,
+                City = settings.City,
+                EmailConfirmed = true,
+                CreatedAtUtc = _timeProvider.GetUtcNow()
+            };
+
+            var createResult = await _userManager.CreateAsync(admin, settings.Password);
+            if (!createResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to create the admin account: {string.Join(" | ", createResult.Errors.Select(e => e.Code))}");
+            }
+        }
+
+        var roleResult = await _userManager.AddToRoleAsync(admin, Roles.Admin);
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Failed to assign the admin role: {string.Join(" | ", roleResult.Errors.Select(e => e.Code))}");
+        }
+
+        _logger.LogInformation("Admin account {Email} set up from configuration", admin.Email);
     }
 
     private async Task TrySeedAsync()
@@ -83,7 +127,11 @@ public class ApplicationDbContextInitializer(
             }
         }
 
-        // Admin
+        if (!_environment.IsDevelopment())
+        {
+            await EnsureProductionAdminAsync();
+            return;
+        }
 
         var admin = await _userManager.FindByEmailAsync(
             "admin@judhur.com");
@@ -225,11 +273,6 @@ public class ApplicationDbContextInitializer(
                     Roles.User,
                     user.Email);
             }
-        }
-
-        if (!_environment.IsDevelopment())
-        {
-            return;
         }
 
         await SeedDevelopmentDataAsync(admin, user);

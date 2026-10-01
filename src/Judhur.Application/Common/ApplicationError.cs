@@ -29,6 +29,10 @@ public static class ApplicationError
         code: "Storage.UploadFailed",
         description: "تعذّر رفع الملف، يرجى المحاولة لاحقًا.");
 
+    public static readonly Error InvalidFileContent = Error.Validation(
+        code: "Storage.InvalidFileContent",
+        description: "محتوى الملف لا يطابق صيغته، يرجى رفع ملف صحيح.");
+
     public static readonly Error DeleteFailed = Error.Failure(
         code: "Storage.DeleteFailed",
         description: "تعذّر حذف الملف، يرجى المحاولة لاحقًا.");

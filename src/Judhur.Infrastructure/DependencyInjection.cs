@@ -70,6 +70,7 @@ public static class DependencyInjection
     private static IServiceCollection AddEmail(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton(FrontendSettings.Bind(configuration));
+        services.AddSingleton(EmailSettings.Bind(configuration));
         services.AddScoped<IEmailSender, EmailSender>();
         services.AddSingleton<ChannelEmailQueue>();
         services.AddSingleton<IEmailQueue>(sp => sp.GetRequiredService<ChannelEmailQueue>());

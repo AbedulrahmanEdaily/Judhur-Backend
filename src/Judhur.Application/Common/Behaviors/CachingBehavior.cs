@@ -30,6 +30,10 @@ public sealed class CachingBehavior<TRequest, TResponse>(
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
+        if (!request.IsCacheable)
+        {
+            return await next(cancellationToken);
+        }
         try
         {
             return await cache.GetOrCreateAsync<TResponse>(

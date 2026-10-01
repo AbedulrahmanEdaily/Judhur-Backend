@@ -40,9 +40,11 @@ public sealed class RefreshTokenCommandHandler(IAppDbContext context, ITokenProv
             _logger.LogWarning("Refresh rejected for user {UserId}: {ErrorCode}", userId, getUserResult.TopError.Code);
             return getUserResult.Errors;
         }
-        var refreshToken = await _context.RefreshTokens.FirstOrDefaultAsync(r => r.Token == request.RefreshToken && r.UserId == userId, cancellationToken);
         var nowUtc = _timeProvider.GetUtcNow();
-        if (refreshToken is null || refreshToken.IsExpired(nowUtc))
+        var claimedTokens = await _context.RefreshTokens
+            .Where(r => r.Token == request.RefreshToken && r.UserId == userId && r.ExpiresOnUtc > nowUtc)
+            .ExecuteDeleteAsync(cancellationToken);
+        if (claimedTokens == 0)
         {
             _logger.LogWarning("Refresh rejected for user {UserId}: refresh token missing or expired", userId);
             return RefreshTokenErrors.Expired;

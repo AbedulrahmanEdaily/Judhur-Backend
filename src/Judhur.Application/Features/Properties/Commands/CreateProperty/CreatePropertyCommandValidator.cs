@@ -17,7 +17,8 @@ public sealed class CreatePropertyCommandValidator : AbstractValidator<CreatePro
             .MaximumLength(Property.MaxDescriptionLength).WithMessage($"لا يمكن أن يتجاوز الوصف {Property.MaxDescriptionLength} حرف.");
 
         RuleFor(p => p.Price)
-            .GreaterThan(0).WithMessage("السعر يجب أن يكون أكبر من صفر.");
+            .GreaterThan(0).WithMessage("السعر يجب أن يكون أكبر من صفر.")
+            .LessThanOrEqualTo(Property.MaxPrice).WithMessage("السعر أكبر من الحد المسموح.");
 
         RuleFor(p => p.PaymentType).IsInEnum().WithMessage("طريقة الدفع غير صالحة.");
         RuleFor(p => p.PropertyType).IsInEnum().WithMessage("نوع العقار غير صالح.");
@@ -27,7 +28,8 @@ public sealed class CreatePropertyCommandValidator : AbstractValidator<CreatePro
             .WithMessage("عند إنشاء العرض يجب أن تكون حالته للبيع أو للإيجار فقط.");
 
         RuleFor(p => p.Area)
-            .GreaterThan(0).WithMessage("المساحة يجب أن تكون أكبر من صفر.");
+            .GreaterThan(0).WithMessage("المساحة يجب أن تكون أكبر من صفر.")
+            .LessThanOrEqualTo(Property.MaxArea).WithMessage("المساحة أكبر من الحد المسموح.");
 
         RuleFor(p => p.City)
             .NotEmpty().WithMessage("المدينة مطلوبة.")
