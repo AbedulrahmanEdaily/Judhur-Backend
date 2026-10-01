@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Notifications.Dto;
 using Judhur.Application.Features.Notifications.Queries.GetMyNotifications;
+using Judhur.Application.Features.Notifications.Queries.GetUnreadNotificationsCount;
 using Judhur.Contracts.Requests;
 
 using MediatR;
@@ -30,6 +31,18 @@ public sealed class NotificationsController(ISender sender) : ApiController
     public async Task<IActionResult> GetMineAsync([FromQuery] PageRequest request, CancellationToken ct)
     {
         var result = await _sender.Send(new GetMyNotificationsQuery(request.Page, request.PageSize), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpGet("unread-count")]
+    [ProducesResponseType(typeof(UnreadCountDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [EndpointSummary("Counts the current user's unread notifications.")]
+    [EndpointDescription("Returns { count } for the badge on the bell icon. Works for every role. Cheap enough to call on every page load or on a short interval; it is not cached, so the number is always current after a notification is read.")]
+    [EndpointName("GetUnreadNotificationsCount")]
+    public async Task<IActionResult> GetUnreadCountAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetUnreadNotificationsCountQuery(), ct);
         return result.Match(response => Ok(response), Problem);
     }
 }
