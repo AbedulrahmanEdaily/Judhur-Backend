@@ -1,6 +1,7 @@
 using Asp.Versioning;
 
 using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Notifications.Commands.MarkAllAsRead;
 using Judhur.Application.Features.Notifications.Commands.MarkAsRead;
 using Judhur.Application.Features.Notifications.Dto;
 using Judhur.Application.Features.Notifications.Queries.GetMyNotifications;
@@ -58,6 +59,18 @@ public sealed class NotificationsController(ISender sender) : ApiController
     public async Task<IActionResult> MarkAsReadAsync([FromRoute] Guid notificationId, CancellationToken ct)
     {
         var result = await _sender.Send(new MarkAsReadCommand(notificationId), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPost("read-all")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [EndpointSummary("Marks all of the current user's notifications as read.")]
+    [EndpointDescription("Marks every unread notification of the authenticated user as read in one request, for the «تعليم الكل كمقروء» button. Returns 204 even when there is nothing unread, so the client never has to check first. After it, the unread count is 0.")]
+    [EndpointName("MarkAllNotificationsAsRead")]
+    public async Task<IActionResult> MarkAllAsReadAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new MarkAllAsReadCommand(), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }
