@@ -10,6 +10,7 @@ using Judhur.Application.Features.Identity.Commands.RefreshToken;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
+using Judhur.Application.Features.Identity.Commands.UpdateMyProfile;
 using Judhur.Application.Features.Identity.Dtos;
 using Judhur.Application.Features.Identity.Queries.GetMyProfile;
 
@@ -163,6 +164,22 @@ public sealed class AccountController(ISender sender) : ApiController
     public async Task<IActionResult> GetMyProfileAsync(CancellationToken ct)
     {
         var result = await _sender.Send(new GetMyProfileQuery(), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPut("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Updates the profile of the authenticated user.")]
+    [EndpointDescription("Replaces the full name, phone number, city and bio of the signed-in user and returns the updated profile. All four fields are sent on every request; an empty or whitespace bio clears it. Email cannot be changed here. Returns 400 on validation errors, 401 without a valid access token, 404 if the account no longer exists and 409 if the account was modified by another request at the same time.")]
+    [EndpointName("UpdateMyProfile")]
+    public async Task<IActionResult> UpdateMyProfileAsync([FromBody] UpdateMyProfileCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
         return result.Match(response => Ok(response), Problem);
     }
 }

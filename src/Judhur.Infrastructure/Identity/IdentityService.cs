@@ -57,7 +57,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             .Where(error => error.Code != "DuplicateUserName")
             .Select(error => error.Code switch
             {
-                "DuplicateEmail"
+                "DuplicateEmail" or "ConcurrencyFailure"
                     => Error.Conflict($"Identity.{error.Code}", error.Description),
 
                 "InvalidEmail" or "InvalidUserName"
@@ -257,12 +257,38 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return ApplicationError.UserNotFound;
         }
+        return await ToMyProfileAsync(user);
+    }
+
+    public async Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+
+        user.FullName = update.FullName.Trim();
+        user.PhoneNumber = update.PhoneNumber.Trim();
+        user.City = update.City.Trim();
+        user.Bio = string.IsNullOrWhiteSpace(update.Bio) ? null : update.Bio.Trim();
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return Translate(updateResult);
+        }
+        return await ToMyProfileAsync(user);
+    }
+
+    private async Task<MyProfileDto> ToMyProfileAsync(ApplicationUser user)
+    {
         var roles = await _userManager.GetRolesAsync(user);
         var hasPassword = await _userManager.HasPasswordAsync(user);
         return new MyProfileDto(
             user.Id,
             user.FullName,
-            user.Email,
+            user.Email!,
             user.PhoneNumber,
             user.City,
             user.Bio,
