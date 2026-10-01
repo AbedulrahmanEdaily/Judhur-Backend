@@ -6,11 +6,9 @@ using MediatR;
 namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed record RegisterCommand(
-    string UserName,
     string FullName,
     string Email,
     string PhoneNumber,
     string City,
     string? Bio,
-    string? ProfileImageUrl,
     string Password) : IRequest<Result<Success>>, ITransactionalCommand;

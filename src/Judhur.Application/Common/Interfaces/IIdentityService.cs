@@ -44,5 +44,10 @@ public interface IIdentityService
         CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
     Task<Result<UserInfoDto>> GetUserInfoAsync(string userId, CancellationToken ct = default);
+    Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default);
+    Task<Result<ReplacedProfileImage>> SetProfileImageAsync(Guid userId, StoredFile? image, CancellationToken cancellationToken = default);
+    Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, CancellationToken cancellationToken = default);
+    Task<Result<SellerInfo>> GetSellerInfoAsync(Guid sellerId, CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> SignInWithGoogleAsync(GoogleUser googleUser, string? phoneNumber, string? city, CancellationToken cancellationToken = default);
 }

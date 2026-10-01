@@ -34,9 +34,11 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             Id = Guid.CreateVersion7(),
             Email = registration.Email,
             PhoneNumber = registration.PhoneNumber,
-            UserName = registration.UserName,
+            UserName = registration.Email,
             City = registration.City,
-            FullName = registration.FullName
+            FullName = registration.FullName,
+            Bio = registration.Bio,
+            CreatedAtUtc = _timeProvider.GetUtcNow()
         };
         var createResult = await _userManager.CreateAsync(user, registration.Password);
         if (!createResult.Succeeded)
@@ -51,19 +53,21 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return user.Id;
     }
     private static List<Error> Translate(IdentityResult result)
-        => [.. result.Errors.Select(error => error.Code switch
-        {
-            "DuplicateEmail" or "DuplicateUserName"
-                => Error.Conflict($"Identity.{error.Code}", error.Description),
+        => [.. result.Errors
+            .Where(error => error.Code != "DuplicateUserName")
+            .Select(error => error.Code switch
+            {
+                "DuplicateEmail" or "ConcurrencyFailure"
+                    => Error.Conflict($"Identity.{error.Code}", error.Description),
 
-            "InvalidEmail" or "InvalidUserName"
-                => Error.Validation($"Identity.{error.Code}", error.Description),
+                "InvalidEmail" or "InvalidUserName"
+                    => Error.Validation($"Identity.{error.Code}", error.Description),
 
-            _ when error.Code.StartsWith("Password", StringComparison.Ordinal)
-                => Error.Validation($"Identity.{error.Code}", error.Description),
+                _ when error.Code.StartsWith("Password", StringComparison.Ordinal)
+                    => Error.Validation($"Identity.{error.Code}", error.Description),
 
-            _ => Error.Failure($"Identity.{error.Code}", error.Description),
-        })];
+                _ => Error.Failure($"Identity.{error.Code}", error.Description),
+            })];
 
     public async Task<Result<AppUserDto>> AuthenticateAsync(
         string email,
@@ -246,6 +250,126 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new UserInfoDto(user.Id, user.FullName, user.PhoneNumber, user.ProfileImageUrl);
     }
 
+    public async Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        return await ToMyProfileAsync(user);
+    }
+
+    public async Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+
+        user.FullName = update.FullName.Trim();
+        user.PhoneNumber = update.PhoneNumber.Trim();
+        user.City = update.City.Trim();
+        user.Bio = string.IsNullOrWhiteSpace(update.Bio) ? null : update.Bio.Trim();
+
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return Translate(updateResult);
+        }
+        return await ToMyProfileAsync(user);
+    }
+
+    public async Task<Result<ReplacedProfileImage>> SetProfileImageAsync(Guid userId, StoredFile? image, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+
+        var previous = new ReplacedProfileImage(user.ProfileImageUrl, user.ProfileImagePublicId);
+        if (image is null && previous.PreviousUrl is null)
+        {
+            return previous;
+        }
+
+        user.ProfileImageUrl = image?.Url;
+        user.ProfileImagePublicId = image?.PublicId;
+        var updateResult = await _userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            return Translate(updateResult);
+        }
+        return previous;
+    }
+
+    public async Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+
+        IdentityResult result;
+        if (await _userManager.HasPasswordAsync(user))
+        {
+            if (string.IsNullOrEmpty(currentPassword))
+            {
+                return CurrentPasswordRequired();
+            }
+            result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        }
+        else
+        {
+            result = await _userManager.AddPasswordAsync(user, newPassword);
+        }
+
+        if (!result.Succeeded)
+        {
+            return Translate(result);
+        }
+        return Result.Success;
+    }
+
+    public async Task<Result<SellerInfo>> GetSellerInfoAsync(Guid sellerId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(sellerId.ToString());
+        if (user?.Email is null || await _userManager.IsInRoleAsync(user, Roles.Admin))
+        {
+            return ApplicationError.SellerNotFound;
+        }
+        return new SellerInfo(
+            user.Id,
+            user.FullName,
+            user.ProfileImageUrl,
+            user.City,
+            user.Bio,
+            user.CreatedAtUtc);
+    }
+
+    private static Error CurrentPasswordRequired()
+        => Error.Validation("Identity.CurrentPasswordRequired", "كلمة المرور الحالية مطلوبة.");
+
+    private async Task<MyProfileDto> ToMyProfileAsync(ApplicationUser user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+        var hasPassword = await _userManager.HasPasswordAsync(user);
+        return new MyProfileDto(
+            user.Id,
+            user.FullName,
+            user.Email!,
+            user.PhoneNumber,
+            user.City,
+            user.Bio,
+            user.ProfileImageUrl,
+            [.. roles],
+            hasPassword,
+            user.CreatedAtUtc);
+    }
+
     public async Task<Result<AppUserDto>> SignInWithGoogleAsync(GoogleUser googleUser, string? phoneNumber, string? city, CancellationToken cancellationToken = default)
     {
         if (!googleUser.EmailVerified)
@@ -331,7 +455,8 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             FullName = fullName,
             PhoneNumber = phoneNumber.Trim(),
             City = city.Trim(),
-            ProfileImageUrl = googleUser.PictureUrl is { Length: <= MaxProfileImageUrlLength } pictureUrl ? pictureUrl : null
+            ProfileImageUrl = googleUser.PictureUrl is { Length: <= MaxProfileImageUrlLength } pictureUrl ? pictureUrl : null,
+            CreatedAtUtc = _timeProvider.GetUtcNow()
         };
         var createResult = await _userManager.CreateAsync(user);
         if (!createResult.Succeeded)

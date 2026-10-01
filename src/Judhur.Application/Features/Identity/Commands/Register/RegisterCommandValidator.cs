@@ -4,20 +4,14 @@ namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
-    private const int MaxUserNameLength = 256;
     private const int MaxEmailLength = 256;
     private const int MaxFullNameLength = 150;
     private const int MaxCityLength = 100;
     private const int MinPasswordLength = 8;
-    private const int MaxProfileImageUrlLength = 500;
     private const int MaxBioLength = 1000;
 
     public RegisterCommandValidator()
     {
-        RuleFor(r => r.UserName)
-            .NotEmpty().WithMessage("اسم المستخدم مطلوب.")
-            .MaximumLength(MaxUserNameLength).WithMessage($"لا يمكن أن يتجاوز اسم المستخدم {MaxUserNameLength} حرف.");
-
         RuleFor(r => r.FullName)
             .NotEmpty().WithMessage("الاسم الكامل مطلوب.")
             .MaximumLength(MaxFullNameLength).WithMessage($"لا يمكن أن يتجاوز الاسم الكامل {MaxFullNameLength} حرف.");
@@ -44,8 +38,5 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
 
         RuleFor(r => r.Bio)
         .MaximumLength(MaxBioLength).WithMessage($"لا يمكن أن تتجاوز النبذة التعريفية {MaxBioLength} حرف.");
-
-        RuleFor(r => r.ProfileImageUrl)
-        .MaximumLength(MaxProfileImageUrlLength).WithMessage($"لا يمكن أن يتجاوز رابط صورة الملف الشخصي {MaxProfileImageUrlLength} حرف.");
     }
 }

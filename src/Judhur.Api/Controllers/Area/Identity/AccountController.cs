@@ -7,12 +7,19 @@ using Judhur.Application.Features.Identity.Commands.GoogleLogin;
 using Judhur.Application.Features.Identity.Commands.Login;
 using Judhur.Application.Features.Identity.Commands.Logout;
 using Judhur.Application.Features.Identity.Commands.RefreshToken;
+using Judhur.Application.Features.Identity.Commands.RemoveProfileImage;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
+using Judhur.Application.Features.Identity.Commands.SetMyPassword;
+using Judhur.Application.Features.Identity.Commands.UpdateMyProfile;
+using Judhur.Application.Features.Identity.Commands.UploadProfileImage;
+using Judhur.Application.Features.Identity.Dtos;
+using Judhur.Application.Features.Identity.Queries.GetMyProfile;
 
 using MediatR;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -144,6 +151,90 @@ public sealed class AccountController(ISender sender) : ApiController
     [EndpointDescription("Revokes the given refresh token so it can no longer be used to obtain new access tokens.")]
     [EndpointName("Logout")]
     public async Task<IActionResult> LogoutAsync([FromBody] LogoutCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Gets the profile of the authenticated user.")]
+    [EndpointDescription("Returns the full profile of the signed-in user: full name, email, phone number, city, bio, profile image, roles, whether the account has a password (false for accounts created with Google that never set one) and the registration date. Returns 401 if the request has no valid access token and 404 if the account no longer exists.")]
+    [EndpointName("GetMyProfile")]
+    public async Task<IActionResult> GetMyProfileAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetMyProfileQuery(), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPut("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Updates the profile of the authenticated user.")]
+    [EndpointDescription("Replaces the full name, phone number, city and bio of the signed-in user and returns the updated profile. All four fields are sent on every request; an empty or whitespace bio clears it. Email cannot be changed here. Returns 400 on validation errors, 401 without a valid access token, 404 if the account no longer exists and 409 if the account was modified by another request at the same time.")]
+    [EndpointName("UpdateMyProfile")]
+    public async Task<IActionResult> UpdateMyProfileAsync([FromBody] UpdateMyProfileCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpPut("me/photo")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ProfileImageDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Uploads or replaces the profile image of the authenticated user.")]
+    [EndpointDescription("Uploads a JPG, PNG or WEBP image (max 5 MB) sent as the 'file' form field and sets it as the profile image of the signed-in user, replacing any previous one. The previous image is deleted from storage. Returns the new image URL. Returns 400 on an invalid file, 401 without a valid access token and 404 if the account no longer exists.")]
+    [EndpointName("UploadProfileImage")]
+    public async Task<IActionResult> UploadProfileImageAsync(IFormFile file, CancellationToken ct)
+    {
+        await using var content = file.OpenReadStream();
+        var result = await _sender.Send(new UploadProfileImageCommand(
+            content,
+            file.FileName,
+            file.ContentType,
+            file.Length), ct);
+        return result.Match(response => Ok(response), Problem);
+    }
+
+    [HttpDelete("me/photo")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Removes the profile image of the authenticated user.")]
+    [EndpointDescription("Clears the profile image of the signed-in user and deletes it from storage. Calling it when the user has no image succeeds without changes. Returns 401 without a valid access token and 404 if the account no longer exists.")]
+    [EndpointName("RemoveProfileImage")]
+    public async Task<IActionResult> RemoveProfileImageAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new RemoveProfileImageCommand(), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPut("me/password")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.SetMyPassword)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Changes or sets the password of the authenticated user.")]
+    [EndpointDescription("If the account already has a password, currentPassword is required and must match; the password is then replaced with newPassword. If the account has no password (created with Google), currentPassword is ignored and newPassword becomes the account password, which also enables email and password login. Use hasPassword from GET me to pick the form. A confirmation email is sent on success. Limited to 5 requests per 15 minutes. Returns 400 on validation errors or a wrong current password, 401 without a valid access token and 404 if the account no longer exists.")]
+    [EndpointName("SetMyPassword")]
+    public async Task<IActionResult> SetMyPasswordAsync([FromBody] SetMyPasswordCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);
