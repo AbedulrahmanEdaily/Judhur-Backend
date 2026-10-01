@@ -1,4 +1,4 @@
-using Judhur.Application.Common.Models;
+using Judhur.Application.Features.Identity.Dtos;
 using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;

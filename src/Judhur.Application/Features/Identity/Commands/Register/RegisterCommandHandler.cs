@@ -25,13 +25,11 @@ public sealed class RegisterCommandHandler(
     public async Task<Result<Success>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         var register = new NewUserRegistration(
-            UserName: request.UserName,
             FullName: request.FullName,
             Email: request.Email,
             PhoneNumber: request.PhoneNumber,
             City: request.City,
             Bio: request.Bio,
-            ProfileImageUrl: request.ProfileImageUrl,
             Password: request.Password);
         var userResult = await _identityService.CreateNewUserAsync(register, cancellationToken);
         if (userResult.IsError)

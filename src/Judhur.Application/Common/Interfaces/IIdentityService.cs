@@ -44,5 +44,6 @@ public interface IIdentityService
         CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
     Task<Result<UserInfoDto>> GetUserInfoAsync(string userId, CancellationToken ct = default);
+    Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> SignInWithGoogleAsync(GoogleUser googleUser, string? phoneNumber, string? city, CancellationToken cancellationToken = default);
 }

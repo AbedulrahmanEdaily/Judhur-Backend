@@ -97,7 +97,8 @@ public class ApplicationDbContextInitializer(
                 FullName = "Abdulrahman Edaily",
                 UserName = "Abed",
                 EmailConfirmed = true,
-                City = "Nablus"
+                City = "Nablus",
+                CreatedAtUtc = _timeProvider.GetUtcNow()
             };
 
             var createResult = await _userManager.CreateAsync(
@@ -169,7 +170,8 @@ public class ApplicationDbContextInitializer(
                 UserName = "Faheem",
                 PhoneNumber = "0599123456",
                 EmailConfirmed = true,
-                City = "Nablus"
+                City = "Nablus",
+                CreatedAtUtc = _timeProvider.GetUtcNow()
             };
 
             var createResult = await _userManager.CreateAsync(
@@ -271,7 +273,8 @@ public class ApplicationDbContextInitializer(
                 UserName = userName,
                 PhoneNumber = phoneNumber,
                 EmailConfirmed = true,
-                City = city
+                City = city,
+                CreatedAtUtc = _timeProvider.GetUtcNow()
             };
 
             var createResult = await _userManager.CreateAsync(seller, "User@12345");

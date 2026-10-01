@@ -10,9 +10,12 @@ using Judhur.Application.Features.Identity.Commands.RefreshToken;
 using Judhur.Application.Features.Identity.Commands.Register;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
+using Judhur.Application.Features.Identity.Dtos;
+using Judhur.Application.Features.Identity.Queries.GetMyProfile;
 
 using MediatR;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -147,5 +150,19 @@ public sealed class AccountController(ISender sender) : ApiController
     {
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(MyProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [EndpointSummary("Gets the profile of the authenticated user.")]
+    [EndpointDescription("Returns the full profile of the signed-in user: full name, email, phone number, city, bio, profile image, roles, whether the account has a password (false for accounts created with Google that never set one) and the registration date. Returns 401 if the request has no valid access token and 404 if the account no longer exists.")]
+    [EndpointName("GetMyProfile")]
+    public async Task<IActionResult> GetMyProfileAsync(CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetMyProfileQuery(), ct);
+        return result.Match(response => Ok(response), Problem);
     }
 }
