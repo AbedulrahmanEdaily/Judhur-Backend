@@ -12,6 +12,7 @@ using Judhur.Infrastructure.Identity;
 using Judhur.Infrastructure.Identity.GoogleLogin;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -62,6 +63,9 @@ public static class DependencyInjection
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddDataProtection()
+            .PersistKeysToDbContext<AppDbContext>()
+            .SetApplicationName("Judhur");
         services.AddScoped<ApplicationDbContextInitializer>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

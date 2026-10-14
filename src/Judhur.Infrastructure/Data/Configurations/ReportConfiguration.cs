@@ -12,6 +12,7 @@ public sealed class ReportConfiguration : IEntityTypeConfiguration<Report>
     public void Configure(EntityTypeBuilder<Report> builder)
     {
         builder.HasKey(i => i.Id);
+        builder.Property<byte[]>("RowVersion").IsRowVersion();
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(r => r.ReporterId)
@@ -24,7 +25,10 @@ public sealed class ReportConfiguration : IEntityTypeConfiguration<Report>
         builder.Property(r => r.AdminNote).HasMaxLength(Report.MaxAdminNoteLength);
         builder.Property(r => r.Reason).HasConversion<string>().HasMaxLength(32);
         builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
-        builder.HasIndex(r => new { r.ReporterId, r.PropertyId }).IsUnique();
+        builder.HasIndex(r => new { r.ReporterId, r.PropertyId })
+            .IsUnique()
+            .HasFilter("[Status] = N'Pending'");
+        builder.HasIndex(r => new { r.PropertyId, r.Status });
         builder.HasIndex(r => new { r.Status, r.CreatedAtUtc });
     }
 }

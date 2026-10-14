@@ -332,6 +332,37 @@ public sealed class Property : AuditableEntity
         return Result.Updated;
     }
 
+    public Result<Updated> SuspendByAdmin(Guid adminId, DateTimeOffset suspendedAtUtc, string reason)
+    {
+        if (adminId == Guid.Empty)
+        {
+            return PropertyErrors.ReviewerRequired;
+        }
+
+        if (ModerationStatus != ModerationStatus.Approved)
+        {
+            return PropertyErrors.CannotSuspendUnapprovedProperty;
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return PropertyErrors.RejectionReasonRequired;
+        }
+
+        var trimmedReason = reason.Trim();
+        if (trimmedReason.Length > MaxRejectionReasonLength)
+        {
+            return PropertyErrors.RejectionReasonTooLong;
+        }
+
+        ModerationStatus = ModerationStatus.Rejected;
+        RejectionReason = trimmedReason;
+        ReviewedBy = adminId;
+        ReviewedAtUtc = suspendedAtUtc;
+
+        return Result.Updated;
+    }
+
     public Result<Updated> ResubmitForReview()
     {
         if (ModerationStatus != ModerationStatus.Rejected)

@@ -28,7 +28,7 @@ public sealed class Report : AuditableEntity
         Details = details;
     }
 
-    public static Result<Report> Create(Guid id, Guid reporterId, Guid propertyId, ReportReason reason, string? details)
+    public static Result<Report> Create(Guid id, Guid reporterId, Guid propertyId, Guid sellerId, ReportReason reason, string? details)
     {
         if (reporterId == Guid.Empty)
         {
@@ -38,20 +38,25 @@ public sealed class Report : AuditableEntity
         {
             return ReportErrors.PropertyIdRequired;
         }
+        if (reporterId == sellerId)
+        {
+            return ReportErrors.CannotReportOwnProperty;
+        }
         if (!Enum.IsDefined(reason))
         {
             return ReportErrors.InvalidReason;
         }
-        if (reason == ReportReason.Other && string.IsNullOrWhiteSpace(details))
+        var normalizedDetails = string.IsNullOrWhiteSpace(details) ? null : details.Trim();
+        if (reason == ReportReason.Other && normalizedDetails is null)
         {
             return ReportErrors.DetailsRequiredForOtherReason;
         }
 
-        if (details?.Length > MaxDetailsLength)
+        if (normalizedDetails?.Length > MaxDetailsLength)
         {
             return ReportErrors.DetailsTooLong;
         }
-        return new Report(id, reporterId, propertyId, reason, details);
+        return new Report(id, reporterId, propertyId, reason, normalizedDetails);
     }
 
     public Result<Updated> Resolve(Guid adminId, DateTimeOffset reviewedAtUtc, string? adminNote)
@@ -71,14 +76,15 @@ public sealed class Report : AuditableEntity
             return ReportErrors.AlreadyReviewed;
         }
 
-        if (adminNote?.Length > MaxAdminNoteLength)
+        var normalizedNote = string.IsNullOrWhiteSpace(adminNote) ? null : adminNote.Trim();
+        if (normalizedNote?.Length > MaxAdminNoteLength)
         {
             return ReportErrors.AdminNoteTooLong;
         }
         Status = status;
         ReviewedBy = adminId;
         ReviewedAtUtc = reviewedAtUtc;
-        AdminNote = adminNote;
+        AdminNote = normalizedNote;
         return Result.Updated;
     }
 }
