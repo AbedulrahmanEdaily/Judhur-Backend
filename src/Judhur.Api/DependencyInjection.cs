@@ -133,6 +133,17 @@ public static class DependencyInjection
                         Window = TimeSpan.FromMinutes(15),
                     }));
 
+            options.AddPolicy(RateLimitPolicies.CreateReport, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromHours(1),
+                    }));
+
             options.AddPolicy(RateLimitPolicies.Login, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
                     partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",

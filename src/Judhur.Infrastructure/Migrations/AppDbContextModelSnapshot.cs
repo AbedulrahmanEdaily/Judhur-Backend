@@ -423,6 +423,11 @@ namespace Judhur.Infrastructure.Migrations
                     b.Property<Guid?>("ReviewedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -430,10 +435,11 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PropertyId");
+                    b.HasIndex("PropertyId", "Status");
 
                     b.HasIndex("ReporterId", "PropertyId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[Status] = N'Pending'");
 
                     b.HasIndex("Status", "CreatedAtUtc");
 

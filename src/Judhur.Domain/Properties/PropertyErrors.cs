@@ -124,6 +124,10 @@ public static class PropertyErrors
         "PropertyErrors.DuplicateImageId",
         "الصورة مضافة بالفعل");
 
+    public static readonly Error CannotSuspendUnapprovedProperty = Error.Conflict(
+        "PropertyErrors.CannotSuspendUnapprovedProperty",
+        "لا يمكن إيقاف عقار غير منشور");
+
     public static readonly Error ReviewerRequired = Error.Validation(
         "PropertyErrors.ReviewerRequired",
         "معرّف المراجع مطلوب");
