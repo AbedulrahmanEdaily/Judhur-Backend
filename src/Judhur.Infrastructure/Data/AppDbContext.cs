@@ -10,13 +10,14 @@ using Judhur.Domain.Reports;
 using Judhur.Domain.Reviews;
 using Judhur.Infrastructure.Identity;
 
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Judhur.Infrastructure.Data;
 
-public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IAppDbContext
+public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IAppDbContext, IDataProtectionKeyContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -30,6 +31,7 @@ public sealed class AppDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PropertyImage> PropertyImages => Set<PropertyImage>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
