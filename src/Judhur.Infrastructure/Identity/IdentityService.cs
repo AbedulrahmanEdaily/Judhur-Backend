@@ -363,6 +363,19 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return Result.Success;
     }
 
+    public async Task<IReadOnlyDictionary<Guid, UserInfoDto>> GetUsersInfoAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
+    {
+        if (userIds.Count == 0)
+        {
+            return new Dictionary<Guid, UserInfoDto>();
+        }
+        return await _userManager.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new UserInfoDto(u.Id, u.FullName, u.PhoneNumber, u.ProfileImageUrl))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+    }
+
     public async Task<Result<SellerInfo>> GetSellerInfoAsync(Guid sellerId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(sellerId.ToString());

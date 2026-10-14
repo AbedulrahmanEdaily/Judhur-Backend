@@ -1,4 +1,5 @@
 using Judhur.Application.Common.Interfaces;
+using Judhur.Application.Features.Notifications.Dto;
 using Judhur.Application.Features.Reports.Events;
 using Judhur.Domain.Notifications;
 using Judhur.Domain.Notifications.Enums;
@@ -10,12 +11,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Notifications.EventHandlers;
 
-public sealed class NotifyReporterOnReportReviewedHandler(IAppDbContext context, ILogger<NotifyReporterOnReportReviewedHandler> logger) : INotificationHandler<ReportReviewed>
+public sealed class NotifyReporterOnReportReviewedHandler(IAppDbContext context, ILogger<NotifyReporterOnReportReviewedHandler> logger, IRealtimeNotifier realtimeNotifier) : INotificationHandler<ReportReviewed>
 {
     private const string NotificationTitle = "تمت مراجعة بلاغك";
 
     private readonly IAppDbContext _context = context;
     private readonly ILogger<NotifyReporterOnReportReviewedHandler> _logger = logger;
+    private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
 
     public async Task Handle(ReportReviewed notification, CancellationToken cancellationToken)
     {
@@ -54,6 +56,7 @@ public sealed class NotifyReporterOnReportReviewedHandler(IAppDbContext context,
 
         _context.Notifications.Add(notificationResult.Value);
         await _context.SaveChangesAsync(cancellationToken);
+        await _realtimeNotifier.NotificationReceivedAsync(notificationResult.Value.UserId, notificationResult.Value.ToDto(), cancellationToken);
         _logger.LogInformation(
             "Notification {NotificationId} sent to reporter {ReporterId} for report {ReportId} ({Outcome})",
             notificationResult.Value.Id,

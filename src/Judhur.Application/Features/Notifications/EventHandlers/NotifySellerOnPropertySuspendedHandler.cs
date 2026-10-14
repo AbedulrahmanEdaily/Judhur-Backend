@@ -1,4 +1,5 @@
 using Judhur.Application.Common.Interfaces;
+using Judhur.Application.Features.Notifications.Dto;
 using Judhur.Application.Features.Properties.Events;
 using Judhur.Domain.Notifications;
 using Judhur.Domain.Notifications.Enums;
@@ -9,12 +10,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Notifications.EventHandlers;
 
-public sealed class NotifySellerOnPropertySuspendedHandler(IAppDbContext context, ILogger<NotifySellerOnPropertySuspendedHandler> logger) : INotificationHandler<PropertySuspended>
+public sealed class NotifySellerOnPropertySuspendedHandler(IAppDbContext context, ILogger<NotifySellerOnPropertySuspendedHandler> logger, IRealtimeNotifier realtimeNotifier) : INotificationHandler<PropertySuspended>
 {
     private const string NotificationTitle = "تم إيقاف عقارك";
 
     private readonly IAppDbContext _context = context;
     private readonly ILogger<NotifySellerOnPropertySuspendedHandler> _logger = logger;
+    private readonly IRealtimeNotifier _realtimeNotifier = realtimeNotifier;
 
     public async Task Handle(PropertySuspended notification, CancellationToken cancellationToken)
     {
@@ -37,6 +39,7 @@ public sealed class NotifySellerOnPropertySuspendedHandler(IAppDbContext context
 
         _context.Notifications.Add(notificationResult.Value);
         await _context.SaveChangesAsync(cancellationToken);
+        await _realtimeNotifier.NotificationReceivedAsync(notificationResult.Value.UserId, notificationResult.Value.ToDto(), cancellationToken);
         _logger.LogInformation(
             "Notification {NotificationId} sent to seller {SellerId} for suspended property {PropertyId}",
             notificationResult.Value.Id,

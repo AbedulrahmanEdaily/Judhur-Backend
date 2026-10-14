@@ -69,7 +69,6 @@ namespace Judhur.Infrastructure.Migrations
             modelBuilder.Entity("Judhur.Domain.Conversations.Messages.Message", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Content")
@@ -94,6 +93,8 @@ namespace Judhur.Infrastructure.Migrations
                     b.HasIndex("SenderId");
 
                     b.HasIndex("ConversationId", "SentAtUtc");
+
+                    b.HasIndex("ConversationId", "SenderId", "ReadAtUtc");
 
                     b.ToTable("Messages");
                 });
