@@ -34,11 +34,12 @@ public sealed class Message : Entity
         {
             return MessageErrors.ContentRequired;
         }
-        if (content.Length > MaxContentLength)
+        var trimmedContent = content.Trim();
+        if (trimmedContent.Length > MaxContentLength)
         {
             return MessageErrors.ContentTooLong;
         }
-        return new Message(id, conversationId, senderId, content, sentAtUtc);
+        return new Message(id, conversationId, senderId, trimmedContent, sentAtUtc);
     }
     internal void MarkAsRead(DateTimeOffset readAtUtc)
     {

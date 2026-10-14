@@ -10,4 +10,5 @@ public static class RateLimitPolicies
     public const string Login = "login";
     public const string Register = "register";
     public const string CreateReport = "create-report";
+    public const string SendMessage = "send-message";
 }

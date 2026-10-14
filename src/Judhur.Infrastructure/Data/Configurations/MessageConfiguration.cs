@@ -11,6 +11,7 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
     public void Configure(EntityTypeBuilder<Message> builder)
     {
         builder.HasKey(i => i.Id);
+        builder.Property(m => m.Id).ValueGeneratedNever();
         builder.Ignore(m => m.IsRead);
         builder.HasOne<ApplicationUser>()
             .WithMany()
@@ -18,5 +19,6 @@ public sealed class MessageConfiguration : IEntityTypeConfiguration<Message>
             .OnDelete(DeleteBehavior.Restrict);
         builder.Property(m => m.Content).HasMaxLength(Message.MaxContentLength);
         builder.HasIndex(m => new { m.ConversationId, m.SentAtUtc });
+        builder.HasIndex(m => new { m.ConversationId, m.SenderId, m.ReadAtUtc });
     }
 }

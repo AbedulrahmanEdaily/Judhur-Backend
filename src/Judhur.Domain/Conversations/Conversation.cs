@@ -70,5 +70,7 @@ public sealed class Conversation : AuditableEntity
         }
         return Result.Updated;
     }
-    private bool IsParticipant(Guid senderId) => senderId == BuyerId || senderId == SellerId;
+    public bool IsParticipant(Guid userId) => userId == BuyerId || userId == SellerId;
+
+    public Guid OtherParticipantOf(Guid userId) => userId == BuyerId ? SellerId : BuyerId;
 }

@@ -1,4 +1,5 @@
 using Judhur.Domain.Conversations;
+using Judhur.Domain.Conversations.Messages;
 using Judhur.Domain.Favorites;
 using Judhur.Domain.Identity;
 using Judhur.Domain.Notifications;
@@ -15,6 +16,8 @@ public interface IAppDbContext
     DbSet<Property> Properties { get; }
 
     DbSet<Conversation> Conversations { get; }
+
+    DbSet<Message> Messages { get; }
 
     DbSet<Review> Reviews { get; }
 

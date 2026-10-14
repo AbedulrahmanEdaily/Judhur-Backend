@@ -6,6 +6,7 @@ using Asp.Versioning;
 
 using Judhur.Api;
 using Judhur.Api.Exceptions;
+using Judhur.Api.Hubs;
 using Judhur.Api.OpenApi.Transformer;
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
@@ -27,8 +28,24 @@ public static class DependencyInjection
                 .AddApiDocumentation()
                 .AddConfiguredCors(configuration)
                 .AddRateLimiting()
-                .AddIdentityInfrastructure();
+                .AddIdentityInfrastructure()
+                .AddRealtime();
         return services;
+    }
+
+    public static IServiceCollection AddRealtime(this IServiceCollection services)
+    {
+        services.AddSignalR()
+            .AddJsonProtocol(options =>
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
+        return services;
+    }
+
+    public static WebApplication MapRealtime(this WebApplication app)
+    {
+        app.MapHub<ChatHub>(ChatHub.Route, options => options.CloseOnAuthenticationExpiration = true);
+        return app;
     }
     public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
     {
@@ -142,6 +159,17 @@ public static class DependencyInjection
                     {
                         PermitLimit = 10,
                         Window = TimeSpan.FromHours(1),
+                    }));
+
+            options.AddPolicy(RateLimitPolicies.SendMessage, httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                        ?? "unknown",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
                     }));
 
             options.AddPolicy(RateLimitPolicies.Login, httpContext =>
