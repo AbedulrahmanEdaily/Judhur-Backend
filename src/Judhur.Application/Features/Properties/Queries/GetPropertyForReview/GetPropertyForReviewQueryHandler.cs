@@ -1,3 +1,4 @@
+using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Domain.Common.Results;
@@ -60,7 +61,8 @@ public sealed class GetPropertyForReviewQueryHandler(
                         .ToList()
                 },
                 p.SellerId,
-                p.OwnershipDocumentPublicId
+                p.OwnershipDocumentPublicId,
+                RowVersion = EF.Property<byte[]>(p, RowVersions.PropertyName)
             })
             .FirstOrDefaultAsync(cancellationToken);
         if (result is null)
@@ -69,6 +71,7 @@ public sealed class GetPropertyForReviewQueryHandler(
             return PropertyErrors.NotFound;
         }
         var property = result.Property;
+        property.RowVersion = RowVersions.Format(result.RowVersion);
         var sellerResult = await _identityService.GetUserInfoAsync(result.SellerId.ToString(), cancellationToken);
         if (sellerResult.IsError)
         {

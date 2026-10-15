@@ -19,6 +19,9 @@ public static class ApplicationError
     public static readonly Error AccountBanned = Error.Forbidden(
         code: "Identity.AccountBanned",
         description: "تم حظر حسابك. للاستفسار تواصل مع إدارة جذور.");
+    public static readonly Error PropertyChangedSinceReview = Error.Conflict(
+        code: "Properties.ChangedSinceReview",
+        description: "تم تعديل العقار بعد فتحك لصفحة المراجعة. حدّث الصفحة وراجعه من جديد.");
     public static readonly Error CannotBanAdmin = Error.Conflict(
         code: "Users.CannotBanAdmin",
         description: "لا يمكن حظر حساب مشرف.");

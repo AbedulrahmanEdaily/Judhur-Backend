@@ -8,6 +8,7 @@ using Judhur.Domain.Reports;
 using Judhur.Domain.Reviews;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Judhur.Application.Common.Interfaces;
 
@@ -28,6 +29,8 @@ public interface IAppDbContext
     DbSet<Notification> Notifications { get; }
 
     DbSet<RefreshToken> RefreshTokens { get; }
+
+    EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

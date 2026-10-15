@@ -29,4 +29,5 @@ public sealed class PropertyForReviewDto
     public UserInfoDto? Seller { get; set; }
     public string? OwnershipDocumentUrl { get; set; }
     public DateTimeOffset? OwnershipDocumentExpiresAtUtc { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
 }
