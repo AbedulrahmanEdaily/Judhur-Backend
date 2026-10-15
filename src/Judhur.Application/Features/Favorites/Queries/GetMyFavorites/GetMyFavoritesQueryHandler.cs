@@ -26,7 +26,7 @@ public sealed class GetMyFavoritesQueryHandler(IUser user, IAppDbContext context
             return ApplicationError.Unauthenticated;
         }
 
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get my favorites rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;

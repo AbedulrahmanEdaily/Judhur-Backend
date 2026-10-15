@@ -18,7 +18,7 @@ public sealed class GetPendingPropertiesQueryHandler(IAppDbContext context, ILog
 
     public async Task<Result<PaginatedList<PendingPropertyDto>>> Handle(GetPendingPropertiesQuery request, CancellationToken cancellationToken)
     {
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get pending properties rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;

@@ -18,7 +18,7 @@ public sealed class GetUsersQueryHandler(ILogger<GetUsersQueryHandler> logger, I
 
     public async Task<Result<PaginatedList<AdminUserDto>>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get users rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;

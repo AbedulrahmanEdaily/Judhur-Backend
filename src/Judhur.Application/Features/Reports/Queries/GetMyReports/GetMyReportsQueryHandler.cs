@@ -25,7 +25,7 @@ public sealed class GetMyReportsQueryHandler(IUser user, IAppDbContext context, 
             _logger.LogWarning("Get my reports rejected: request has no authenticated user");
             return ApplicationError.Unauthenticated;
         }
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get my reports rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;

@@ -20,7 +20,7 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
 
     public async Task<Result<PaginatedList<PropertySummaryDto>>> Handle(GetPropertiesQuery request, CancellationToken cancellationToken)
     {
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get properties rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;

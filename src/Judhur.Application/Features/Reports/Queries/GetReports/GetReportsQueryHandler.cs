@@ -20,7 +20,7 @@ public sealed class GetReportsQueryHandler(IAppDbContext context, ILogger<GetRep
 
     public async Task<Result<PaginatedList<ReportSummaryDto>>> Handle(GetReportsQuery request, CancellationToken cancellationToken)
     {
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get reports rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;

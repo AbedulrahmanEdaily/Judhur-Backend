@@ -25,7 +25,7 @@ public sealed class GetMyNotificationsQueryHandler(IUser user, IAppDbContext con
             return ApplicationError.Unauthenticated;
         }
 
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get my notifications rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;
