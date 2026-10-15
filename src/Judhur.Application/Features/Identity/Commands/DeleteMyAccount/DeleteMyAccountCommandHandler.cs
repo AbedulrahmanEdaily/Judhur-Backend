@@ -47,27 +47,49 @@ public sealed class DeleteMyAccountCommandHandler(
         await _context.Notifications.Where(n => n.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
         var listings = await _context.Properties
+            .Include(p => p.PropertyImages)
             .Where(p => p.SellerId == userId)
             .ToListAsync(cancellationToken);
+        var imagePublicIds = listings.SelectMany(p => p.PropertyImages).Select(i => i.PublicId).ToList();
+        var documentPublicIds = listings.Select(p => p.OwnershipDocumentPublicId).OfType<string>().ToList();
         foreach (var listing in listings)
         {
             listing.Delete(nowUtc);
         }
         await _context.SaveChangesAsync(cancellationToken);
 
-        if (deleteResult.Value.ProfileImagePublicId is { } publicId)
+        if (deleteResult.Value.ProfileImagePublicId is { } profileImagePublicId)
         {
-            _dispatcher.Defer(async ct =>
-            {
-                var removed = await _fileStorage.DeleteFileAsync(publicId, ct);
-                if (removed.IsError)
-                {
-                    _logger.LogWarning("Profile image {PublicId} of deleted user {UserId} could not be removed: {ErrorCode}", publicId, userId, removed.TopError.Code);
-                }
-            });
+            imagePublicIds.Add(profileImagePublicId);
         }
+        _dispatcher.Defer(ct => RemoveFilesAsync(userId, imagePublicIds, documentPublicIds, ct));
 
         _logger.LogInformation("Account {UserId} deleted by its owner: {DeletedListings} listings removed", userId, listings.Count);
         return Result.Deleted;
+    }
+
+    private async Task RemoveFilesAsync(Guid userId, List<string> imagePublicIds, List<string> documentPublicIds, CancellationToken cancellationToken)
+    {
+        var failed = 0;
+        foreach (var publicId in imagePublicIds)
+        {
+            if ((await _fileStorage.DeleteFileAsync(publicId, cancellationToken)).IsError)
+            {
+                failed++;
+            }
+        }
+        foreach (var publicId in documentPublicIds)
+        {
+            if ((await _fileStorage.DeletePrivateDocumentAsync(publicId, cancellationToken)).IsError)
+            {
+                failed++;
+            }
+        }
+        if (failed > 0)
+        {
+            _logger.LogWarning("{Failed} of {Total} files of deleted user {UserId} could not be removed", failed, imagePublicIds.Count + documentPublicIds.Count, userId);
+            return;
+        }
+        _logger.LogInformation("{Total} files of deleted user {UserId} removed", imagePublicIds.Count + documentPublicIds.Count, userId);
     }
 }

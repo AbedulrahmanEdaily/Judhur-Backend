@@ -252,13 +252,15 @@ public sealed class AccountController(ISender sender) : ApiController
 
     [HttpDelete("me")]
     [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.DeleteAccount)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [EndpointSummary("Deletes the authenticated user's account.")]
-    [EndpointDescription("Body: password, required when the account has a password (hasPassword on GET me) and ignored for Google-only accounts. Ends every session, deletes the user's listings, favorites and notifications, removes the profile picture and anonymizes the account: conversations and reviews stay and show «مستخدم محذوف». The email can be registered again afterwards. Returns 400 Identity.CurrentPasswordRequired or Identity.InvalidPassword, 401 without a valid access token, 404 if the account no longer exists and 409 Users.AdminCannotDeleteAccount for admins.")]
+    [EndpointDescription("Body: password, required when the account has a password (hasPassword on GET me) and ignored for Google-only accounts. Ends every session, deletes the user's listings with their images and ownership documents, favorites and notifications, removes the profile picture and anonymizes the account: conversations and reviews stay and show «مستخدم محذوف». The email can be registered again afterwards. Returns 400 Identity.CurrentPasswordRequired or Identity.InvalidPassword, 401 without a valid access token, 404 if the account no longer exists and 409 Users.AdminCannotDeleteAccount for admins. Limited to 5 requests per 15 minutes.")]
     [EndpointName("DeleteMyAccount")]
     public async Task<IActionResult> DeleteMyAccountAsync([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] DeleteMyAccountCommand? request, CancellationToken ct)
     {
