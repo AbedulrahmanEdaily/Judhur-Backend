@@ -31,6 +31,11 @@ public class ApplicationDbContextInitializer(
 
     public async Task InitializeAsync()
     {
+        if (!_configuration.GetValue("Database:ApplyMigrationsOnStartup", true))
+        {
+            _logger.LogInformation("Applying migrations on startup is disabled; the database schema must be updated by the deployment");
+            return;
+        }
         try
         {
             await _context.Database.MigrateAsync();

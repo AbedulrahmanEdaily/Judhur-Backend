@@ -60,11 +60,11 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [EndpointSummary("Approves a property.")]
-    [EndpointDescription("Approves a property so it becomes visible in public search and details. Returns 400 if the property has fewer than 3 images, no main image or no ownership document, 409 if it is already approved, and 404 if it does not exist.")]
+    [EndpointDescription("Approves a property so it becomes visible in public search and details. Body: rowVersion from the review page. Returns 400 if the property has fewer than 3 images, no main image or no ownership document, 409 if it is already approved or Properties.ChangedSinceReview if the owner changed it after the review page was loaded, and 404 if it does not exist.")]
     [EndpointName("ApproveProperty")]
-    public async Task<IActionResult> ApproveAsync([FromRoute] Guid propertyId, CancellationToken ct)
+    public async Task<IActionResult> ApproveAsync([FromRoute] Guid propertyId, [FromBody] ApprovePropertyCommand request, CancellationToken ct)
     {
-        var result = await _sender.Send(new ApprovePropertyCommand(propertyId), ct);
+        var result = await _sender.Send(request with { PropertyId = propertyId }, ct);
         return result.Match(_ => NoContent(), Problem);
     }
 
@@ -76,7 +76,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [EndpointSummary("Rejects a property.")]
-    [EndpointDescription("Rejects a property with a reason of up to 500 characters that the owner sees on their listing. Returns 400 if the reason is missing or too long, 409 if the property is already approved or already rejected, and 404 if it does not exist.")]
+    [EndpointDescription("Rejects a property with a reason of up to 500 characters that the owner sees on their listing, plus the rowVersion from the review page. Returns 400 if the reason is missing or too long, 409 if the property is already approved or already rejected or Properties.ChangedSinceReview if the owner changed it after the review page was loaded, and 404 if it does not exist.")]
     [EndpointName("RejectProperty")]
     public async Task<IActionResult> RejectAsync([FromRoute] Guid propertyId, [FromBody] RejectPropertyCommand request, CancellationToken ct)
     {

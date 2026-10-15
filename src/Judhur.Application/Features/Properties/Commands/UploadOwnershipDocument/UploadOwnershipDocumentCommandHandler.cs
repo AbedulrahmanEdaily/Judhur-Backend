@@ -10,10 +10,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.UploadOwnershipDocument;
 
-public sealed class UploadOwnershipDocumentCommandHandler(IUser user, IAppDbContext context, IFileStorage fileStorage, ILogger<UploadOwnershipDocumentCommandHandler> logger) : IRequestHandler<UploadOwnershipDocumentCommand, Result<Updated>>
+public sealed class UploadOwnershipDocumentCommandHandler(IUser user, IAppDbContext context, IFileStorage fileStorage, ILogger<UploadOwnershipDocumentCommandHandler> logger, ReviewQueue reviewQueue) : IRequestHandler<UploadOwnershipDocumentCommand, Result<Updated>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
+    private readonly ReviewQueue _reviewQueue = reviewQueue;
     private readonly IFileStorage _fileStorage = fileStorage;
     private readonly ILogger<UploadOwnershipDocumentCommandHandler> _logger = logger;
 
@@ -31,6 +32,7 @@ public sealed class UploadOwnershipDocumentCommandHandler(IUser user, IAppDbCont
             _logger.LogWarning("Upload ownership document rejected: property {PropertyId} not found for seller {SellerId}", request.PropertyId, sellerId);
             return PropertyErrors.NotFound;
         }
+        var wasQueued = await _reviewQueue.ContainsAsync(property.Id, cancellationToken);
         var oldPublicId = property.OwnershipDocumentPublicId;
         var uploadResult = await _fileStorage.UploadPrivateDocumentAsync(
             request.Content,
@@ -63,6 +65,7 @@ public sealed class UploadOwnershipDocumentCommandHandler(IUser user, IAppDbCont
         {
             await _fileStorage.DeletePrivateDocumentAsync(oldPublicId, CancellationToken.None);
         }
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
         _logger.LogInformation("Ownership document uploaded for property {PropertyId} by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

@@ -1,4 +1,3 @@
-using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Domain.Properties;
 

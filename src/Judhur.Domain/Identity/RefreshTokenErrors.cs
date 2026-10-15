@@ -8,7 +8,7 @@ public static class RefreshTokenErrors
         Error.Validation("RefreshTokenErrors.TokenRequired", "قيمة التوكن مطلوبة");
 
     public static readonly Error TokenTooLong =
-        Error.Validation("RefreshTokenErrors.TokenTooLong", $"لا يمكن أن يتجاوز التوكن {RefreshToken.MaxTokenLength} حرف");
+        Error.Validation("RefreshTokenErrors.TokenTooLong", $"لا يمكن أن يتجاوز التوكن {RefreshToken.MaxTokenHashLength} حرف");
 
     public static readonly Error UserIdRequired =
         Error.Validation("RefreshTokenErrors.UserIdRequired", "معرف المستخدم مطلوب");

@@ -142,7 +142,7 @@ public static class DependencyInjection
                         return;
                     }
                     var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                    if (await dbContext.Users.AnyAsync(u => u.Id == userId && u.BannedAtUtc != null, context.HttpContext.RequestAborted))
+                    if (await dbContext.Users.AnyAsync(u => u.Id == userId && (u.BannedAtUtc != null || u.DeletedAtUtc != null), context.HttpContext.RequestAborted))
                     {
                         context.Fail("Account banned.");
                     }

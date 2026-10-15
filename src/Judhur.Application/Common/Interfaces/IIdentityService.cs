@@ -25,7 +25,7 @@ public interface IIdentityService
         string email,
         CancellationToken cancellationToken = default);
 
-    Task<Guid?> SendResetPasswordCodeAsync(
+    Task<PasswordResetCode?> SendResetPasswordCodeAsync(
         string email,
         CancellationToken cancellationToken = default);
     Task<Result<Guid>> ChangePasswordAsync(
@@ -39,6 +39,7 @@ public interface IIdentityService
 
     Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(
         Guid userId,
+        string code,
         CancellationToken cancellationToken = default);
     Task<Result<EmailMessage>> BuildPasswordResetChangedAsync(
         Guid userId,
@@ -50,6 +51,13 @@ public interface IIdentityService
     Task<PaginatedList<AdminUserDto>> GetUsersForAdminAsync(AdminUsersFilter filter, CancellationToken cancellationToken = default);
     Task<Result<AdminUserDto>> GetUserForAdminAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserStatsDto> GetUserStatsAsync(DateTimeOffset newSinceUtc, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default);
+    Task<bool> IsActiveAccountAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default);
+    Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, CancellationToken cancellationToken = default);
+    Task<Result<EmailMessage>> BuildEmailChangeEmailAsync(Guid userId, string newEmail, CancellationToken cancellationToken = default);
+    Task<Result<EmailChange>> ConfirmEmailChangeAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken = default);
+    Task<Result<EmailMessage>> BuildEmailChangedNoticeAsync(Guid userId, string oldEmail, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, UserInfoDto>> GetUsersInfoAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default);

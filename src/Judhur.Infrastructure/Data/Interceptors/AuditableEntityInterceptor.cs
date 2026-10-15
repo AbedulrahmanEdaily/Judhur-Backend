@@ -1,5 +1,7 @@
 using Judhur.Application.Common.Interfaces;
 using Judhur.Domain.Common;
+using Judhur.Domain.Properties;
+using Judhur.Domain.Properties.PropertyImages;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -42,6 +44,18 @@ public sealed class AuditableEntityInterceptor(IUser user, TimeProvider timeProv
         // carries the same timestamp and the same author.
         var utcNow = timeProvider.GetUtcNow();
         var userId = user.Id;
+
+        var propertiesWithChangedImages = context.ChangeTracker.Entries<PropertyImage>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .Select(e => e.Entity.PropertyId)
+            .ToHashSet();
+        foreach (var entry in context.ChangeTracker.Entries<Property>())
+        {
+            if (entry.State is EntityState.Unchanged && propertiesWithChangedImages.Contains(entry.Entity.Id))
+            {
+                entry.State = EntityState.Modified;
+            }
+        }
 
         foreach (var entry in context.ChangeTracker.Entries<AuditableEntity>())
         {

@@ -1,6 +1,5 @@
 using Judhur.Application.Common.Interfaces;
 
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Judhur.Infrastructure.Data;

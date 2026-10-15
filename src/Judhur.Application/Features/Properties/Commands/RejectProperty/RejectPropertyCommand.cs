@@ -6,4 +6,4 @@ using MediatR;
 
 namespace Judhur.Application.Features.Properties.Commands.RejectProperty;
 
-public sealed record RejectPropertyCommand([property: JsonIgnore] Guid PropertyId, string RejectionReason) : IRequest<Result<Updated>>;
+public sealed record RejectPropertyCommand([property: JsonIgnore] Guid PropertyId, string RejectionReason, string RowVersion) : IRequest<Result<Updated>>;

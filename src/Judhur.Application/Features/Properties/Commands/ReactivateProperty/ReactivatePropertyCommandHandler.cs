@@ -10,10 +10,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.ReactivateProperty;
 
-public sealed class ReactivatePropertyCommandHandler(IUser user, IAppDbContext context, ILogger<ReactivatePropertyCommandHandler> logger) : IRequestHandler<ReactivatePropertyCommand, Result<Updated>>
+public sealed class ReactivatePropertyCommandHandler(IUser user, IAppDbContext context, ILogger<ReactivatePropertyCommandHandler> logger, ReviewQueue reviewQueue) : IRequestHandler<ReactivatePropertyCommand, Result<Updated>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
+    private readonly ReviewQueue _reviewQueue = reviewQueue;
     private readonly ILogger<ReactivatePropertyCommandHandler> _logger = logger;
 
     public async Task<Result<Updated>> Handle(ReactivatePropertyCommand request, CancellationToken cancellationToken)
@@ -31,6 +32,7 @@ public sealed class ReactivatePropertyCommandHandler(IUser user, IAppDbContext c
             _logger.LogWarning("Reactivate property rejected: property {PropertyId} not found for seller {SellerId}", request.PropertyId, sellerId);
             return PropertyErrors.NotFound;
         }
+        var wasQueued = await _reviewQueue.ContainsAsync(property.Id, cancellationToken);
 
         var result = property.Reactivate();
         if (result.IsError)
@@ -40,6 +42,7 @@ public sealed class ReactivatePropertyCommandHandler(IUser user, IAppDbContext c
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
         _logger.LogInformation("Property {PropertyId} reactivated by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

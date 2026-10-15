@@ -12,4 +12,6 @@ public static class RateLimitPolicies
     public const string CreateReport = "create-report";
     public const string SendMessage = "send-message";
     public const string CreateReview = "create-review";
+    public const string ChangeEmail = "change-email";
+    public const string DeleteAccount = "delete-account";
 }

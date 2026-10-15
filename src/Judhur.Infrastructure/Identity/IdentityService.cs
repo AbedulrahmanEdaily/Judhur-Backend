@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 
 using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
@@ -23,6 +22,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 {
     private const int ResetCodeLifetimeMinutes = 5;
     private const int MaxResetCodeAttempts = 5;
+    private const string DeletedUserName = "مستخدم محذوف";
     private const string GoogleLoginProvider = "Google";
     private const int MaxFullNameLength = 150;
     private const int MaxProfileImageUrlLength = 500;
@@ -167,7 +167,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     => Error.Validation(
         "Identity.InvalidConfirmationToken",
         "رابط التأكيد غير صالح أو منتهي الصلاحية.");
-    public async Task<Guid?> SendResetPasswordCodeAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<PasswordResetCode?> SendResetPasswordCodeAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
@@ -175,11 +175,11 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             return null;
         }
         var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
-        user.ResetCode = code;
+        user.ResetCodeHash = TokenHashing.Hash(code);
         user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(ResetCodeLifetimeMinutes);
         user.ResetCodeFailedAttempts = 0;
         var updateResult = await _userManager.UpdateAsync(user);
-        return updateResult.Succeeded ? user.Id : null;
+        return updateResult.Succeeded ? new PasswordResetCode(user.Id, code) : null;
     }
 
     public async Task<Result<EmailMessage>> BuildConfirmationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -202,17 +202,17 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new EmailMessage(user.Email!, "تأكيد البريد الإلكتروني", html);
     }
 
-    public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, string code, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user?.Email is null || user.ResetCode is null)
+        if (user?.Email is null || user.ResetCodeHash is null)
         {
             return UserNoLongerExists();
         }
         var html = EmailTemplates.Render("ResetPasswordCode", new Dictionary<string, string>
         {
             ["FullName"] = user.FullName,
-            ["ResetCode"] = user.ResetCode,
+            ["ResetCode"] = code,
             ["ExpiryMinutes"] = ResetCodeLifetimeMinutes.ToString(),
             ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
         });
@@ -224,14 +224,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<Guid>> ChangePasswordAsync(string email, string password, string code, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
-        if (user?.ResetCode is null || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
+        if (user?.ResetCodeHash is null || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
         {
             return InvalidResetCode();
         }
         var attemptReserved = await _context.Users
             .Where(u => u.Id == user.Id && u.ResetCodeFailedAttempts < MaxResetCodeAttempts)
             .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.ResetCodeFailedAttempts, u => u.ResetCodeFailedAttempts + 1), cancellationToken);
-        if (attemptReserved == 0 || !ResetCodeMatches(user.ResetCode, code))
+        if (attemptReserved == 0 || !TokenHashing.Matches(user.ResetCodeHash, code))
         {
             return InvalidResetCode();
         }
@@ -248,12 +248,9 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     private static Error InvalidResetCode()
         => Error.Validation("Identity.InvalidResetCode", "رمز الاستعادة غير صحيح أو منتهي الصلاحية.");
 
-    private static bool ResetCodeMatches(string expected, string actual)
-        => CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(actual));
-
     private static void ClearResetCode(ApplicationUser user)
     {
-        user.ResetCode = null;
+        user.ResetCodeHash = null;
         user.ResetCodeExpiresAt = null;
         user.ResetCodeFailedAttempts = 0;
     }
@@ -402,6 +399,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         user.BanReason = reason.Trim();
         user.LockoutEnabled = true;
         user.LockoutEnd = DateTimeOffset.MaxValue;
+        user.SecurityStamp = Guid.NewGuid().ToString();
         var updateResult = await _userManager.UpdateAsync(user);
         return updateResult.Succeeded ? Result.Success : Translate(updateResult);
     }
@@ -428,7 +426,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
     public async Task<PaginatedList<AdminUserDto>> GetUsersForAdminAsync(AdminUsersFilter filter, CancellationToken cancellationToken = default)
     {
-        var users = _context.Users.AsNoTracking();
+        var users = _context.Users.AsNoTracking().Where(u => u.DeletedAtUtc == null);
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             var term = filter.Search.Trim();
@@ -467,7 +465,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<AdminUserDto>> GetUserForAdminAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
-        var user = await ProjectForAdmin(_context.Users.AsNoTracking().Where(u => u.Id == userId), adminRoleId)
+        var user = await ProjectForAdmin(_context.Users.AsNoTracking().Where(u => u.Id == userId && u.DeletedAtUtc == null), adminRoleId)
             .FirstOrDefaultAsync(cancellationToken);
         return user is null ? ApplicationError.UserNotFound : user;
     }
@@ -477,12 +475,173 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
         var users = _context.Users
             .AsNoTracking()
-            .Where(u => !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId));
+            .Where(u => u.DeletedAtUtc == null && !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId));
         var total = await users.CountAsync(cancellationToken);
         var newUsers = await users.CountAsync(u => u.CreatedAtUtc >= newSinceUtc, cancellationToken);
         var banned = await users.CountAsync(u => u.BannedAtUtc != null, cancellationToken);
         var unconfirmed = await users.CountAsync(u => u.BannedAtUtc == null && !u.EmailConfirmed, cancellationToken);
         return new UserStatsDto(total, newUsers, banned, unconfirmed);
+    }
+
+    public Task<bool> IsActiveAccountAsync(Guid userId, CancellationToken cancellationToken = default)
+        => _context.Users.AnyAsync(u => u.Id == userId && u.DeletedAtUtc == null && u.BannedAtUtc == null, cancellationToken);
+
+    public async Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        if (await _userManager.IsInRoleAsync(user, Roles.Admin))
+        {
+            return ApplicationError.AdminCannotDeleteAccount;
+        }
+        var passwordCheck = await CheckPasswordIfSetAsync(user, password);
+        if (passwordCheck.IsError)
+        {
+            return passwordCheck.Errors;
+        }
+
+        foreach (var login in await _userManager.GetLoginsAsync(user))
+        {
+            var removeResult = await _userManager.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey);
+            if (!removeResult.Succeeded)
+            {
+                return Translate(removeResult);
+            }
+        }
+
+        var profileImagePublicId = user.ProfileImagePublicId;
+        var placeholder = $"deleted-{user.Id:N}";
+        user.Email = null;
+        user.NormalizedEmail = null;
+        user.EmailConfirmed = false;
+        user.UserName = placeholder;
+        user.NormalizedUserName = placeholder.ToUpperInvariant();
+        user.PasswordHash = null;
+        user.PhoneNumber = null;
+        user.PhoneNumberConfirmed = false;
+        user.FullName = DeletedUserName;
+        user.City = string.Empty;
+        user.Bio = null;
+        user.ProfileImageUrl = null;
+        user.ProfileImagePublicId = null;
+        ClearResetCode(user);
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
+        user.DeletedAtUtc = deletedAtUtc;
+        await _context.SaveChangesAsync(cancellationToken);
+        return new DeletedAccount(profileImagePublicId);
+    }
+
+    public async Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        var passwordCheck = await CheckPasswordIfSetAsync(user, password);
+        if (passwordCheck.IsError)
+        {
+            return passwordCheck.Errors;
+        }
+        if (_userManager.NormalizeEmail(newEmail) == user.NormalizedEmail)
+        {
+            return ApplicationError.EmailUnchanged;
+        }
+        if (await _userManager.FindByEmailAsync(newEmail) is not null)
+        {
+            return ApplicationError.DuplicateEmail;
+        }
+        return Result.Success;
+    }
+
+    public async Task<Result<EmailMessage>> BuildEmailChangeEmailAsync(Guid userId, string newEmail, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return UserNoLongerExists();
+        }
+        var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+        var link = $"{_frontendSettings.ConfirmEmailChangeUrl}" +
+                    $"?userId={user.Id}" +
+                    $"&email={Uri.EscapeDataString(newEmail)}" +
+                    $"&token={Uri.EscapeDataString(token)}";
+        var html = EmailTemplates.Render("ConfirmEmailChange", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ConfirmLink"] = link,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(newEmail, "تأكيد البريد الإلكتروني الجديد", html);
+    }
+
+    public async Task<Result<EmailChange>> ConfirmEmailChangeAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null || user.BannedAtUtc is not null)
+        {
+            return InvalidConfirmationToken();
+        }
+        var oldEmail = user.Email;
+        var changeResult = await _userManager.ChangeEmailAsync(user, newEmail, token);
+        if (!changeResult.Succeeded)
+        {
+            return changeResult.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.InvalidToken))
+                ? InvalidConfirmationToken()
+                : Translate(changeResult);
+        }
+        var userNameResult = await _userManager.SetUserNameAsync(user, newEmail);
+        if (!userNameResult.Succeeded)
+        {
+            return Translate(userNameResult);
+        }
+        return new EmailChange(oldEmail, newEmail);
+    }
+
+    public async Task<Result<EmailMessage>> BuildEmailChangedNoticeAsync(Guid userId, string oldEmail, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return UserNoLongerExists();
+        }
+        var html = EmailTemplates.Render("EmailChanged", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["NewEmail"] = user.Email,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(oldEmail, "تم تغيير البريد الإلكتروني", html);
+    }
+
+    private async Task<Result<Success>> CheckPasswordIfSetAsync(ApplicationUser user, string? password)
+    {
+        if (!await _userManager.HasPasswordAsync(user))
+        {
+            return Result.Success;
+        }
+        if (string.IsNullOrEmpty(password))
+        {
+            return CurrentPasswordRequired();
+        }
+        return await _userManager.CheckPasswordAsync(user, password)
+            ? Result.Success
+            : ApplicationError.InvalidPassword;
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default)
+    {
+        var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
+        return await _context.UserRoles
+            .Where(ur => ur.RoleId == adminRoleId)
+            .Join(_context.Users.Where(u => u.BannedAtUtc == null), ur => ur.UserId, u => u.Id, (ur, u) => u.Id)
+            .ToListAsync(cancellationToken);
     }
 
     private Task<Guid> GetAdminRoleIdAsync(CancellationToken cancellationToken)

@@ -13,10 +13,11 @@ namespace Judhur.Application.Features.Properties.Commands.SetMainPropertyImage;
 public sealed class SetMainPropertyImageCommandHandler(
     IUser user,
     IAppDbContext context,
-    ILogger<SetMainPropertyImageCommandHandler> logger) : IRequestHandler<SetMainPropertyImageCommand, Result<Updated>>
+    ILogger<SetMainPropertyImageCommandHandler> logger, ReviewQueue reviewQueue) : IRequestHandler<SetMainPropertyImageCommand, Result<Updated>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
+    private readonly ReviewQueue _reviewQueue = reviewQueue;
     private readonly ILogger<SetMainPropertyImageCommandHandler> _logger = logger;
 
     public async Task<Result<Updated>> Handle(SetMainPropertyImageCommand request, CancellationToken cancellationToken)
@@ -34,6 +35,7 @@ public sealed class SetMainPropertyImageCommandHandler(
             _logger.LogWarning("Set main property image rejected: property {PropertyId} not found for seller {SellerId}", request.PropertyId, sellerId);
             return PropertyErrors.NotFound;
         }
+        var wasQueued = await _reviewQueue.ContainsAsync(property.Id, cancellationToken);
         var result = property.SetMainImage(request.ImageId);
         if (result.IsError)
         {
@@ -41,6 +43,7 @@ public sealed class SetMainPropertyImageCommandHandler(
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
         _logger.LogInformation("Image {ImageId} set as main image of property {PropertyId} by seller {SellerId}", request.ImageId, property.Id, sellerId);
         return Result.Updated;
     }

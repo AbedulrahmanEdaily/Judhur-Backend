@@ -8,5 +8,7 @@ public enum NotificationType
     NewReview,
     ReportResolved,
     AccountBanned,
-    PropertySuspended
+    PropertySuspended,
+    PropertyPendingReview,
+    NewReport
 }

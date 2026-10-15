@@ -1,7 +1,7 @@
 using Judhur.Application.Common.Interfaces;
+using Judhur.Application.Features.Properties;
 using Judhur.Application.Features.Stats.Dto;
 using Judhur.Domain.Common.Results;
-using Judhur.Domain.Properties;
 using Judhur.Domain.Properties.Enums;
 using Judhur.Domain.Reports.Enums;
 
@@ -29,12 +29,7 @@ public sealed class GetAdminStatsQueryHandler(IAppDbContext context, ILogger<Get
         var properties = _context.Properties.AsNoTracking();
         var published = await properties.CountAsync(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive, cancellationToken);
         var pending = await properties.CountAsync(p => p.ModerationStatus == ModerationStatus.Pending && p.IsActive, cancellationToken);
-        var waitingForReview = await properties.CountAsync(p => p.ModerationStatus == ModerationStatus.Pending
-            && p.IsActive
-            && p.OwnershipDocumentPublicId != null
-            && p.PropertyImages.Count >= Property.MinImages
-            && p.PropertyImages.Any(i => i.IsMainImage),
-            cancellationToken);
+        var waitingForReview = await properties.CountAsync(ReviewQueue.IsReady, cancellationToken);
         var rejected = await properties.CountAsync(p => p.ModerationStatus == ModerationStatus.Rejected, cancellationToken);
         var inactive = await properties.CountAsync(p => !p.IsActive, cancellationToken);
         var sold = await properties.CountAsync(p => p.PropertyStatus == PropertyStatus.Sold, cancellationToken);

@@ -33,6 +33,13 @@ public sealed class RejectPropertyCommandHandler(IUser user, IAppDbContext conte
             _logger.LogWarning("Reject property rejected: property {PropertyId} not found", request.PropertyId);
             return PropertyErrors.NotFound;
         }
+        RowVersions.TryParse(request.RowVersion, out var reviewedVersion);
+        var rowVersion = _context.Entry(property).Property<byte[]>(RowVersions.PropertyName);
+        if (!rowVersion.CurrentValue.AsSpan().SequenceEqual(reviewedVersion))
+        {
+            _logger.LogWarning("Reject property {PropertyId} rejected: the property changed after admin {AdminId} opened it", request.PropertyId, adminId);
+            return ApplicationError.PropertyChangedSinceReview;
+        }
         var result = property.Reject(adminId, _timeProvider.GetUtcNow(), request.RejectionReason);
         if (result.IsError)
         {

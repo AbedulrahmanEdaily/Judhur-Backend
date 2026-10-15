@@ -1,6 +1,7 @@
 using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Features.Reports.Dto;
+using Judhur.Application.Features.Reports.Events;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Properties;
 using Judhur.Domain.Properties.Enums;
@@ -14,12 +15,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Reports.Commands.CreateReport;
 
-public sealed class CreateReportCommandHandler(IUser user, IAppDbContext context, ILogger<CreateReportCommandHandler> logger)
+public sealed class CreateReportCommandHandler(IUser user, IAppDbContext context, ILogger<CreateReportCommandHandler> logger, IDeferredDispatcher dispatcher, IPublisher publisher)
     : IRequestHandler<CreateReportCommand, Result<ReportCreatedDto>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
     private readonly ILogger<CreateReportCommandHandler> _logger = logger;
+    private readonly IDeferredDispatcher _dispatcher = dispatcher;
+    private readonly IPublisher _publisher = publisher;
 
     public async Task<Result<ReportCreatedDto>> Handle(CreateReportCommand request, CancellationToken cancellationToken)
     {
@@ -29,14 +32,14 @@ public sealed class CreateReportCommandHandler(IUser user, IAppDbContext context
             return ApplicationError.Unauthenticated;
         }
 
-        var sellerId = await _context.Properties
+        var property = await _context.Properties
             .AsNoTracking()
             .Where(p => p.Id == request.PropertyId
                 && p.ModerationStatus == ModerationStatus.Approved
                 && p.IsActive)
-            .Select(p => (Guid?)p.SellerId)
+            .Select(p => new { p.SellerId, p.Title })
             .FirstOrDefaultAsync(cancellationToken);
-        if (sellerId is null)
+        if (property is null)
         {
             _logger.LogWarning("Create report rejected: property {PropertyId} not found or not publicly visible", request.PropertyId);
             return PropertyErrors.NotFound;
@@ -53,7 +56,7 @@ public sealed class CreateReportCommandHandler(IUser user, IAppDbContext context
             return ReportErrors.DuplicateReport;
         }
 
-        var reportResult = Report.Create(Guid.CreateVersion7(), reporterId, request.PropertyId, sellerId.Value, request.Reason, request.Details);
+        var reportResult = Report.Create(Guid.CreateVersion7(), reporterId, request.PropertyId, property.SellerId, request.Reason, request.Details);
         if (reportResult.IsError)
         {
             _logger.LogWarning("Create report rejected for user {UserId} on property {PropertyId}: {ErrorCode}", reporterId, request.PropertyId, reportResult.TopError.Code);
@@ -63,6 +66,8 @@ public sealed class CreateReportCommandHandler(IUser user, IAppDbContext context
         var report = reportResult.Value;
         _context.Reports.Add(report);
         await _context.SaveChangesAsync(cancellationToken);
+        var created = new ReportCreated(report.Id, report.PropertyId, property.Title, report.Reason);
+        _dispatcher.Defer(ct => _publisher.Publish(created, ct));
         _logger.LogInformation("Report {ReportId} created by user {UserId} on property {PropertyId} with reason {Reason}", report.Id, reporterId, report.PropertyId, report.Reason);
         return new ReportCreatedDto(report.Id);
     }

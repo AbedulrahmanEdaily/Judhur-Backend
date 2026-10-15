@@ -19,6 +19,24 @@ public static class ApplicationError
     public static readonly Error AccountBanned = Error.Forbidden(
         code: "Identity.AccountBanned",
         description: "تم حظر حسابك. للاستفسار تواصل مع إدارة جذور.");
+    public static readonly Error PropertyChangedSinceReview = Error.Conflict(
+        code: "Properties.ChangedSinceReview",
+        description: "تم تعديل العقار بعد فتحك لصفحة المراجعة. حدّث الصفحة وراجعه من جديد.");
+    public static readonly Error AdminCannotDeleteAccount = Error.Conflict(
+        code: "Users.AdminCannotDeleteAccount",
+        description: "لا يمكن حذف حساب مشرف.");
+    public static readonly Error InvalidPassword = Error.Validation(
+        code: "Identity.InvalidPassword",
+        description: "كلمة المرور غير صحيحة.");
+    public static readonly Error EmailUnchanged = Error.Validation(
+        code: "Identity.EmailUnchanged",
+        description: "البريد الإلكتروني الجديد هو نفس بريدك الحالي.");
+    public static readonly Error DuplicateEmail = Error.Conflict(
+        code: "Identity.DuplicateEmail",
+        description: "البريد الإلكتروني مستخدم مسبقًا.");
+    public static readonly Error ParticipantUnavailable = Error.Conflict(
+        code: "Conversations.ParticipantUnavailable",
+        description: "لم يعد بإمكانك مراسلة هذا المستخدم.");
     public static readonly Error CannotBanAdmin = Error.Conflict(
         code: "Users.CannotBanAdmin",
         description: "لا يمكن حظر حساب مشرف.");

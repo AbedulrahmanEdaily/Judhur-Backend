@@ -1,7 +1,6 @@
 using FluentValidation;
 
 using Judhur.Domain.Properties;
-using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Commands.UpdatePropertyDetails;
 

@@ -3,12 +3,15 @@ using Asp.Versioning;
 using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Commands.ChangePassword;
 using Judhur.Application.Features.Identity.Commands.ConfirmEmail;
+using Judhur.Application.Features.Identity.Commands.ConfirmEmailChange;
+using Judhur.Application.Features.Identity.Commands.DeleteMyAccount;
 using Judhur.Application.Features.Identity.Commands.GoogleLogin;
 using Judhur.Application.Features.Identity.Commands.Login;
 using Judhur.Application.Features.Identity.Commands.Logout;
 using Judhur.Application.Features.Identity.Commands.RefreshToken;
 using Judhur.Application.Features.Identity.Commands.RemoveProfileImage;
 using Judhur.Application.Features.Identity.Commands.Register;
+using Judhur.Application.Features.Identity.Commands.RequestEmailChange;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
 using Judhur.Application.Features.Identity.Commands.SetMyPassword;
@@ -21,6 +24,7 @@ using MediatR;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace Judhur.Api.Controllers.Area.Identity;
@@ -241,6 +245,55 @@ public sealed class AccountController(ISender sender) : ApiController
     [EndpointDescription("If the account already has a password, currentPassword is required and must match; the password is then replaced with newPassword. If the account has no password (created with Google), currentPassword is ignored and newPassword becomes the account password, which also enables email and password login. Use hasPassword from GET me to pick the form. A confirmation email is sent on success. Limited to 5 requests per 15 minutes. Returns 400 on validation errors or a wrong current password, 401 without a valid access token and 404 if the account no longer exists.")]
     [EndpointName("SetMyPassword")]
     public async Task<IActionResult> SetMyPasswordAsync([FromBody] SetMyPasswordCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpDelete("me")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.DeleteAccount)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Deletes the authenticated user's account.")]
+    [EndpointDescription("Body: password, required when the account has a password (hasPassword on GET me) and ignored for Google-only accounts. Ends every session, deletes the user's listings with their images and ownership documents, favorites and notifications, removes the profile picture and anonymizes the account: conversations and reviews stay and show «مستخدم محذوف». The email can be registered again afterwards. Returns 400 Identity.CurrentPasswordRequired or Identity.InvalidPassword, 401 without a valid access token, 404 if the account no longer exists and 409 Users.AdminCannotDeleteAccount for admins. Limited to 5 requests per 15 minutes.")]
+    [EndpointName("DeleteMyAccount")]
+    public async Task<IActionResult> DeleteMyAccountAsync([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] DeleteMyAccountCommand? request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request ?? new DeleteMyAccountCommand(null), ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPost("me/email")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.ChangeEmail)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Starts changing the authenticated user's email.")]
+    [EndpointDescription("Body: newEmail and password (required when the account has a password). Sends a confirmation link to the new address; nothing changes until it is opened. Limited to 3 requests per 15 minutes. Returns 400 on an invalid email, Identity.EmailUnchanged, Identity.CurrentPasswordRequired or Identity.InvalidPassword, 401 without a valid access token, 404 if the account no longer exists and 409 Identity.DuplicateEmail.")]
+    [EndpointName("RequestEmailChange")]
+    public async Task<IActionResult> RequestEmailChangeAsync([FromBody] RequestEmailChangeCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPost("confirm-email-change")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Confirms an email change from the link sent to the new address.")]
+    [EndpointDescription("Body: userId, newEmail and token from the link. Changes the email and the login, marks it confirmed, ends every session and notifies the previous address. No access token needed. Returns 400 Identity.InvalidConfirmationToken when the link is invalid, expired or already used, and 409 Identity.DuplicateEmail when the address was taken meanwhile.")]
+    [EndpointName("ConfirmEmailChange")]
+    public async Task<IActionResult> ConfirmEmailChangeAsync([FromBody] ConfirmEmailChangeCommand request, CancellationToken ct)
     {
         var result = await _sender.Send(request, ct);
         return result.Match(_ => NoContent(), Problem);

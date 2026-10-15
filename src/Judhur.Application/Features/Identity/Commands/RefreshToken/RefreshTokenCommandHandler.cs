@@ -41,8 +41,9 @@ public sealed class RefreshTokenCommandHandler(IAppDbContext context, ITokenProv
             return getUserResult.Errors;
         }
         var nowUtc = _timeProvider.GetUtcNow();
+        var tokenHash = TokenHashing.Hash(request.RefreshToken);
         var claimedTokens = await _context.RefreshTokens
-            .Where(r => r.Token == request.RefreshToken && r.UserId == userId && r.ExpiresOnUtc > nowUtc)
+            .Where(r => r.TokenHash == tokenHash && r.UserId == userId && r.ExpiresOnUtc > nowUtc)
             .ExecuteDeleteAsync(cancellationToken);
         if (claimedTokens == 0)
         {

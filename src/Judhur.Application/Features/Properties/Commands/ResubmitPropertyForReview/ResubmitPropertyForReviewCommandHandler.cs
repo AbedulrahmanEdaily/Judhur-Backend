@@ -10,10 +10,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.ResubmitPropertyForReview;
 
-public sealed class ResubmitPropertyForReviewCommandHandler(IUser user, IAppDbContext context, ILogger<ResubmitPropertyForReviewCommandHandler> logger) : IRequestHandler<ResubmitPropertyForReviewCommand, Result<Updated>>
+public sealed class ResubmitPropertyForReviewCommandHandler(IUser user, IAppDbContext context, ILogger<ResubmitPropertyForReviewCommandHandler> logger, ReviewQueue reviewQueue) : IRequestHandler<ResubmitPropertyForReviewCommand, Result<Updated>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
+    private readonly ReviewQueue _reviewQueue = reviewQueue;
     private readonly ILogger<ResubmitPropertyForReviewCommandHandler> _logger = logger;
 
     public async Task<Result<Updated>> Handle(ResubmitPropertyForReviewCommand request, CancellationToken cancellationToken)
@@ -30,6 +31,7 @@ public sealed class ResubmitPropertyForReviewCommandHandler(IUser user, IAppDbCo
             _logger.LogWarning("Resubmit property rejected: property {PropertyId} not found for seller {SellerId}", request.PropertyId, sellerId);
             return PropertyErrors.NotFound;
         }
+        var wasQueued = await _reviewQueue.ContainsAsync(property.Id, cancellationToken);
         var result = property.ResubmitForReview();
         if (result.IsError)
         {
@@ -37,6 +39,7 @@ public sealed class ResubmitPropertyForReviewCommandHandler(IUser user, IAppDbCo
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
         _logger.LogInformation("Property {PropertyId} resubmitted for review by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

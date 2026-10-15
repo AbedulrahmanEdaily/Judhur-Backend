@@ -1,3 +1,4 @@
+using Judhur.Application.Common;
 using Judhur.Domain.Properties;
 using Judhur.Infrastructure.Identity;
 
@@ -11,6 +12,7 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
     public void Configure(EntityTypeBuilder<Property> builder)
     {
         builder.HasKey(i => i.Id);
+        builder.Property<byte[]>(RowVersions.PropertyName).IsRowVersion();
         builder.HasQueryFilter(p => !p.IsDeleted);
         builder.Ignore(p => p.MainImage);
         builder.HasMany(p => p.PropertyImages)

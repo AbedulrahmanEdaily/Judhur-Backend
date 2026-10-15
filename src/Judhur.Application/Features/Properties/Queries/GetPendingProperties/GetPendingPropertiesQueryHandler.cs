@@ -3,8 +3,6 @@ using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Domain.Common.Results;
-using Judhur.Domain.Properties;
-using Judhur.Domain.Properties.Enums;
 
 using MediatR;
 
@@ -32,11 +30,7 @@ public sealed class GetPendingPropertiesQueryHandler(IAppDbContext context, ILog
         }
         var query = _context.Properties
             .AsNoTracking()
-            .Where(p => p.ModerationStatus == ModerationStatus.Pending
-                && p.IsActive
-                && p.OwnershipDocumentPublicId != null
-                && p.PropertyImages.Count >= Property.MinImages
-                && p.PropertyImages.Any(i => i.IsMainImage));
+            .Where(ReviewQueue.IsReady);
         var count = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(p => p.CreatedAtUtc)
