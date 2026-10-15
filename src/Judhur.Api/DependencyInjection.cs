@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -102,6 +103,42 @@ public static class DependencyInjection
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = (context, _) =>
+            {
+                if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                {
+                    context.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+                }
+                return ValueTask.CompletedTask;
+            };
+
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            {
+                if (httpContext.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    return RateLimitPartition.GetNoLimiter("hubs");
+                }
+
+                if (httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId)
+                {
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        partitionKey: $"user:{userId}",
+                        factory: _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = 300,
+                            Window = TimeSpan.FromMinutes(1),
+                        });
+                }
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
+                    factory: _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 200,
+                        Window = TimeSpan.FromMinutes(1),
+                    });
+            });
 
             options.AddPolicy(RateLimitPolicies.ResendConfirmation, httpContext =>
                 RateLimitPartition.GetFixedWindowLimiter(
