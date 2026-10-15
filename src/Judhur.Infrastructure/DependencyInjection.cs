@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 
 using CloudinaryDotNet;
@@ -133,6 +134,18 @@ public static class DependencyInjection
                         context.Token = accessToken;
                     }
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async context =>
+                {
+                    if (!Guid.TryParse(context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                    {
+                        return;
+                    }
+                    var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                    if (await dbContext.Users.AnyAsync(u => u.Id == userId && u.BannedAtUtc != null, context.HttpContext.RequestAborted))
+                    {
+                        context.Fail("Account banned.");
+                    }
                 }
             };
         });

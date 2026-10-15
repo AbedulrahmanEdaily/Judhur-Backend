@@ -16,6 +16,21 @@ public static class ApplicationError
     public static readonly Error UserNotFound = Error.NotFound(
         code: "Auth.User.NotFound",
         description: "المستخدم غير موجود.");
+    public static readonly Error AccountBanned = Error.Forbidden(
+        code: "Identity.AccountBanned",
+        description: "تم حظر حسابك. للاستفسار تواصل مع إدارة جذور.");
+    public static readonly Error CannotBanAdmin = Error.Conflict(
+        code: "Users.CannotBanAdmin",
+        description: "لا يمكن حظر حساب مشرف.");
+    public static readonly Error CannotBanSelf = Error.Conflict(
+        code: "Users.CannotBanSelf",
+        description: "لا يمكنك حظر حسابك.");
+    public static readonly Error UserAlreadyBanned = Error.Conflict(
+        code: "Users.AlreadyBanned",
+        description: "هذا الحساب محظور مسبقًا.");
+    public static readonly Error UserNotBanned = Error.Conflict(
+        code: "Users.NotBanned",
+        description: "هذا الحساب غير محظور.");
     public static readonly Error SellerNotFound = Error.NotFound(
         code: "Seller.NotFound",
         description: "البائع غير موجود.");
