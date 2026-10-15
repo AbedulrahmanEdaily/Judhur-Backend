@@ -32,6 +32,7 @@ public static class DependencyInjection
                 .AddRateLimiting()
                 .AddIdentityInfrastructure()
                 .AddRealtime();
+        services.AddHealthChecks();
         return services;
     }
 
@@ -133,9 +134,9 @@ public static class DependencyInjection
 
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
             {
-                if (httpContext.Request.Path.StartsWithSegments("/hubs"))
+                if (httpContext.Request.Path.StartsWithSegments("/hubs") || httpContext.Request.Path.StartsWithSegments("/health"))
                 {
-                    return RateLimitPartition.GetNoLimiter("hubs");
+                    return RateLimitPartition.GetNoLimiter("unlimited");
                 }
 
                 if (httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId)

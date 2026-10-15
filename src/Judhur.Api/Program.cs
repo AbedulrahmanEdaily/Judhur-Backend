@@ -36,5 +36,6 @@ await app.InitializeDatabaseAsync();
 app.UseCoreMiddlewares(builder.Configuration);
 app.MapControllers();
 app.MapRealtime();
+app.MapHealthChecks("/health");
 
 app.Run();
