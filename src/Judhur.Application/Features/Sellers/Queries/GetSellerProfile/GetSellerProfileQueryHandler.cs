@@ -1,4 +1,5 @@
 using Judhur.Application.Common.Interfaces;
+using Judhur.Application.Features.Reviews;
 using Judhur.Application.Features.Sellers.Dto;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Properties.Enums;
@@ -33,7 +34,9 @@ public sealed class GetSellerProfileQueryHandler(IIdentityService identityServic
                 && p.IsActive,
                 cancellationToken);
 
-        _logger.LogInformation("Seller profile {SellerId} retrieved with {ActiveListingsCount} active listings", seller.Id, activeListingsCount);
+        var rating = await SellerRatings.GetAsync(_context, seller.Id, cancellationToken);
+
+        _logger.LogInformation("Seller profile {SellerId} retrieved with {ActiveListingsCount} active listings and {ReviewsCount} reviews", seller.Id, activeListingsCount, rating.ReviewsCount);
         return new SellerProfileDto(
             seller.Id,
             seller.FullName,
@@ -41,6 +44,8 @@ public sealed class GetSellerProfileQueryHandler(IIdentityService identityServic
             seller.City,
             seller.Bio,
             seller.MemberSinceUtc,
-            activeListingsCount);
+            activeListingsCount,
+            rating.AverageRating,
+            rating.ReviewsCount);
     }
 }

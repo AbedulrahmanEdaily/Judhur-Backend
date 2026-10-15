@@ -8,7 +8,7 @@ public sealed record GetSellerProfileQuery(Guid SellerId) : ICachedQuery<Result<
 {
     public string CacheKey => $"sellers:{SellerId}";
 
-    public string[] Tags => ["properties"];
+    public string[] Tags => ["properties", "sellers"];
 
     public TimeSpan Expiration => TimeSpan.FromMinutes(10);
 }

@@ -1,6 +1,7 @@
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Application.Features.Properties.Mapper;
+using Judhur.Application.Features.Reviews;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Properties;
 using Judhur.Domain.Properties.Enums;
@@ -44,6 +45,7 @@ public sealed class GetPropertyByIdQueryHandler(ILogger<GetPropertyByIdQueryHand
         response.User = request.IncludeSellerPhone
             ? userInfo.Value
             : userInfo.Value with { PhoneNumber = null };
+        response.SellerRating = await SellerRatings.GetAsync(_context, property.SellerId, cancellationToken);
         _logger.LogInformation("Property {PropertyId} retrieved", property.Id);
         return response;
     }

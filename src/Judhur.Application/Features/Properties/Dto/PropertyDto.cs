@@ -1,4 +1,5 @@
 using Judhur.Application.Features.Identity.Dtos;
+using Judhur.Application.Features.Reviews.Dto;
 using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;
@@ -21,6 +22,7 @@ public sealed class PropertyDto
     public LandClassification LandClassification { get; set; }
     public LegalStatus LegalStatus { get; set; }
     public UserInfoDto? User { get; set; }
+    public SellerRatingDto? SellerRating { get; set; }
     public List<PropertyImageDto> Images { get; set; } = [];
 
 }
