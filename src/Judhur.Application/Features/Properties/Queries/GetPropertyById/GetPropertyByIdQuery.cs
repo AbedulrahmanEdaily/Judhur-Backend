@@ -8,7 +8,7 @@ public sealed record GetPropertyByIdQuery(Guid PropertyId, bool IncludeSellerPho
 {
     public string CacheKey => $"properties:{PropertyId}:{(IncludeSellerPhone ? "member" : "guest")}";
 
-    public string[] Tags => ["properties"];
+    public string[] Tags => ["properties", "sellers"];
 
     public TimeSpan Expiration => TimeSpan.FromMinutes(10);
 }

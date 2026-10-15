@@ -42,11 +42,12 @@ public sealed class Review : AuditableEntity
         {
             return ReviewErrors.InvalidRating;
         }
-        if (comment?.Length > MaxCommentLength)
+        var normalizedComment = NormalizeComment(comment);
+        if (normalizedComment?.Length > MaxCommentLength)
         {
             return ReviewErrors.CommentTooLong;
         }
-        return new Review(id, reviewerId, sellerId, rating, comment);
+        return new Review(id, reviewerId, sellerId, rating, normalizedComment);
     }
     public Result<Updated> Update(decimal rating, string? comment)
     {
@@ -54,12 +55,16 @@ public sealed class Review : AuditableEntity
         {
             return ReviewErrors.InvalidRating;
         }
-        if (comment?.Length > MaxCommentLength)
+        var normalizedComment = NormalizeComment(comment);
+        if (normalizedComment?.Length > MaxCommentLength)
         {
             return ReviewErrors.CommentTooLong;
         }
         Rating = rating;
-        Comment = comment;
+        Comment = normalizedComment;
         return Result.Updated;
     }
+
+    private static string? NormalizeComment(string? comment)
+        => string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
 }

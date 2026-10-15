@@ -7,4 +7,6 @@ public sealed record SellerProfileDto(
     string City,
     string? Bio,
     DateTimeOffset MemberSinceUtc,
-    int ActiveListingsCount);
+    int ActiveListingsCount,
+    decimal? AverageRating,
+    int ReviewsCount);
