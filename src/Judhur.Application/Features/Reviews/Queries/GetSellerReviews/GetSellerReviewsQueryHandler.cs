@@ -20,7 +20,7 @@ public sealed class GetSellerReviewsQueryHandler(IAppDbContext context, ILogger<
 
     public async Task<Result<PaginatedList<SellerReviewDto>>> Handle(GetSellerReviewsQuery request, CancellationToken cancellationToken)
     {
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get seller reviews rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;
@@ -29,6 +29,12 @@ public sealed class GetSellerReviewsQueryHandler(IAppDbContext context, ILogger<
         {
             _logger.LogWarning("Get seller reviews rejected: invalid page size {PageSize}", request.PageSize);
             return ApplicationError.PageSizeInvalid;
+        }
+
+        if (!await _identityService.IsActiveAccountAsync(request.SellerId, cancellationToken))
+        {
+            _logger.LogWarning("Get seller reviews rejected: seller {SellerId} is banned, deleted or does not exist", request.SellerId);
+            return ApplicationError.SellerNotFound;
         }
 
         var query = _context.Reviews
