@@ -89,6 +89,11 @@ public class ApplicationDbContextInitializer(
                     $"Failed to create the admin account: {string.Join(" | ", createResult.Errors.Select(e => e.Code))}");
             }
         }
+        else if (!admin.EmailConfirmed || !await _userManager.CheckPasswordAsync(admin, settings.Password))
+        {
+            _logger.LogCritical("Admin seed skipped: account {Email} already exists but is unconfirmed or its password does not match AdminSeed:Password", settings.Email);
+            return;
+        }
 
         var roleResult = await _userManager.AddToRoleAsync(admin, Roles.Admin);
         if (!roleResult.Succeeded)
