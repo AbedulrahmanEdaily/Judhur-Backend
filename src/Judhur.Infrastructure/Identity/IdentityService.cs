@@ -399,6 +399,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         user.BanReason = reason.Trim();
         user.LockoutEnabled = true;
         user.LockoutEnd = DateTimeOffset.MaxValue;
+        user.SecurityStamp = Guid.NewGuid().ToString();
         var updateResult = await _userManager.UpdateAsync(user);
         return updateResult.Succeeded ? Result.Success : Translate(updateResult);
     }
@@ -583,13 +584,9 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<EmailChange>> ConfirmEmailChangeAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user?.Email is null)
+        if (user?.Email is null || user.BannedAtUtc is not null)
         {
             return InvalidConfirmationToken();
-        }
-        if (await _userManager.FindByEmailAsync(newEmail) is { } owner && owner.Id != user.Id)
-        {
-            return ApplicationError.DuplicateEmail;
         }
         var oldEmail = user.Email;
         var changeResult = await _userManager.ChangeEmailAsync(user, newEmail, token);
