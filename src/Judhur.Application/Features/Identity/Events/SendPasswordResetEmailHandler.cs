@@ -18,7 +18,7 @@ public sealed class SendPasswordResetEmailHandler(IIdentityService identityServi
         var result = await _identityService.BuildPasswordResetEmailAsync(notification.UserId, notification.Code, cancellationToken);
         if (result.IsError)
         {
-            _logger.LogError("Password reset email could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
+            _logger.LogWarning("Password reset email could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
             return;
         }
         await _emailQueue.EnqueueAsync(result.Value, cancellationToken);

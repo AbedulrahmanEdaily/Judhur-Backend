@@ -18,7 +18,7 @@ public sealed class SendEmailChangeConfirmationHandler(IIdentityService identity
         var result = await _identityService.BuildEmailChangeEmailAsync(notification.UserId, notification.NewEmail, cancellationToken);
         if (result.IsError)
         {
-            _logger.LogError("Email change confirmation could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
+            _logger.LogWarning("Email change confirmation could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
             return;
         }
         await _emailQueue.EnqueueAsync(result.Value, cancellationToken);

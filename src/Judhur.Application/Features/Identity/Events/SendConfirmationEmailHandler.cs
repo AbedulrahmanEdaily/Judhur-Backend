@@ -18,7 +18,7 @@ public sealed class SendConfirmationEmailHandler(IIdentityService identityServic
         var result = await _identityService.BuildConfirmationEmailAsync(notification.UserId, cancellationToken);
         if (result.IsError)
         {
-            _logger.LogError("Confirmation email could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
+            _logger.LogWarning("Confirmation email could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
             return;
         }
         await _emailQueue.EnqueueAsync(result.Value, cancellationToken);
