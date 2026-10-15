@@ -35,7 +35,7 @@ public sealed class DeleteMyAccountCommandHandler(
         }
 
         var nowUtc = _timeProvider.GetUtcNow();
-        var deleteResult = await _identityService.DeleteAccountAsync(userId, request.Password, nowUtc, cancellationToken);
+        var deleteResult = await _identityService.DeleteAccountAsync(userId, request.Password, request.GoogleIdToken, nowUtc, cancellationToken);
         if (deleteResult.IsError)
         {
             _logger.LogWarning("Delete account failed for user {UserId}: {ErrorCode}", userId, deleteResult.TopError.Code);
@@ -47,14 +47,17 @@ public sealed class DeleteMyAccountCommandHandler(
         await _context.Notifications.Where(n => n.UserId == userId).ExecuteDeleteAsync(cancellationToken);
 
         var listings = await _context.Properties
+            .IgnoreQueryFilters()
             .Include(p => p.PropertyImages)
             .Where(p => p.SellerId == userId)
             .ToListAsync(cancellationToken);
         var imagePublicIds = listings.SelectMany(p => p.PropertyImages).Select(i => i.PublicId).ToList();
         var documentPublicIds = listings.Select(p => p.OwnershipDocumentPublicId).OfType<string>().ToList();
-        foreach (var listing in listings)
+        var deletedListings = 0;
+        foreach (var listing in listings.Where(l => !l.IsDeleted))
         {
             listing.Delete(nowUtc);
+            deletedListings++;
         }
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -64,7 +67,7 @@ public sealed class DeleteMyAccountCommandHandler(
         }
         _dispatcher.Defer(ct => RemoveFilesAsync(userId, imagePublicIds, documentPublicIds, ct));
 
-        _logger.LogInformation("Account {UserId} deleted by its owner: {DeletedListings} listings removed", userId, listings.Count);
+        _logger.LogInformation("Account {UserId} deleted by its owner: {DeletedListings} listings removed", userId, deletedListings);
         return Result.Deleted;
     }
 

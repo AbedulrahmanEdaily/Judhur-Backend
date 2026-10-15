@@ -30,7 +30,7 @@ public sealed class SetMyPasswordCommandHandler(
             return ApplicationError.Unauthenticated;
         }
 
-        var result = await _identityService.SetPasswordAsync(userId, request.CurrentPassword, request.NewPassword, cancellationToken);
+        var result = await _identityService.SetPasswordAsync(userId, request.CurrentPassword, request.NewPassword, request.GoogleIdToken, cancellationToken);
         if (result.IsError)
         {
             _logger.LogWarning("Set my password failed for user {UserId}: {ErrorCode}", userId, result.TopError.Code);

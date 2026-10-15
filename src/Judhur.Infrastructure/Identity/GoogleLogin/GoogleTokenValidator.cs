@@ -29,6 +29,11 @@ public sealed class GoogleTokenValidator(GoogleSettings settings, ILogger<Google
             _logger.LogWarning("Google token rejected: {Reason}", exception.Message);
             return ApplicationError.InvalidGoogleToken;
         }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Google token could not be validated: Google certificates are unreachable");
+            return ApplicationError.GoogleUnavailable;
+        }
 
         if (string.IsNullOrWhiteSpace(payload.Subject) || string.IsNullOrWhiteSpace(payload.Email))
         {

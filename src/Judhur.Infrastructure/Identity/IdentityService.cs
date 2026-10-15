@@ -18,7 +18,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Judhur.Infrastructure.Identity;
 
 public sealed class IdentityService(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, FrontendSettings frontendSettings,
-    TimeProvider timeProvider, AppDbContext context) : IIdentityService
+    TimeProvider timeProvider, AppDbContext context, IGoogleTokenValidator googleTokenValidator) : IIdentityService
 {
     private const int ResetCodeLifetimeMinutes = 5;
     private const int MaxResetCodeAttempts = 5;
@@ -32,6 +32,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     private readonly FrontendSettings _frontendSettings = frontendSettings;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly AppDbContext _context = context;
+    private readonly IGoogleTokenValidator _googleTokenValidator = googleTokenValidator;
 
     public async Task<Result<Guid>> CreateNewUserAsync(
         NewUserRegistration registration,
@@ -61,7 +62,8 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return user.Id;
     }
     private static List<Error> Translate(IdentityResult result)
-        => [.. result.Errors
+    {
+        List<Error> errors = [.. result.Errors
             .Where(error => error.Code != "DuplicateUserName")
             .Select(error => error.Code switch
             {
@@ -76,6 +78,8 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
                 _ => Error.Failure($"Identity.{error.Code}", error.Description),
             })];
+        return errors.Count > 0 ? errors : [ApplicationError.DuplicateEmail];
+    }
 
     public async Task<Result<AppUserDto>> AuthenticateAsync(
         string email,
@@ -108,6 +112,10 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
                 return await _userManager.CheckPasswordAsync(user, password)
                     ? ApplicationError.AccountBanned
                     : InvalidCredentials();
+            }
+            if (await _userManager.IsLockedOutAsync(user))
+            {
+                return LockedOut();
             }
             if (!await _userManager.CheckPasswordAsync(user, password))
             {
@@ -242,6 +250,15 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return Translate(result);
         }
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            var confirmResult = await _userManager.UpdateAsync(user);
+            if (!confirmResult.Succeeded)
+            {
+                return Translate(confirmResult);
+            }
+        }
         return user.Id;
     }
 
@@ -350,7 +367,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return previous;
     }
 
-    public async Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, CancellationToken cancellationToken = default)
+    public async Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, string? googleIdToken, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user?.Email is null)
@@ -365,10 +382,17 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             {
                 return CurrentPasswordRequired();
             }
+            ClearResetCode(user);
             result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
         }
         else
         {
+            var reauthentication = await ReauthenticateWithGoogleAsync(user, googleIdToken, cancellationToken);
+            if (reauthentication.IsError)
+            {
+                return reauthentication.Errors;
+            }
+            ClearResetCode(user);
             result = await _userManager.AddPasswordAsync(user, newPassword);
         }
 
@@ -486,7 +510,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public Task<bool> IsActiveAccountAsync(Guid userId, CancellationToken cancellationToken = default)
         => _context.Users.AnyAsync(u => u.Id == userId && u.DeletedAtUtc == null && u.BannedAtUtc == null, cancellationToken);
 
-    public async Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default)
+    public async Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, string? googleIdToken, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user?.Email is null)
@@ -497,7 +521,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return ApplicationError.AdminCannotDeleteAccount;
         }
-        var passwordCheck = await CheckPasswordIfSetAsync(user, password);
+        var passwordCheck = await CheckCredentialAsync(user, password, googleIdToken, cancellationToken);
         if (passwordCheck.IsError)
         {
             return passwordCheck.Errors;
@@ -537,14 +561,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new DeletedAccount(profileImagePublicId);
     }
 
-    public async Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, CancellationToken cancellationToken = default)
+    public async Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, string? googleIdToken, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         if (user?.Email is null)
         {
             return ApplicationError.UserNotFound;
         }
-        var passwordCheck = await CheckPasswordIfSetAsync(user, password);
+        var passwordCheck = await CheckCredentialAsync(user, password, googleIdToken, cancellationToken);
         if (passwordCheck.IsError)
         {
             return passwordCheck.Errors;
@@ -589,6 +613,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             return InvalidConfirmationToken();
         }
         var oldEmail = user.Email;
+        ClearResetCode(user);
         var changeResult = await _userManager.ChangeEmailAsync(user, newEmail, token);
         if (!changeResult.Succeeded)
         {
@@ -620,11 +645,11 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new EmailMessage(oldEmail, "تم تغيير البريد الإلكتروني", html);
     }
 
-    private async Task<Result<Success>> CheckPasswordIfSetAsync(ApplicationUser user, string? password)
+    private async Task<Result<Success>> CheckCredentialAsync(ApplicationUser user, string? password, string? googleIdToken, CancellationToken cancellationToken)
     {
         if (!await _userManager.HasPasswordAsync(user))
         {
-            return Result.Success;
+            return await ReauthenticateWithGoogleAsync(user, googleIdToken, cancellationToken);
         }
         if (string.IsNullOrEmpty(password))
         {
@@ -633,6 +658,25 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return await _userManager.CheckPasswordAsync(user, password)
             ? Result.Success
             : ApplicationError.InvalidPassword;
+    }
+
+    private async Task<Result<Success>> ReauthenticateWithGoogleAsync(ApplicationUser user, string? googleIdToken, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(googleIdToken))
+        {
+            return ApplicationError.GoogleReauthenticationRequired;
+        }
+        var google = await _googleTokenValidator.ValidateAsync(googleIdToken, cancellationToken);
+        if (google.IsError)
+        {
+            return google.TopError == ApplicationError.GoogleUnavailable
+                ? ApplicationError.GoogleUnavailable
+                : ApplicationError.GoogleReauthenticationFailed;
+        }
+        var linkedUser = await _userManager.FindByLoginAsync(GoogleLoginProvider, google.Value.Subject);
+        return linkedUser?.Id == user.Id
+            ? Result.Success
+            : ApplicationError.GoogleReauthenticationFailed;
     }
 
     public async Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default)
