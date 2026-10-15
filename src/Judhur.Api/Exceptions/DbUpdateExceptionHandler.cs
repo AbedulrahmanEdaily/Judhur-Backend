@@ -24,6 +24,7 @@ public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsServi
                 {
                     Title = "تعارض في البيانات",
                     Detail = "تم تعديل هذه البيانات من طلب آخر في الوقت نفسه، يرجى تحديث الصفحة والمحاولة مجددًا.",
+                    Extensions = { ["code"] = "Database.ConcurrencyConflict" },
                 },
             });
         }
@@ -41,6 +42,7 @@ public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsServi
             {
                 Title = "تعارض في البيانات",
                 Detail = "هذا الإجراء يتعارض مع بيانات موجودة، ربما قام أحد بتنفيذ الإجراء نفسه مسبقًا.",
+                Extensions = { ["code"] = "Database.DuplicateEntry" },
             },
         });
     }

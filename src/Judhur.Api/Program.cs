@@ -1,8 +1,11 @@
 using Asp.Versioning.ApiExplorer;
 
+using Judhur.Api;
 using Judhur.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = RequestLimits.DefaultBodySize);
 
 builder.Services
     .AddApplication(builder.Configuration)
@@ -11,6 +14,8 @@ builder.Services
 
 var app = builder.Build();
 
+app.UseForwardedHeadersIfEnabled(builder.Configuration);
+app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi().WithDocumentPerVersion();
@@ -39,3 +44,5 @@ app.MapRealtime();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+public partial class Program;

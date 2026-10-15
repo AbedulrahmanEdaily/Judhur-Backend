@@ -197,6 +197,7 @@ public sealed class AccountController(ISender sender) : ApiController
     }
 
     [HttpPut("me/photo")]
+    [RequestSizeLimit(RequestLimits.ImageUploadBodySize)]
     [Authorize]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ProfileImageDto), StatusCodes.Status200OK)]

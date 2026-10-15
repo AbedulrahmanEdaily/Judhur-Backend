@@ -7,6 +7,7 @@ using Asp.Versioning;
 
 using Judhur.Api;
 using Judhur.Api.Exceptions;
+using Judhur.Api.HealthChecks;
 using Judhur.Api.Hubs;
 using Judhur.Api.OpenApi.Transformer;
 using Judhur.Api.Services;
@@ -32,7 +33,7 @@ public static class DependencyInjection
                 .AddRateLimiting()
                 .AddIdentityInfrastructure()
                 .AddRealtime();
-        services.AddHealthChecks();
+        services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
         return services;
     }
 
@@ -63,8 +64,21 @@ public static class DependencyInjection
             options.ForwardLimit = 1;
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
+            foreach (var network in (configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? []).Where(n => !string.IsNullOrWhiteSpace(n)))
+            {
+                options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+            }
         });
         return services;
+    }
+
+    public static WebApplication UseForwardedHeadersIfEnabled(this WebApplication app, IConfiguration configuration)
+    {
+        if (configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+        {
+            app.UseForwardedHeaders();
+        }
+        return app;
     }
 
     public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
@@ -331,11 +345,6 @@ public static class DependencyInjection
 
     public static IApplicationBuilder UseCoreMiddlewares(this IApplicationBuilder app, IConfiguration configuration)
     {
-        if (configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
-        {
-            app.UseForwardedHeaders();
-        }
-        app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
         app.UseRouting();

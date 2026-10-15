@@ -220,6 +220,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
         return result.Match(_ => NoContent(), Problem);
     }
     [HttpPost("{propertyId:guid}/images")]
+    [RequestSizeLimit(RequestLimits.ImageUploadBodySize)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(PropertyImageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -269,6 +270,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     }
 
     [HttpPut("{propertyId:guid}/ownership-document")]
+    [RequestSizeLimit(RequestLimits.DocumentUploadBodySize)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
