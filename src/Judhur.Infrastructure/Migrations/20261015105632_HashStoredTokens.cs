@@ -51,6 +51,8 @@ namespace Judhur.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("DELETE FROM [RefreshTokens];");
+
             migrationBuilder.DropIndex(
                 name: "IX_RefreshTokens_TokenHash",
                 table: "RefreshTokens");
