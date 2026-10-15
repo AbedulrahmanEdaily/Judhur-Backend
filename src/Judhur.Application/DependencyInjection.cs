@@ -1,6 +1,8 @@
 using FluentValidation;
 
 using Judhur.Application.Common.Behaviors;
+using Judhur.Application.Features.Notifications;
+using Judhur.Application.Features.Properties;
 
 using Microsoft.Extensions.Configuration;
 
@@ -13,6 +15,8 @@ public static class DependencyInjection
         var applicationAssembly = typeof(DependencyInjection).Assembly;
 
         services.AddValidatorsFromAssembly(applicationAssembly);
+        services.AddScoped<ReviewQueue>();
+        services.AddScoped<AdminNotifications>();
 
         services.AddMediatR(options =>
         {

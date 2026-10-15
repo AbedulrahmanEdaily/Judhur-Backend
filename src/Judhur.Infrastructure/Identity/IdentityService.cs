@@ -481,6 +481,15 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new UserStatsDto(total, newUsers, banned, unconfirmed);
     }
 
+    public async Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default)
+    {
+        var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
+        return await _context.UserRoles
+            .Where(ur => ur.RoleId == adminRoleId)
+            .Join(_context.Users.Where(u => u.BannedAtUtc == null), ur => ur.UserId, u => u.Id, (ur, u) => u.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     private Task<Guid> GetAdminRoleIdAsync(CancellationToken cancellationToken)
         => _context.Roles
             .Where(r => r.Name == Roles.Admin)

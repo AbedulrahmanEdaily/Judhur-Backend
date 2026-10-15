@@ -11,10 +11,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.AddPropertyImage;
 
-public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext context, IFileStorage fileStorage, ILogger<AddPropertyImageCommandHandler> logger) : IRequestHandler<AddPropertyImageCommand, Result<PropertyImageDto>>
+public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext context, IFileStorage fileStorage, ILogger<AddPropertyImageCommandHandler> logger, ReviewQueue reviewQueue) : IRequestHandler<AddPropertyImageCommand, Result<PropertyImageDto>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
+    private readonly ReviewQueue _reviewQueue = reviewQueue;
     private readonly IFileStorage _fileStorage = fileStorage;
     private readonly ILogger<AddPropertyImageCommandHandler> _logger = logger;
 
@@ -33,6 +34,7 @@ public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext con
             _logger.LogWarning("Add property image rejected: property {PropertyId} not found for seller {SellerId}", request.PropertyId, sellerId);
             return PropertyErrors.NotFound;
         }
+        var wasQueued = await _reviewQueue.ContainsAsync(property.Id, cancellationToken);
         if (property.PropertyImages.Count >= Property.MaxImages)
         {
             _logger.LogWarning("Add property image rejected: property {PropertyId} already has the maximum number of images", property.Id);
@@ -67,6 +69,7 @@ public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext con
             throw;
         }
         var image = property.PropertyImages.First(i => i.Id == imageId);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
         _logger.LogInformation("Image {ImageId} added to property {PropertyId} by seller {SellerId}", image.Id, property.Id, sellerId);
         return new PropertyImageDto(image.Id, image.FileUrl, image.DisplayOrder, image.IsMainImage);
     }
