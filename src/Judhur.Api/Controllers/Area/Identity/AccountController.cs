@@ -3,6 +3,7 @@ using Asp.Versioning;
 using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Commands.ChangePassword;
 using Judhur.Application.Features.Identity.Commands.ConfirmEmail;
+using Judhur.Application.Features.Identity.Commands.ConfirmEmailChange;
 using Judhur.Application.Features.Identity.Commands.DeleteMyAccount;
 using Judhur.Application.Features.Identity.Commands.GoogleLogin;
 using Judhur.Application.Features.Identity.Commands.Login;
@@ -10,6 +11,7 @@ using Judhur.Application.Features.Identity.Commands.Logout;
 using Judhur.Application.Features.Identity.Commands.RefreshToken;
 using Judhur.Application.Features.Identity.Commands.RemoveProfileImage;
 using Judhur.Application.Features.Identity.Commands.Register;
+using Judhur.Application.Features.Identity.Commands.RequestEmailChange;
 using Judhur.Application.Features.Identity.Commands.ResendConfirmation;
 using Judhur.Application.Features.Identity.Commands.SendResetPasswordCode;
 using Judhur.Application.Features.Identity.Commands.SetMyPassword;
@@ -264,4 +266,34 @@ public sealed class AccountController(ISender sender) : ApiController
         return result.Match(_ => NoContent(), Problem);
     }
 
+    [HttpPost("me/email")]
+    [Authorize]
+    [EnableRateLimiting(RateLimitPolicies.ChangeEmail)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
+    [EndpointSummary("Starts changing the authenticated user's email.")]
+    [EndpointDescription("Body: newEmail and password (required when the account has a password). Sends a confirmation link to the new address; nothing changes until it is opened. Limited to 3 requests per 15 minutes. Returns 400 on an invalid email, Identity.EmailUnchanged, Identity.CurrentPasswordRequired or Identity.InvalidPassword, 401 without a valid access token, 404 if the account no longer exists and 409 Identity.DuplicateEmail.")]
+    [EndpointName("RequestEmailChange")]
+    public async Task<IActionResult> RequestEmailChangeAsync([FromBody] RequestEmailChangeCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
+
+    [HttpPost("confirm-email-change")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [EndpointSummary("Confirms an email change from the link sent to the new address.")]
+    [EndpointDescription("Body: userId, newEmail and token from the link. Changes the email and the login, marks it confirmed, ends every session and notifies the previous address. No access token needed. Returns 400 Identity.InvalidConfirmationToken when the link is invalid, expired or already used, and 409 Identity.DuplicateEmail when the address was taken meanwhile.")]
+    [EndpointName("ConfirmEmailChange")]
+    public async Task<IActionResult> ConfirmEmailChangeAsync([FromBody] ConfirmEmailChangeCommand request, CancellationToken ct)
+    {
+        var result = await _sender.Send(request, ct);
+        return result.Match(_ => NoContent(), Problem);
+    }
 }

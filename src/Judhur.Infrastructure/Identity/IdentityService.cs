@@ -536,6 +536,93 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new DeletedAccount(profileImagePublicId);
     }
 
+    public async Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        var passwordCheck = await CheckPasswordIfSetAsync(user, password);
+        if (passwordCheck.IsError)
+        {
+            return passwordCheck.Errors;
+        }
+        if (_userManager.NormalizeEmail(newEmail) == user.NormalizedEmail)
+        {
+            return ApplicationError.EmailUnchanged;
+        }
+        if (await _userManager.FindByEmailAsync(newEmail) is not null)
+        {
+            return ApplicationError.DuplicateEmail;
+        }
+        return Result.Success;
+    }
+
+    public async Task<Result<EmailMessage>> BuildEmailChangeEmailAsync(Guid userId, string newEmail, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return UserNoLongerExists();
+        }
+        var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+        var link = $"{_frontendSettings.ConfirmEmailChangeUrl}" +
+                    $"?userId={user.Id}" +
+                    $"&email={Uri.EscapeDataString(newEmail)}" +
+                    $"&token={Uri.EscapeDataString(token)}";
+        var html = EmailTemplates.Render("ConfirmEmailChange", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["ConfirmLink"] = link,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(newEmail, "تأكيد البريد الإلكتروني الجديد", html);
+    }
+
+    public async Task<Result<EmailChange>> ConfirmEmailChangeAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return InvalidConfirmationToken();
+        }
+        if (await _userManager.FindByEmailAsync(newEmail) is { } owner && owner.Id != user.Id)
+        {
+            return ApplicationError.DuplicateEmail;
+        }
+        var oldEmail = user.Email;
+        var changeResult = await _userManager.ChangeEmailAsync(user, newEmail, token);
+        if (!changeResult.Succeeded)
+        {
+            return changeResult.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.InvalidToken))
+                ? InvalidConfirmationToken()
+                : Translate(changeResult);
+        }
+        var userNameResult = await _userManager.SetUserNameAsync(user, newEmail);
+        if (!userNameResult.Succeeded)
+        {
+            return Translate(userNameResult);
+        }
+        return new EmailChange(oldEmail, newEmail);
+    }
+
+    public async Task<Result<EmailMessage>> BuildEmailChangedNoticeAsync(Guid userId, string oldEmail, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return UserNoLongerExists();
+        }
+        var html = EmailTemplates.Render("EmailChanged", new Dictionary<string, string>
+        {
+            ["FullName"] = user.FullName,
+            ["NewEmail"] = user.Email,
+            ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
+        });
+        return new EmailMessage(oldEmail, "تم تغيير البريد الإلكتروني", html);
+    }
+
     private async Task<Result<Success>> CheckPasswordIfSetAsync(ApplicationUser user, string? password)
     {
         if (!await _userManager.HasPasswordAsync(user))

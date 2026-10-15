@@ -28,6 +28,12 @@ public static class ApplicationError
     public static readonly Error InvalidPassword = Error.Validation(
         code: "Identity.InvalidPassword",
         description: "كلمة المرور غير صحيحة.");
+    public static readonly Error EmailUnchanged = Error.Validation(
+        code: "Identity.EmailUnchanged",
+        description: "البريد الإلكتروني الجديد هو نفس بريدك الحالي.");
+    public static readonly Error DuplicateEmail = Error.Conflict(
+        code: "Identity.DuplicateEmail",
+        description: "البريد الإلكتروني مستخدم مسبقًا.");
     public static readonly Error ParticipantUnavailable = Error.Conflict(
         code: "Conversations.ParticipantUnavailable",
         description: "لم يعد بإمكانك مراسلة هذا المستخدم.");
