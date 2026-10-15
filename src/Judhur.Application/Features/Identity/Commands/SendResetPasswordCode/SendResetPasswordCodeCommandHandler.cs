@@ -21,15 +21,15 @@ public sealed class SendResetPasswordCodeCommandHandler(
 
     public async Task<Result<Success>> Handle(SendResetPasswordCodeCommand request, CancellationToken cancellationToken)
     {
-        var userId = await _identityService.SendResetPasswordCodeAsync(request.Email, cancellationToken);
-        if (userId is null)
+        var resetCode = await _identityService.SendResetPasswordCodeAsync(request.Email, cancellationToken);
+        if (resetCode is null)
         {
             // The client still gets success so the endpoint can't be used to probe which emails exist.
             _logger.LogWarning("Password reset code skipped: no eligible user for the given email");
             return Result.Success;
         }
-        _dispatcher.Defer(ct => _publisher.Publish(new PasswordResetRequested(userId.Value), ct));
-        _logger.LogInformation("Password reset code issued for user {UserId}", userId.Value);
+        _dispatcher.Defer(ct => _publisher.Publish(new PasswordResetRequested(resetCode.UserId, resetCode.Code), ct));
+        _logger.LogInformation("Password reset code issued for user {UserId}", resetCode.UserId);
         return Result.Success;
     }
 }

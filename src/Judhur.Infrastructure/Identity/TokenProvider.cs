@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
+using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Dtos;
@@ -56,9 +57,10 @@ public sealed class TokenProvider(
         var tokenHandler = new JwtSecurityTokenHandler();
         var accessToken = tokenHandler.WriteToken(tokenHandler.CreateToken(descriptor));
 
+        var refreshToken = GenerateRefreshToken();
         var refreshTokenResult = RefreshToken.Create(
             Guid.CreateVersion7(),
-            GenerateRefreshToken(),
+            TokenHashing.Hash(refreshToken),
             user.UserId,
             nowUtc.AddDays(_jwtSettings.RefreshTokenExpirationInDays),
             nowUtc);
@@ -75,7 +77,7 @@ public sealed class TokenProvider(
         _context.RefreshTokens.Add(refreshTokenResult.Value);
         await _context.SaveChangesAsync(ct);
 
-        return new TokenResponse(accessToken, refreshTokenResult.Value.Token, expiresOnUtc);
+        return new TokenResponse(accessToken, refreshToken, expiresOnUtc);
     }
 
     private static string GenerateRefreshToken()

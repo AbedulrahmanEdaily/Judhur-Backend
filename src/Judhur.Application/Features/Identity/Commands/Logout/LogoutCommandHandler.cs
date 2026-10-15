@@ -1,3 +1,4 @@
+using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Domain.Common.Results;
 
@@ -15,8 +16,9 @@ public sealed class LogoutCommandHandler(IAppDbContext context, ILogger<LogoutCo
 
     public async Task<Result<Success>> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
+        var tokenHash = TokenHashing.Hash(request.RefreshToken);
         var refreshToken = await _context.RefreshTokens
-            .FirstOrDefaultAsync(r => r.Token == request.RefreshToken, cancellationToken);
+            .FirstOrDefaultAsync(r => r.TokenHash == tokenHash, cancellationToken);
 
         if (refreshToken is null)
         {

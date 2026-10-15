@@ -5,32 +5,32 @@ namespace Judhur.Domain.Identity;
 
 public sealed class RefreshToken : AuditableEntity
 {
-    public const int MaxTokenLength = 200;
+    public const int MaxTokenHashLength = 128;
 
-    public string Token { get; private set; } = null!;
+    public string TokenHash { get; private set; } = null!;
     public Guid UserId { get; private set; }
     public DateTimeOffset ExpiresOnUtc { get; private set; }
     private RefreshToken()
     { }
 
-    private RefreshToken(Guid id, string token, Guid userId, DateTimeOffset expiresOnUtc)
+    private RefreshToken(Guid id, string tokenHash, Guid userId, DateTimeOffset expiresOnUtc)
         : base(id)
     {
-        Token = token;
+        TokenHash = tokenHash;
         UserId = userId;
         ExpiresOnUtc = expiresOnUtc;
     }
 
     public bool IsExpired(DateTimeOffset nowUtc) => ExpiresOnUtc <= nowUtc;
 
-    public static Result<RefreshToken> Create(Guid id, string token, Guid userId, DateTimeOffset expiresOnUtc, DateTimeOffset nowUtc)
+    public static Result<RefreshToken> Create(Guid id, string tokenHash, Guid userId, DateTimeOffset expiresOnUtc, DateTimeOffset nowUtc)
     {
-        if (string.IsNullOrWhiteSpace(token))
+        if (string.IsNullOrWhiteSpace(tokenHash))
         {
             return RefreshTokenErrors.TokenRequired;
         }
 
-        if (token.Length > MaxTokenLength)
+        if (tokenHash.Length > MaxTokenHashLength)
         {
             return RefreshTokenErrors.TokenTooLong;
         }
@@ -42,6 +42,6 @@ public sealed class RefreshToken : AuditableEntity
         {
             return RefreshTokenErrors.ExpiryInvalid;
         }
-        return new RefreshToken(id, token, userId, expiresOnUtc);
+        return new RefreshToken(id, tokenHash, userId, expiresOnUtc);
     }
 }

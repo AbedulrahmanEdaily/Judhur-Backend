@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 
 using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
@@ -167,7 +166,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     => Error.Validation(
         "Identity.InvalidConfirmationToken",
         "رابط التأكيد غير صالح أو منتهي الصلاحية.");
-    public async Task<Guid?> SendResetPasswordCodeAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<PasswordResetCode?> SendResetPasswordCodeAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
@@ -175,11 +174,11 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             return null;
         }
         var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
-        user.ResetCode = code;
+        user.ResetCodeHash = TokenHashing.Hash(code);
         user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(ResetCodeLifetimeMinutes);
         user.ResetCodeFailedAttempts = 0;
         var updateResult = await _userManager.UpdateAsync(user);
-        return updateResult.Succeeded ? user.Id : null;
+        return updateResult.Succeeded ? new PasswordResetCode(user.Id, code) : null;
     }
 
     public async Task<Result<EmailMessage>> BuildConfirmationEmailAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -202,17 +201,17 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return new EmailMessage(user.Email!, "تأكيد البريد الإلكتروني", html);
     }
 
-    public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(Guid userId, string code, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user?.Email is null || user.ResetCode is null)
+        if (user?.Email is null || user.ResetCodeHash is null)
         {
             return UserNoLongerExists();
         }
         var html = EmailTemplates.Render("ResetPasswordCode", new Dictionary<string, string>
         {
             ["FullName"] = user.FullName,
-            ["ResetCode"] = user.ResetCode,
+            ["ResetCode"] = code,
             ["ExpiryMinutes"] = ResetCodeLifetimeMinutes.ToString(),
             ["Year"] = _timeProvider.GetUtcNow().Year.ToString(),
         });
@@ -224,14 +223,14 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<Guid>> ChangePasswordAsync(string email, string password, string code, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
-        if (user?.ResetCode is null || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
+        if (user?.ResetCodeHash is null || user.ResetCodeExpiresAt < _timeProvider.GetUtcNow())
         {
             return InvalidResetCode();
         }
         var attemptReserved = await _context.Users
             .Where(u => u.Id == user.Id && u.ResetCodeFailedAttempts < MaxResetCodeAttempts)
             .ExecuteUpdateAsync(setters => setters.SetProperty(u => u.ResetCodeFailedAttempts, u => u.ResetCodeFailedAttempts + 1), cancellationToken);
-        if (attemptReserved == 0 || !ResetCodeMatches(user.ResetCode, code))
+        if (attemptReserved == 0 || !TokenHashing.Matches(user.ResetCodeHash, code))
         {
             return InvalidResetCode();
         }
@@ -248,12 +247,9 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     private static Error InvalidResetCode()
         => Error.Validation("Identity.InvalidResetCode", "رمز الاستعادة غير صحيح أو منتهي الصلاحية.");
 
-    private static bool ResetCodeMatches(string expected, string actual)
-        => CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(actual));
-
     private static void ClearResetCode(ApplicationUser user)
     {
-        user.ResetCode = null;
+        user.ResetCodeHash = null;
         user.ResetCodeExpiresAt = null;
         user.ResetCodeFailedAttempts = 0;
     }

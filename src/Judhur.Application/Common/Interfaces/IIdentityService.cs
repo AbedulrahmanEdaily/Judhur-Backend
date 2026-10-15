@@ -25,7 +25,7 @@ public interface IIdentityService
         string email,
         CancellationToken cancellationToken = default);
 
-    Task<Guid?> SendResetPasswordCodeAsync(
+    Task<PasswordResetCode?> SendResetPasswordCodeAsync(
         string email,
         CancellationToken cancellationToken = default);
     Task<Result<Guid>> ChangePasswordAsync(
@@ -39,6 +39,7 @@ public interface IIdentityService
 
     Task<Result<EmailMessage>> BuildPasswordResetEmailAsync(
         Guid userId,
+        string code,
         CancellationToken cancellationToken = default);
     Task<Result<EmailMessage>> BuildPasswordResetChangedAsync(
         Guid userId,
