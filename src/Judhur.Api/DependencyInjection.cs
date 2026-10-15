@@ -14,7 +14,6 @@ using Judhur.Application.Common.Interfaces;
 
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace Microsoft.Extensions.DependencyInjection;

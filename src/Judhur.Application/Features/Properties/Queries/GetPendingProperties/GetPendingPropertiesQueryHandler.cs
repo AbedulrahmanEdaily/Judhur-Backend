@@ -3,7 +3,6 @@ using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Properties.Dto;
 using Judhur.Domain.Common.Results;
-using Judhur.Domain.Properties.Enums;
 
 using MediatR;
 
