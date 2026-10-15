@@ -17,13 +17,15 @@ public sealed class CreateReviewCommandHandler(
     IAppDbContext context,
     ILogger<CreateReviewCommandHandler> logger,
     IDeferredDispatcher dispatcher,
-    IPublisher publisher) : IRequestHandler<CreateReviewCommand, Result<ReviewDto>>
+    IPublisher publisher,
+    IIdentityService identityService) : IRequestHandler<CreateReviewCommand, Result<ReviewDto>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
     private readonly ILogger<CreateReviewCommandHandler> _logger = logger;
     private readonly IDeferredDispatcher _dispatcher = dispatcher;
     private readonly IPublisher _publisher = publisher;
+    private readonly IIdentityService _identityService = identityService;
 
     public async Task<Result<ReviewDto>> Handle(CreateReviewCommand request, CancellationToken cancellationToken)
     {
@@ -36,6 +38,11 @@ public sealed class CreateReviewCommandHandler(
         {
             _logger.LogWarning("Create review rejected: user {UserId} tried to review themselves", reviewerId);
             return ReviewErrors.CannotReviewSelf;
+        }
+        if (!await _identityService.IsActiveAccountAsync(request.SellerId, cancellationToken))
+        {
+            _logger.LogWarning("Create review rejected: seller {SellerId} is banned, deleted or does not exist", request.SellerId);
+            return ApplicationError.SellerNotFound;
         }
 
         var alreadyReviewed = await _context.Reviews
