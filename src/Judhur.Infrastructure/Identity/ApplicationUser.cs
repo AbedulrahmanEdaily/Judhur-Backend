@@ -13,4 +13,6 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? Bio { get; set; }
     public string? ProfileImagePublicId { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset? BannedAtUtc { get; set; }
+    public string? BanReason { get; set; }
 };

@@ -5,8 +5,11 @@ using Judhur.Application.Common;
 using Judhur.Application.Common.Interfaces;
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Identity.Dtos;
+using Judhur.Application.Features.Users.Dto;
 using Judhur.Domain.Common;
 using Judhur.Domain.Common.Results;
+using Judhur.Domain.Properties.Enums;
+using Judhur.Domain.Reports.Enums;
 using Judhur.Infrastructure.Data;
 using Judhur.Infrastructure.Email;
 
@@ -89,11 +92,23 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
         if (signInResult.IsLockedOut)
         {
+            if (user.BannedAtUtc is not null)
+            {
+                return await _userManager.CheckPasswordAsync(user, password)
+                    ? ApplicationError.AccountBanned
+                    : InvalidCredentials();
+            }
             return LockedOut();
         }
 
         if (signInResult.IsNotAllowed)
         {
+            if (user.BannedAtUtc is not null)
+            {
+                return await _userManager.CheckPasswordAsync(user, password)
+                    ? ApplicationError.AccountBanned
+                    : InvalidCredentials();
+            }
             if (!await _userManager.CheckPasswordAsync(user, password))
             {
                 await _userManager.AccessFailedAsync(user);
@@ -265,6 +280,10 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         {
             return ApplicationError.UserNotFound;
         }
+        if (user.BannedAtUtc is not null)
+        {
+            return ApplicationError.AccountBanned;
+        }
         var roles = await _userManager.GetRolesAsync(user);
         return new AppUserDto(user.Id, user.Email, roles);
     }
@@ -363,6 +382,135 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         return Result.Success;
     }
 
+    public async Task<Result<Success>> BanUserAsync(Guid userId, string reason, DateTimeOffset bannedAtUtc, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        if (await _userManager.IsInRoleAsync(user, Roles.Admin))
+        {
+            return ApplicationError.CannotBanAdmin;
+        }
+        if (user.BannedAtUtc is not null)
+        {
+            return ApplicationError.UserAlreadyBanned;
+        }
+
+        user.BannedAtUtc = bannedAtUtc;
+        user.BanReason = reason.Trim();
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+        var updateResult = await _userManager.UpdateAsync(user);
+        return updateResult.Succeeded ? Result.Success : Translate(updateResult);
+    }
+
+    public async Task<Result<Success>> UnbanUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        if (user.BannedAtUtc is null)
+        {
+            return ApplicationError.UserNotBanned;
+        }
+
+        user.BannedAtUtc = null;
+        user.BanReason = null;
+        user.LockoutEnd = null;
+        user.AccessFailedCount = 0;
+        var updateResult = await _userManager.UpdateAsync(user);
+        return updateResult.Succeeded ? Result.Success : Translate(updateResult);
+    }
+
+    public async Task<PaginatedList<AdminUserDto>> GetUsersForAdminAsync(AdminUsersFilter filter, CancellationToken cancellationToken = default)
+    {
+        var users = _context.Users.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var term = filter.Search.Trim();
+            users = users.Where(u => u.FullName.Contains(term)
+                || u.Email!.Contains(term)
+                || (u.PhoneNumber != null && u.PhoneNumber.Contains(term)));
+        }
+        users = filter.Status switch
+        {
+            AdminUserStatus.Active => users.Where(u => u.BannedAtUtc == null && u.EmailConfirmed),
+            AdminUserStatus.Banned => users.Where(u => u.BannedAtUtc != null),
+            AdminUserStatus.Unconfirmed => users.Where(u => u.BannedAtUtc == null && !u.EmailConfirmed),
+            _ => users
+        };
+
+        var count = await users.CountAsync(cancellationToken);
+        var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
+        var items = await ProjectForAdmin(
+                users.OrderByDescending(u => u.CreatedAtUtc)
+                    .ThenBy(u => u.Id)
+                    .Skip((filter.Page - 1) * filter.PageSize)
+                    .Take(filter.PageSize),
+                adminRoleId)
+            .ToListAsync(cancellationToken);
+
+        return new PaginatedList<AdminUserDto>
+        {
+            Items = items,
+            PageNumber = filter.Page,
+            PageSize = filter.PageSize,
+            TotalCount = count,
+            TotalPages = (int)Math.Ceiling(count / (double)filter.PageSize)
+        };
+    }
+
+    public async Task<Result<AdminUserDto>> GetUserForAdminAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
+        var user = await ProjectForAdmin(_context.Users.AsNoTracking().Where(u => u.Id == userId), adminRoleId)
+            .FirstOrDefaultAsync(cancellationToken);
+        return user is null ? ApplicationError.UserNotFound : user;
+    }
+
+    public async Task<UserStatsDto> GetUserStatsAsync(DateTimeOffset newSinceUtc, CancellationToken cancellationToken = default)
+    {
+        var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
+        var users = _context.Users
+            .AsNoTracking()
+            .Where(u => !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId));
+        var total = await users.CountAsync(cancellationToken);
+        var newUsers = await users.CountAsync(u => u.CreatedAtUtc >= newSinceUtc, cancellationToken);
+        var banned = await users.CountAsync(u => u.BannedAtUtc != null, cancellationToken);
+        var unconfirmed = await users.CountAsync(u => u.BannedAtUtc == null && !u.EmailConfirmed, cancellationToken);
+        return new UserStatsDto(total, newUsers, banned, unconfirmed);
+    }
+
+    private Task<Guid> GetAdminRoleIdAsync(CancellationToken cancellationToken)
+        => _context.Roles
+            .Where(r => r.Name == Roles.Admin)
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    private IQueryable<AdminUserDto> ProjectForAdmin(IQueryable<ApplicationUser> users, Guid adminRoleId)
+        => users.Select(u => new AdminUserDto(
+            u.Id,
+            u.FullName,
+            u.Email!,
+            u.PhoneNumber,
+            u.City,
+            u.ProfileImageUrl,
+            _context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId),
+            u.EmailConfirmed,
+            u.BannedAtUtc,
+            u.BanReason,
+            u.CreatedAtUtc,
+            _context.Properties.Count(p => p.SellerId == u.Id),
+            _context.Properties.Count(p => p.SellerId == u.Id
+                && p.ModerationStatus == ModerationStatus.Approved
+                && p.IsActive),
+            _context.Reports.Count(r => r.Status == ReportStatus.Pending
+                && _context.Properties.Any(p => p.Id == r.PropertyId && p.SellerId == u.Id))));
+
     public async Task<IReadOnlyDictionary<Guid, UserInfoDto>> GetUsersInfoAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
     {
         if (userIds.Count == 0)
@@ -379,7 +527,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<SellerInfo>> GetSellerInfoAsync(Guid sellerId, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(sellerId.ToString());
-        if (user?.Email is null || await _userManager.IsInRoleAsync(user, Roles.Admin))
+        if (user?.Email is null || user.BannedAtUtc is not null || await _userManager.IsInRoleAsync(user, Roles.Admin))
         {
             return ApplicationError.SellerNotFound;
         }
@@ -426,6 +574,10 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         if (user is null)
         {
             user = await _userManager.FindByEmailAsync(googleUser.Email);
+            if (user?.BannedAtUtc is not null)
+            {
+                return ApplicationError.AccountBanned;
+            }
             if (user is not null)
             {
                 var linkResult = await LinkGoogleLoginAsync(user, googleUser);
@@ -456,7 +608,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
         if (await _userManager.IsLockedOutAsync(user))
         {
-            return LockedOut();
+            return user.BannedAtUtc is not null ? ApplicationError.AccountBanned : LockedOut();
         }
 
         return await ToAppUserAsync(user);

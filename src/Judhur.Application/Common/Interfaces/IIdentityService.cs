@@ -1,5 +1,6 @@
 using Judhur.Application.Common.Models;
 using Judhur.Application.Features.Identity.Dtos;
+using Judhur.Application.Features.Users.Dto;
 using Judhur.Domain.Common.Results;
 
 namespace Judhur.Application.Common.Interfaces;
@@ -44,6 +45,11 @@ public interface IIdentityService
         CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> GetUserByIdAsync(string userId, CancellationToken cancellationToken = default);
     Task<Result<UserInfoDto>> GetUserInfoAsync(string userId, CancellationToken ct = default);
+    Task<Result<Success>> BanUserAsync(Guid userId, string reason, DateTimeOffset bannedAtUtc, CancellationToken cancellationToken = default);
+    Task<Result<Success>> UnbanUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<PaginatedList<AdminUserDto>> GetUsersForAdminAsync(AdminUsersFilter filter, CancellationToken cancellationToken = default);
+    Task<Result<AdminUserDto>> GetUserForAdminAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<UserStatsDto> GetUserStatsAsync(DateTimeOffset newSinceUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, UserInfoDto>> GetUsersInfoAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default);

@@ -13,6 +13,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<ApplicationUser
     private const int MaxProfileImagePublicIdLength = 200;
     private const int MaxResetCodeLength = 256;
     private const int MaxBioLength = 1000;
+    private const int MaxBanReasonLength = 500;
     private const int MaxPhoneNumberLength = 20;
 
     public void Configure(EntityTypeBuilder<ApplicationUser> builder)
@@ -25,6 +26,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<ApplicationUser
         builder.Property(u => u.ProfileImagePublicId).HasMaxLength(MaxProfileImagePublicIdLength);
         builder.Property(u => u.ResetCode).HasMaxLength(MaxResetCodeLength);
         builder.Property(u => u.Bio).HasMaxLength(MaxBioLength);
+        builder.Property(u => u.BanReason).HasMaxLength(MaxBanReasonLength);
         builder.Property(u => u.PhoneNumber).HasMaxLength(MaxPhoneNumberLength);
         
         builder.HasIndex(u => u.NormalizedEmail)
