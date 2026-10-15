@@ -6,4 +6,10 @@
     <Project Path="src/Judhur.Domain/Judhur.Domain.csproj" />
     <Project Path="src/Judhur.Infrastructure/Judhur.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Judhur.Api.IntegrationTests/Judhur.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Judhur.Application.UnitTests/Judhur.Application.UnitTests.csproj" />
+    <Project Path="tests/Judhur.Domain.UnitTests/Judhur.Domain.UnitTests.csproj" />
+    <Project Path="tests/Judhur.Tests.Common/Judhur.Tests.Common.csproj" />
+  </Folder>
 </Solution>
