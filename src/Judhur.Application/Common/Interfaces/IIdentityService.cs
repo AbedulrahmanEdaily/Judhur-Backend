@@ -52,6 +52,8 @@ public interface IIdentityService
     Task<Result<AdminUserDto>> GetUserForAdminAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<UserStatsDto> GetUserStatsAsync(DateTimeOffset newSinceUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default);
+    Task<bool> IsActiveAccountAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, UserInfoDto>> GetUsersInfoAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default);

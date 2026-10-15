@@ -22,6 +22,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 {
     private const int ResetCodeLifetimeMinutes = 5;
     private const int MaxResetCodeAttempts = 5;
+    private const string DeletedUserName = "مستخدم محذوف";
     private const string GoogleLoginProvider = "Google";
     private const int MaxFullNameLength = 150;
     private const int MaxProfileImageUrlLength = 500;
@@ -424,7 +425,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 
     public async Task<PaginatedList<AdminUserDto>> GetUsersForAdminAsync(AdminUsersFilter filter, CancellationToken cancellationToken = default)
     {
-        var users = _context.Users.AsNoTracking();
+        var users = _context.Users.AsNoTracking().Where(u => u.DeletedAtUtc == null);
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             var term = filter.Search.Trim();
@@ -463,7 +464,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     public async Task<Result<AdminUserDto>> GetUserForAdminAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
-        var user = await ProjectForAdmin(_context.Users.AsNoTracking().Where(u => u.Id == userId), adminRoleId)
+        var user = await ProjectForAdmin(_context.Users.AsNoTracking().Where(u => u.Id == userId && u.DeletedAtUtc == null), adminRoleId)
             .FirstOrDefaultAsync(cancellationToken);
         return user is null ? ApplicationError.UserNotFound : user;
     }
@@ -473,12 +474,81 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
         var adminRoleId = await GetAdminRoleIdAsync(cancellationToken);
         var users = _context.Users
             .AsNoTracking()
-            .Where(u => !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId));
+            .Where(u => u.DeletedAtUtc == null && !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId));
         var total = await users.CountAsync(cancellationToken);
         var newUsers = await users.CountAsync(u => u.CreatedAtUtc >= newSinceUtc, cancellationToken);
         var banned = await users.CountAsync(u => u.BannedAtUtc != null, cancellationToken);
         var unconfirmed = await users.CountAsync(u => u.BannedAtUtc == null && !u.EmailConfirmed, cancellationToken);
         return new UserStatsDto(total, newUsers, banned, unconfirmed);
+    }
+
+    public Task<bool> IsActiveAccountAsync(Guid userId, CancellationToken cancellationToken = default)
+        => _context.Users.AnyAsync(u => u.Id == userId && u.DeletedAtUtc == null && u.BannedAtUtc == null, cancellationToken);
+
+    public async Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user?.Email is null)
+        {
+            return ApplicationError.UserNotFound;
+        }
+        if (await _userManager.IsInRoleAsync(user, Roles.Admin))
+        {
+            return ApplicationError.AdminCannotDeleteAccount;
+        }
+        var passwordCheck = await CheckPasswordIfSetAsync(user, password);
+        if (passwordCheck.IsError)
+        {
+            return passwordCheck.Errors;
+        }
+
+        foreach (var login in await _userManager.GetLoginsAsync(user))
+        {
+            var removeResult = await _userManager.RemoveLoginAsync(user, login.LoginProvider, login.ProviderKey);
+            if (!removeResult.Succeeded)
+            {
+                return Translate(removeResult);
+            }
+        }
+
+        var profileImagePublicId = user.ProfileImagePublicId;
+        var placeholder = $"deleted-{user.Id:N}";
+        user.Email = null;
+        user.NormalizedEmail = null;
+        user.EmailConfirmed = false;
+        user.UserName = placeholder;
+        user.NormalizedUserName = placeholder.ToUpperInvariant();
+        user.PasswordHash = null;
+        user.PhoneNumber = null;
+        user.PhoneNumberConfirmed = false;
+        user.FullName = DeletedUserName;
+        user.City = string.Empty;
+        user.Bio = null;
+        user.ProfileImageUrl = null;
+        user.ProfileImagePublicId = null;
+        ClearResetCode(user);
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
+        user.DeletedAtUtc = deletedAtUtc;
+        await _context.SaveChangesAsync(cancellationToken);
+        return new DeletedAccount(profileImagePublicId);
+    }
+
+    private async Task<Result<Success>> CheckPasswordIfSetAsync(ApplicationUser user, string? password)
+    {
+        if (!await _userManager.HasPasswordAsync(user))
+        {
+            return Result.Success;
+        }
+        if (string.IsNullOrEmpty(password))
+        {
+            return CurrentPasswordRequired();
+        }
+        return await _userManager.CheckPasswordAsync(user, password)
+            ? Result.Success
+            : ApplicationError.InvalidPassword;
     }
 
     public async Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default)

@@ -15,4 +15,5 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? BannedAtUtc { get; set; }
     public string? BanReason { get; set; }
+    public DateTimeOffset? DeletedAtUtc { get; set; }
 };
