@@ -39,7 +39,7 @@ public sealed class UpdatePropertyDescriptionCommandHandler(IAppDbContext contex
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Property {PropertyId} description updated by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

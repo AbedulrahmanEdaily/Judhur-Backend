@@ -65,7 +65,7 @@ public sealed class UploadOwnershipDocumentCommandHandler(IUser user, IAppDbCont
         {
             await _fileStorage.DeletePrivateDocumentAsync(oldPublicId, CancellationToken.None);
         }
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Ownership document uploaded for property {PropertyId} by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }
