@@ -8,6 +8,7 @@ namespace Judhur.Domain.Properties;
 public sealed class Property : AuditableEntity
 {
     public const int MinImages = 3;
+    public const int MaxDecimalPlaces = 2;
     public const int MaxImages = 10;
 
     public const int MaxTitleLength = 200;
@@ -274,6 +275,11 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.AlreadyApproved;
         }
 
+        if (ModerationStatus == ModerationStatus.Rejected)
+        {
+            return PropertyErrors.CannotApproveRejectedProperty;
+        }
+
         if (_propertyImages.Count < MinImages)
         {
             return PropertyErrors.MinImagesRequired;
@@ -319,13 +325,14 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.RejectionReasonRequired;
         }
 
-        if (reason.Length > MaxRejectionReasonLength)
+        var trimmedReason = reason.Trim();
+        if (trimmedReason.Length > MaxRejectionReasonLength)
         {
             return PropertyErrors.RejectionReasonTooLong;
         }
 
         ModerationStatus = ModerationStatus.Rejected;
-        RejectionReason = reason;
+        RejectionReason = trimmedReason;
         ReviewedBy = reviewedBy;
         ReviewedAtUtc = reviewedAtUtc;
 
@@ -395,11 +402,6 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> Reactivate()
     {
-        if (ModerationStatus != ModerationStatus.Approved)
-        {
-            return PropertyErrors.CannotReactivateUnapprovedProperty;
-        }
-
         if (IsActive)
         {
             return PropertyErrors.AlreadyActive;
@@ -554,6 +556,11 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.PriceTooHigh;
         }
 
+        if (decimal.Round(price, MaxDecimalPlaces) != price)
+        {
+            return PropertyErrors.PriceTooPrecise;
+        }
+
         if (!Enum.IsDefined(paymentType))
         {
             return PropertyErrors.PaymentInvalid;
@@ -572,6 +579,11 @@ public sealed class Property : AuditableEntity
         if (area > MaxArea)
         {
             return PropertyErrors.AreaTooHigh;
+        }
+
+        if (decimal.Round(area, MaxDecimalPlaces) != area)
+        {
+            return PropertyErrors.AreaTooPrecise;
         }
 
         if (string.IsNullOrWhiteSpace(city))
