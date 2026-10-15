@@ -12,6 +12,7 @@ using Judhur.Api.OpenApi.Transformer;
 using Judhur.Api.Services;
 using Judhur.Application.Common.Interfaces;
 
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
@@ -28,6 +29,7 @@ public static class DependencyInjection
                 .AddControllerWithJsonConfiguration()
                 .AddApiDocumentation()
                 .AddConfiguredCors(configuration)
+                .AddForwardedHeadersSupport(configuration)
                 .AddRateLimiting()
                 .AddIdentityInfrastructure()
                 .AddRealtime();
@@ -48,6 +50,23 @@ public static class DependencyInjection
         app.MapHub<ChatHub>(ChatHub.Route, options => options.CloseOnAuthenticationExpiration = true);
         return app;
     }
+    public static IServiceCollection AddForwardedHeadersSupport(this IServiceCollection services, IConfiguration configuration)
+    {
+        if (!configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+        {
+            return services;
+        }
+
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = 1;
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
+        return services;
+    }
+
     public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
     {
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is { Length: > 0 } origins
@@ -290,6 +309,10 @@ public static class DependencyInjection
 
     public static IApplicationBuilder UseCoreMiddlewares(this IApplicationBuilder app, IConfiguration configuration)
     {
+        if (configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+        {
+            app.UseForwardedHeaders();
+        }
         app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
