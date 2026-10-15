@@ -52,7 +52,7 @@ public sealed class CloudinaryFileStorage(ICloudinary cloudinary, ILogger<Cloudi
 
     public Task<Result<Deleted>> DeleteFileAsync(string publicId, CancellationToken cancellationToken = default)
     {
-        return DestroyAsync(new DeletionParams(publicId));
+        return DestroyAsync(new DeletionParams(publicId) { Invalidate = true });
     }
 
     public async Task<Result<string>> UploadPrivateDocumentAsync(Stream content, string fileName, string folder, CancellationToken cancellationToken = default)
