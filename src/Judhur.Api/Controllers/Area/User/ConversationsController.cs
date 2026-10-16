@@ -47,7 +47,9 @@ public sealed class ConversationsController(ISender sender) : ApiController
     {
         var result = await _sender.Send(request, ct);
         return result.Match(
-            response => response.IsNew ? Created((string?)null, response) : Ok(response),
+            response => response.IsNew
+                ? CreatedAtRoute("GetConversationById", new { version = "1", conversationId = response.ConversationId }, response)
+                : Ok(response),
             Problem);
     }
 
@@ -78,7 +80,7 @@ public sealed class ConversationsController(ISender sender) : ApiController
         return result.Match(response => Ok(response), Problem);
     }
 
-    [HttpGet("{conversationId:guid}")]
+    [HttpGet("{conversationId:guid}", Name = "GetConversationById")]
     [ProducesResponseType(typeof(ConversationDetailsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -114,9 +116,10 @@ public sealed class ConversationsController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [EndpointSummary("Sends a message in a conversation.")]
-    [EndpointDescription("Adds a message of up to 2000 characters and returns it. The other party receives it in real time on the chat hub (event messageReceived). Works even when the property is no longer published. Returns 404 if the user is not part of the conversation. Limited to 30 messages per minute per user.")]
+    [EndpointDescription("Adds a message of up to 2000 characters and returns it. The other party receives it in real time on the chat hub (event messageReceived). Works even when the property is no longer published. Returns 404 if the user is not part of the conversation and 409 Conversations.ParticipantUnavailable when the other party was banned or deleted their account. Limited to 30 messages per minute per user.")]
     [EndpointName("SendMessage")]
     public async Task<IActionResult> SendMessageAsync([FromRoute] Guid conversationId, [FromBody] SendMessageCommand request, CancellationToken ct)
     {
@@ -130,11 +133,11 @@ public sealed class ConversationsController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [EndpointSummary("Marks the other party's messages as read.")]
-    [EndpointDescription("Marks every unread message from the other party in this conversation as read and notifies them in real time (event messagesRead). Returns 204 also when nothing was unread, and 404 if the user is not part of the conversation.")]
+    [EndpointDescription("Marks the unread messages from the other party in this conversation as read and notifies them in real time (event messagesRead). Send upTo with the id of the newest message the user has actually seen so that a message arriving at the same moment stays unread; without it every unread message is marked. Returns 204 also when nothing was unread, and 404 if the user is not part of the conversation or upTo is not a message of it.")]
     [EndpointName("MarkConversationAsRead")]
-    public async Task<IActionResult> MarkAsReadAsync([FromRoute] Guid conversationId, CancellationToken ct)
+    public async Task<IActionResult> MarkAsReadAsync([FromRoute] Guid conversationId, [FromQuery] Guid? upTo, CancellationToken ct)
     {
-        var result = await _sender.Send(new MarkConversationAsReadCommand(conversationId), ct);
+        var result = await _sender.Send(new MarkConversationAsReadCommand(conversationId, upTo), ct);
         return result.Match(_ => NoContent(), Problem);
     }
 }

@@ -34,8 +34,24 @@ public sealed class MarkConversationAsReadCommandHandler(
             return ApplicationError.Unauthenticated;
         }
 
+        var upToSentAtUtc = DateTimeOffset.MaxValue;
+        if (request.UpToMessageId is { } upToMessageId)
+        {
+            var upTo = await _context.Messages
+                .AsNoTracking()
+                .Where(m => m.Id == upToMessageId && m.ConversationId == request.ConversationId)
+                .Select(m => (DateTimeOffset?)m.SentAtUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (upTo is null)
+            {
+                _logger.LogWarning("Mark conversation as read rejected: message {MessageId} is not part of conversation {ConversationId}", upToMessageId, request.ConversationId);
+                return ConversationErrors.NotFound;
+            }
+            upToSentAtUtc = upTo.Value;
+        }
+
         var conversation = await _context.Conversations
-            .Include(c => c.Messages.Where(m => m.SenderId != readerId && m.ReadAtUtc == null))
+            .Include(c => c.Messages.Where(m => m.SenderId != readerId && m.ReadAtUtc == null && m.SentAtUtc <= upToSentAtUtc))
             .FirstOrDefaultAsync(c => c.Id == request.ConversationId
                 && (c.BuyerId == readerId || c.SellerId == readerId),
                 cancellationToken);

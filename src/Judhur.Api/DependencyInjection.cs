@@ -41,7 +41,10 @@ public static class DependencyInjection
     {
         services.AddSignalR()
             .AddJsonProtocol(options =>
-                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            {
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
         services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
         return services;
     }

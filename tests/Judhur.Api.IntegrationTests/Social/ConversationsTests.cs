@@ -392,4 +392,36 @@ public sealed class ConversationsTests(JudhurApiFactory factory)
         Assert.Equal(1, await UnreadMessagesAsync(seller.Client));
         Assert.Empty(await NotificationsAsync(seller.Client, "NewMessage"));
     }
+
+    [Fact]
+    public async Task MarkAsRead_UpToMessage_LeavesNewerMessagesUnread()
+    {
+        var seller = await _scenario.NewUserAsync("seller");
+        var buyer = await _scenario.NewUserAsync("buyer");
+        var listing = await PublishedListingAsync(_scenario, seller);
+        var conversationId = await StartConversationAsync(buyer.Client, listing.Id);
+        var seen = await SendMessageAsync(buyer.Client, conversationId, "الرسالة التي قرأها البائع");
+        await SendMessageAsync(buyer.Client, conversationId, "رسالة وصلت بعد آخر تحديث");
+
+        var response = await PostEmptyAsync(seller.Client, $"{Routes.Conversations}/{conversationId}/read?upTo={seen.GetProperty("id").GetGuid()}");
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(1, await UnreadMessagesAsync(seller.Client));
+    }
+
+    [Fact]
+    public async Task MarkAsRead_UpToMessageOfAnotherConversation_Returns404()
+    {
+        var seller = await _scenario.NewUserAsync("seller");
+        var buyer = await _scenario.NewUserAsync("buyer");
+        var listing = await PublishedListingAsync(_scenario, seller);
+        var other = await PublishedListingAsync(_scenario, seller);
+        var conversationId = await StartConversationAsync(buyer.Client, listing.Id);
+        var otherConversationId = await StartConversationAsync(buyer.Client, other.Id);
+        var foreign = await SendMessageAsync(buyer.Client, otherConversationId, "رسالة في محادثة أخرى");
+
+        var response = await PostEmptyAsync(seller.Client, $"{Routes.Conversations}/{conversationId}/read?upTo={foreign.GetProperty("id").GetGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
