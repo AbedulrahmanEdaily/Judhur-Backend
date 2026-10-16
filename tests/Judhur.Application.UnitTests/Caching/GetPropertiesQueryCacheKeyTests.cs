@@ -151,4 +151,16 @@ public sealed class GetPropertiesQueryCacheKeyTests
         Assert.Equal(["properties"], Default.Tags);
         Assert.Equal(TimeSpan.FromMinutes(10), Default.Expiration);
     }
+
+    [Fact]
+    public void IsCacheable_LastCachedPage_ReturnsTrue()
+    {
+        Assert.True((Default with { Page = GetPropertiesQuery.MaxCachedPage }).IsCacheable);
+    }
+
+    [Fact]
+    public void IsCacheable_DeepPage_ReturnsFalse()
+    {
+        Assert.False((Default with { Page = GetPropertiesQuery.MaxCachedPage + 1 }).IsCacheable);
+    }
 }
