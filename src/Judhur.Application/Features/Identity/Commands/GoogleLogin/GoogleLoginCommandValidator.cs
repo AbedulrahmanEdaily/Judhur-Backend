@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using Judhur.Application.Common;
+
 namespace Judhur.Application.Features.Identity.Commands.GoogleLogin;
 
 public sealed class GoogleLoginCommandValidator : AbstractValidator<GoogleLoginCommand>
@@ -12,7 +14,7 @@ public sealed class GoogleLoginCommandValidator : AbstractValidator<GoogleLoginC
             .NotEmpty().WithMessage("رمز Google مطلوب.");
 
         RuleFor(c => c.PhoneNumber)
-            .Matches(@"^(?:\+?(?:970|972)\d{9}|05\d{8})$").WithMessage("رقم الهاتف غير صالح.")
+            .Matches(PhoneNumbers.Pattern).WithMessage("رقم الهاتف غير صالح.")
             .When(c => !string.IsNullOrWhiteSpace(c.PhoneNumber));
 
         RuleFor(c => c.City)

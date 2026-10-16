@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using Judhur.Application.Common;
+
 namespace Judhur.Application.Features.Identity.Commands.UpdateMyProfile;
 
 public sealed class UpdateMyProfileCommandValidator : AbstractValidator<UpdateMyProfileCommand>
@@ -16,7 +18,7 @@ public sealed class UpdateMyProfileCommandValidator : AbstractValidator<UpdateMy
 
         RuleFor(r => r.PhoneNumber)
             .NotEmpty().WithMessage("رقم الهاتف مطلوب.")
-            .Matches(@"^(?:\+?(?:970|972)\d{9}|05\d{8})$").WithMessage("رقم الهاتف غير صالح.");
+            .Matches(PhoneNumbers.Pattern).WithMessage("رقم الهاتف غير صالح.");
 
         RuleFor(r => r.City)
             .NotEmpty().WithMessage("المدينة مطلوبة.")

@@ -64,14 +64,14 @@ public sealed class PropertyActivationTests
     }
 
     [Fact]
-    public void Deactivate_DeletedProperty_ReturnsAlreadyDeactivated()
+    public void Deactivate_DeletedProperty_ReturnsNotFound()
     {
         var property = PropertyFactory.Create();
         property.Delete(TestClock.UtcNow).ThrowIfError();
 
         var result = property.Deactivate();
 
-        Assert.Equal(PropertyErrors.AlreadyDeactivated.Code, result.TopError.Code);
+        Assert.Equal(PropertyErrors.NotFound.Code, result.TopError.Code);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class PropertyActivationTests
         Assert.Equal(PropertyStatus.Sold, property.PropertyStatus);
     }
 
-    [Fact(Skip = "BUG: Reactivate does not check IsDeleted, so a soft-deleted property becomes active again")]
+    [Fact]
     public void Reactivate_DeletedProperty_ReturnsErrorAndStaysInactive()
     {
         var property = PropertyFactory.Create();

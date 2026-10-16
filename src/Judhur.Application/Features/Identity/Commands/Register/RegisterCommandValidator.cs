@@ -1,5 +1,7 @@
 using FluentValidation;
 
+using Judhur.Application.Common;
+
 namespace Judhur.Application.Features.Identity.Commands.Register;
 
 public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand>
@@ -34,7 +36,7 @@ public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand
 
         RuleFor(r => r.PhoneNumber)
             .NotEmpty().WithMessage("رقم الهاتف مطلوب.")
-            .Matches(@"^(?:\+?(?:970|972)\d{9}|05\d{8})$").WithMessage("رقم الهاتف غير صالح.");
+            .Matches(PhoneNumbers.Pattern).WithMessage("رقم الهاتف غير صالح.");
 
         RuleFor(r => r.Bio)
         .MaximumLength(MaxBioLength).WithMessage($"لا يمكن أن تتجاوز النبذة التعريفية {MaxBioLength} حرف.");

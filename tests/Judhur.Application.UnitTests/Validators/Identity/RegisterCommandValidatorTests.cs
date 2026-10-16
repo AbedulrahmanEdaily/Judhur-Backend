@@ -174,13 +174,13 @@ public sealed class RegisterCommandValidatorTests
             .WithErrorMessage("رقم الهاتف غير صالح.");
     }
 
-    [Fact(Skip = "BUG: phone regex '$' accepts a trailing newline, and Register stores the phone untrimmed")]
+    [Fact]
     public void Validate_PhoneWithTrailingNewline_ReturnsError()
     {
         _validator.TestValidate(Valid with { PhoneNumber = "0591234567\n" }).ShouldHaveValidationErrorFor(c => c.PhoneNumber);
     }
 
-    [Fact(Skip = "BUG: phone regex '\\d' accepts Arabic-Indic digits, so non-ASCII phone numbers are stored")]
+    [Fact]
     public void Validate_PhoneWithArabicIndicDigits_ReturnsError()
     {
         _validator.TestValidate(Valid with { PhoneNumber = "05٩١٢٣٤٥٦٧" }).ShouldHaveValidationErrorFor(c => c.PhoneNumber);
