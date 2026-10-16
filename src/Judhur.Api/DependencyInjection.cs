@@ -203,8 +203,6 @@ public static class DependencyInjection
             context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
             context.ProblemDetails.Extensions["requestId"] = context.HttpContext.TraceIdentifier;
 
-            // Responses produced by the framework itself (auth middleware, unknown route, rate limiter,
-            // invalid JSON body) come with English default titles; replace them with Arabic ones.
             var status = context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode;
             var title = context.ProblemDetails.Title;
             if (string.IsNullOrEmpty(title)

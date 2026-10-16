@@ -212,9 +212,6 @@ public class ApplicationDbContextInitializer(
             }
         }
 
-
-        // Normal User
-
         var user = await _userManager.FindByEmailAsync(
             "user@judhur.com");
 

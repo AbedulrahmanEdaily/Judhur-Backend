@@ -412,8 +412,6 @@ public sealed class Property : AuditableEntity
         return Result.Updated;
     }
 
-    // Soft delete: the row stays so conversations and reports about this property are kept.
-    // The global query filter in PropertyConfiguration hides deleted properties from every query.
     public Result<Deleted> Delete(DateTimeOffset deletedAtUtc)
     {
         if (IsDeleted)

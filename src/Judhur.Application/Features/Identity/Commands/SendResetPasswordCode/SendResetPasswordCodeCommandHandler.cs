@@ -24,7 +24,6 @@ public sealed class SendResetPasswordCodeCommandHandler(
         var resetCode = await _identityService.SendResetPasswordCodeAsync(request.Email, cancellationToken);
         if (resetCode is null)
         {
-            // The client still gets success so the endpoint can't be used to probe which emails exist.
             _logger.LogWarning("Password reset code skipped: no eligible user for the given email");
             return Result.Success;
         }

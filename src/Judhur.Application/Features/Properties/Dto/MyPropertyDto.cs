@@ -2,10 +2,6 @@ using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;
 
-/// <summary>
-/// A listing card as seen by its owner ("My properties"). Unlike <see cref="PropertySummaryDto"/>
-/// it carries the moderation/visibility state, which is private to the seller.
-/// </summary>
 public sealed class MyPropertyDto
 {
     public Guid Id { get; set; }

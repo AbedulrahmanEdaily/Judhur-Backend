@@ -22,7 +22,6 @@ public sealed class ResendConfirmationCommandHandler(
         var userId = await _identityService.FindUnconfirmedUserIdAsync(request.Email, cancellationToken);
         if (userId is null)
         {
-            // The client still gets success so the endpoint can't be used to probe which emails exist.
             _logger.LogWarning("Resend confirmation skipped: no unconfirmed user for the given email");
             return Result.Success;
         }
