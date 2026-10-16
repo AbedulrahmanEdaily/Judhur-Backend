@@ -611,12 +611,12 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.FullAddressTooLong;
         }
 
-        if (latitude < -90 || latitude > 90)
+        if (!double.IsFinite(latitude) || latitude < -90 || latitude > 90)
         {
             return PropertyErrors.LatitudeInvalid;
         }
 
-        if (longitude < -180 || longitude > 180)
+        if (!double.IsFinite(longitude) || longitude < -180 || longitude > 180)
         {
             return PropertyErrors.LongitudeInvalid;
         }
