@@ -21,10 +21,10 @@ public sealed class TransactionBehavior<TRequest, TResponse>(IUnitOfWork unitOfW
         var response = await next(cancellationToken);
         if (!response.IsSuccess)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            await transaction.RollbackAsync(CancellationToken.None);
             return response;
         }
-        await transaction.CommitAsync(cancellationToken);
+        await transaction.CommitAsync(CancellationToken.None);
         return response;
     }
 }

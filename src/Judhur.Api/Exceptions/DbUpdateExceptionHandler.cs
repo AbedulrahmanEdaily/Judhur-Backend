@@ -4,7 +4,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Judhur.Api.Exceptions;
-public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsService) : IExceptionHandler
+
+public sealed class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsService, ILogger<DbUpdateExceptionHandler> logger) : IExceptionHandler
 {
     private const int UniqueIndexViolation = 2601;
     private const int UniqueConstraintViolation = 2627;
@@ -15,6 +16,7 @@ public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsServi
     {
         if (exception is DbUpdateConcurrencyException)
         {
+            logger.LogWarning("Concurrency conflict for request {RequestId} {Method} {Path}", httpContext.TraceIdentifier, httpContext.Request.Method, httpContext.Request.Path);
             httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
             return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
             {
@@ -33,6 +35,7 @@ public class DbUpdateExceptionHandler(IProblemDetailsService problemDetailsServi
         {
             return false;
         }
+        logger.LogWarning("Unique index violation {SqlErrorNumber} for request {RequestId} {Method} {Path}", sqlException.Number, httpContext.TraceIdentifier, httpContext.Request.Method, httpContext.Request.Path);
         httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
         return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
