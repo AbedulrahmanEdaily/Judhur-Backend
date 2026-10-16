@@ -32,7 +32,7 @@ public sealed class GetMyFavoritesQueryHandler(IUser user, IAppDbContext context
             return ApplicationError.PageInvalid;
         }
 
-        if (request.PageSize is <= 0 or > 100)
+        if (request.PageSize is <= 0 or > Pagination.MaxPageSize)
         {
             _logger.LogWarning("Get my favorites rejected: invalid page size {PageSize}", request.PageSize);
             return ApplicationError.PageSizeInvalid;

@@ -43,7 +43,7 @@ public sealed class RejectPropertyCommandHandler(IUser user, IAppDbContext conte
         var result = property.Reject(adminId, _timeProvider.GetUtcNow(), request.RejectionReason);
         if (result.IsError)
         {
-            _logger.LogWarning("Reject property {PropertyId} failed: {Error}", request.PropertyId, result.TopError.Code);
+            _logger.LogWarning("Reject property {PropertyId} failed: {ErrorCode}", request.PropertyId, result.TopError.Code);
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);

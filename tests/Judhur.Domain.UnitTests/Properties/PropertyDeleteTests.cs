@@ -66,7 +66,7 @@ public sealed class PropertyDeleteTests
     }
 
     [Fact]
-    public void Delete_ApprovedProperty_KeepsModerationAndImages()
+    public void Delete_ApprovedProperty_KeepsModerationAndImagesAndDropsTheDocument()
     {
         var property = PropertyFactory.CreateApproved();
 
@@ -74,6 +74,6 @@ public sealed class PropertyDeleteTests
 
         Assert.Equal(ModerationStatus.Approved, property.ModerationStatus);
         Assert.Equal(Property.MinImages, property.PropertyImages.Count);
-        Assert.Equal(PropertyFactory.DefaultOwnershipDocumentPublicId, property.OwnershipDocumentPublicId);
+        Assert.Null(property.OwnershipDocumentPublicId);
     }
 }

@@ -25,7 +25,7 @@ public sealed class GetSellerReviewsQueryHandler(IAppDbContext context, ILogger<
             _logger.LogWarning("Get seller reviews rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;
         }
-        if (request.PageSize is <= 0 or > 100)
+        if (request.PageSize is <= 0 or > Pagination.MaxPageSize)
         {
             _logger.LogWarning("Get seller reviews rejected: invalid page size {PageSize}", request.PageSize);
             return ApplicationError.PageSizeInvalid;

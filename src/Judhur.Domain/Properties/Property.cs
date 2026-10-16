@@ -467,6 +467,7 @@ public sealed class Property : AuditableEntity
         IsDeleted = true;
         DeletedAtUtc = deletedAtUtc;
         IsActive = false;
+        OwnershipDocumentPublicId = null;
 
         return Result.Deleted;
     }

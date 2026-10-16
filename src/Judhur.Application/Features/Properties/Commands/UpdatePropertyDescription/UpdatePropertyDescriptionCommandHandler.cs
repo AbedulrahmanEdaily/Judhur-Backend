@@ -10,10 +10,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.UpdatePropertyDescription;
 
-public sealed class UpdatePropertyDescriptionCommandHandler(IAppDbContext context, ILogger<UpdatePropertyDescriptionCommandHandler> logger, IUser user, ReviewQueue reviewQueue) : IRequestHandler<UpdatePropertyDescriptionCommand, Result<Updated>>
+public sealed class UpdatePropertyDescriptionCommandHandler(IAppDbContext context, ILogger<UpdatePropertyDescriptionCommandHandler> logger, IUser user) : IRequestHandler<UpdatePropertyDescriptionCommand, Result<Updated>>
 {
     private readonly IAppDbContext _context = context;
-    private readonly ReviewQueue _reviewQueue = reviewQueue;
     private readonly ILogger<UpdatePropertyDescriptionCommandHandler> _logger = logger;
     private readonly IUser _user = user;
 
@@ -31,7 +30,6 @@ public sealed class UpdatePropertyDescriptionCommandHandler(IAppDbContext contex
             _logger.LogWarning("Update property description rejected: property {PropertyId} not found for seller {SellerId}", request.PropertyId, sellerId);
             return PropertyErrors.NotFound;
         }
-        var wasQueued = await _reviewQueue.ContainsAsync(property.Id, cancellationToken);
         var result = property.UpdateDescription(request.Description);
         if (result.IsError)
         {
@@ -39,7 +37,6 @@ public sealed class UpdatePropertyDescriptionCommandHandler(IAppDbContext contex
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Property {PropertyId} description updated by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

@@ -91,7 +91,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
         return result.Match(response => Ok(response), Problem);
     }
     [HttpGet("{propertyId:guid}", Name = "GetPropertyById")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     [EndpointSummary("Retrieves a property by its ID.")]
@@ -104,7 +104,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
         return result.Match(response => Ok(response), Problem);
     }
     [HttpPost]
-    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(PropertyDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [EndpointSummary("Creates a new property listing.")]
@@ -147,7 +147,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [EndpointSummary("Deletes a property.")]
-    [EndpointDescription("Soft-deletes a property owned by the authenticated user: it disappears from search, details and the owner's list, while its conversations and reports are kept. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointDescription("Soft-deletes a property owned by the authenticated user: it disappears from search, details and the owner's list, while its conversations and reports are kept. The private ownership document is removed from storage. Returns 404 if the property does not exist or belongs to another user.")]
     [EndpointName("DeleteProperty")]
     public async Task<IActionResult> DeleteAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
@@ -173,7 +173,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [EndpointSummary("Reactivates a property.")]
-    [EndpointDescription("Makes a deactivated property owned by the authenticated user visible again. Only approved properties can be reactivated, so this never skips moderation. Returns 409 if the property is already active or not approved, 404 if it does not exist or belongs to another user.")]
+    [EndpointDescription("Reactivates a deactivated property owned by the authenticated user, in any moderation state. An approved listing becomes visible again; a pending one goes back to the review queue; a rejected one stays rejected until it is resubmitted. Moderation is never skipped. Returns 409 if the property is already active, 404 if it does not exist or belongs to another user.")]
     [EndpointName("ReactivateProperty")]
     public async Task<IActionResult> ReactivateAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
@@ -186,7 +186,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [EndpointSummary("Resubmits a rejected property for review.")]
-    [EndpointDescription("Sends a rejected property owned by the authenticated user back to pending review and clears the rejection reason. Use it after fixing what the admin asked for, such as replacing images, since image changes do not reset moderation on their own. Returns 409 if the property is not rejected, 404 if it does not exist or belongs to another user.")]
+    [EndpointDescription("Sends a rejected property owned by the authenticated user back to pending review and clears the rejection reason. Use it after fixing what the admin asked for when the fix did not already send the listing back: editing the details, adding an image or changing the main image already move a rejected listing to pending, while deleting images or editing the description do not. Returns 409 if the property is not rejected, 404 if it does not exist or belongs to another user.")]
     [EndpointName("ResubmitPropertyForReview")]
     public async Task<IActionResult> ResubmitAsync([FromRoute] Guid propertyId, CancellationToken ct)
     {
@@ -219,6 +219,7 @@ public sealed class PropertiesController(ISender sender) : ApiController
         var result = await _sender.Send(new MarkPropertyAsRentedCommand(propertyId), ct);
         return result.Match(_ => NoContent(), Problem);
     }
+
     [HttpPost("{propertyId:guid}/images")]
     [RequestSizeLimit(RequestLimits.ImageUploadBodySize)]
     [Consumes("multipart/form-data")]
@@ -226,8 +227,9 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [EndpointSummary("Uploads an image for a property.")]
-    [EndpointDescription("Uploads a JPG, PNG or WEBP image (max 5 MB) to a property owned by the authenticated user. A property can have up to 10 images. The first image becomes the main image automatically; send isMainImage=true to make a later one the main image. Returns 404 if the property does not exist or belongs to another user.")]
+    [EndpointDescription("Uploads a JPG, PNG or WEBP image (max 5 MB) to a property owned by the authenticated user. A property can have up to 10 images. The first image becomes the main image automatically; send isMainImage=true to make a later one the main image. Adding an image sends an approved or rejected listing back to pending review, so an approved listing disappears from search until it is approved again. Returns 409 when another change to the same listing happened at the same moment, 404 if the property does not exist or belongs to another user.")]
     [EndpointName("AddPropertyImage")]
     public async Task<IActionResult> AddImageAsync([FromRoute] Guid propertyId, IFormFile file, [FromForm] bool isMainImage, CancellationToken ct)
     {
@@ -260,8 +262,9 @@ public sealed class PropertiesController(ISender sender) : ApiController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [EndpointSummary("Sets the main image of a property.")]
-    [EndpointDescription("Makes the given image the main image of a property owned by the authenticated user; the previous main image becomes a normal image. Returns 404 if the property or image does not exist.")]
+    [EndpointDescription("Makes the given image the main image of a property owned by the authenticated user; the previous main image becomes a normal image. Like adding an image, this sends an approved or rejected listing back to pending review. Returns 409 when another change to the same listing happened at the same moment, 404 if the property or image does not exist.")]
     [EndpointName("SetMainPropertyImage")]
     public async Task<IActionResult> SetMainImageAsync([FromRoute] Guid propertyId, [FromRoute] Guid imageId, CancellationToken ct)
     {

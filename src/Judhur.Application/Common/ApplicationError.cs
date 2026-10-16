@@ -85,5 +85,5 @@ public static class ApplicationError
 
     public static readonly Error PageSizeInvalid = Error.Validation(
         code: "Pagination.PageSizeInvalid",
-        description: "حجم الصفحة يجب أن يكون بين 1 و100.");
+        description: $"حجم الصفحة يجب أن يكون بين 1 و{Pagination.MaxPageSize}.");
 }

@@ -25,7 +25,7 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             _logger.LogWarning("Get properties rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;
         }
-        if (request.PageSize is <= 0 or > 100)
+        if (request.PageSize is <= 0 or > Pagination.MaxPageSize)
         {
             _logger.LogWarning("Get properties rejected: invalid page size {PageSize}", request.PageSize);
             return ApplicationError.PageSizeInvalid;
@@ -35,7 +35,7 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             _logger.LogWarning("Get properties rejected: {CityCount} cities requested, the limit is {MaxCities}", request.Cities.Count, GetPropertiesQuery.MaxCities);
             return PropertyErrors.TooManyCitiesInFilter;
         }
-        var propertyQuery = _context.Properties.AsNoTracking().Where(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive).AsQueryable();
+        var propertyQuery = _context.Properties.AsNoTracking().Where(p => p.ModerationStatus == ModerationStatus.Approved && p.IsActive);
         propertyQuery = ApplyFilters(propertyQuery, request);
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -74,7 +74,7 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
             TotalPages = (int)Math.Ceiling(count / (double)request.PageSize)
         };
     }
-    private IOrderedQueryable<Property> ApplySorting(IQueryable<Property> query, string sortColumn, string sortDirection)
+    private static IOrderedQueryable<Property> ApplySorting(IQueryable<Property> query, string sortColumn, string sortDirection)
     {
         var isDescending = sortDirection.Equals("desc", StringComparison.OrdinalIgnoreCase);
         return sortColumn.ToLowerInvariant() switch
@@ -87,13 +87,13 @@ public sealed class GetPropertiesQueryHandler(ILogger<GetPropertiesQueryHandler>
         };
     }
 
-    private IQueryable<Property> ApplySearchTerm(IQueryable<Property> query, string searchTerm)
+    private static IQueryable<Property> ApplySearchTerm(IQueryable<Property> query, string searchTerm)
     {
-        var normalized = searchTerm.Trim().ToLowerInvariant();
-        return query.Where(p => p.Title.ToLower().Contains(normalized));
+        var term = searchTerm.Trim();
+        return query.Where(p => p.Title.Contains(term));
     }
 
-    private IQueryable<Property> ApplyFilters(IQueryable<Property> query, GetPropertiesQuery searchQuery)
+    private static IQueryable<Property> ApplyFilters(IQueryable<Property> query, GetPropertiesQuery searchQuery)
     {
         if (searchQuery.MinPrice.HasValue)
         {

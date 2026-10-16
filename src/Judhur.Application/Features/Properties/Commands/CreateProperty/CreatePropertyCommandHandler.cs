@@ -43,7 +43,7 @@ public sealed class CreatePropertyCommandHandler(ILogger<CreatePropertyCommandHa
             sellerId);
         if (propertyResult.IsError)
         {
-            _logger.LogWarning("Create property failed for seller {SellerId}: {Error}", sellerId, propertyResult.TopError.Code);
+            _logger.LogWarning("Create property failed for seller {SellerId}: {ErrorCode}", sellerId, propertyResult.TopError.Code);
             return propertyResult.Errors;
         }
         var property = propertyResult.Value;
