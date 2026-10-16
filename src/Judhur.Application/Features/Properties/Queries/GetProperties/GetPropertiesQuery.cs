@@ -61,7 +61,9 @@ public sealed record GetPropertiesQuery(
 
     public TimeSpan Expiration => TimeSpan.FromMinutes(10);
 
-    public bool IsCacheable => string.IsNullOrWhiteSpace(SearchTerm);
+    public const int MaxCachedPage = 10;
+
+    public bool IsCacheable => string.IsNullOrWhiteSpace(SearchTerm) && Page <= MaxCachedPage;
 
     private static string[] Ordered<T>(IEnumerable<T> values)
         => [.. values.Select(v => v!.ToString()!).Distinct().Order(StringComparer.Ordinal)];
