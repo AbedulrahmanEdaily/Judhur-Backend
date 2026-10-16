@@ -174,6 +174,7 @@ public class ApplicationDbContextInitializer(
                     "Failed to create admin user {Email}. Errors: {Errors}",
                     admin.Email,
                     errors);
+                return;
             }
             else
             {
@@ -183,8 +184,7 @@ public class ApplicationDbContextInitializer(
             }
         }
 
-        if (admin.Id != Guid.Empty &&
-            await _userManager.IsInRoleAsync(admin, Roles.Admin) == false)
+        if (!await _userManager.IsInRoleAsync(admin, Roles.Admin))
         {
             var roleResult = await _userManager.AddToRoleAsync(
                 admin,
@@ -244,6 +244,7 @@ public class ApplicationDbContextInitializer(
                     "Failed to create user {Email}. Errors: {Errors}",
                     user.Email,
                     errors);
+                return;
             }
             else
             {
@@ -253,8 +254,7 @@ public class ApplicationDbContextInitializer(
             }
         }
 
-        if (user.Id != Guid.Empty &&
-            await _userManager.IsInRoleAsync(user, Roles.User) == false)
+        if (!await _userManager.IsInRoleAsync(user, Roles.User))
         {
             var roleResult = await _userManager.AddToRoleAsync(
                 user,

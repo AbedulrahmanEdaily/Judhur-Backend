@@ -30,5 +30,6 @@ public sealed class ReportConfiguration : IEntityTypeConfiguration<Report>
             .HasFilter("[Status] = N'Pending'");
         builder.HasIndex(r => new { r.PropertyId, r.Status });
         builder.HasIndex(r => new { r.Status, r.CreatedAtUtc });
+        builder.HasIndex(r => new { r.ReporterId, r.CreatedAtUtc });
     }
 }

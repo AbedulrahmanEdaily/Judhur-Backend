@@ -31,6 +31,7 @@ public sealed class ConversationConfiguration : IEntityTypeConfiguration<Convers
             .HasForeignKey(c => c.PropertyId)
             .OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(c => new { c.BuyerId, c.SellerId, c.PropertyId }).IsUnique();
-        builder.HasIndex(c => c.LastMessageAtUtc);
+        builder.HasIndex(c => new { c.BuyerId, c.LastMessageAtUtc });
+        builder.HasIndex(c => new { c.SellerId, c.LastMessageAtUtc });
     }
 }

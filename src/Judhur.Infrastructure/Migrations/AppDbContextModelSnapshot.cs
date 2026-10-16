@@ -54,11 +54,11 @@ namespace Judhur.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LastMessageAtUtc");
-
                     b.HasIndex("PropertyId");
 
-                    b.HasIndex("SellerId");
+                    b.HasIndex("BuyerId", "LastMessageAtUtc");
+
+                    b.HasIndex("SellerId", "LastMessageAtUtc");
 
                     b.HasIndex("BuyerId", "SellerId", "PropertyId")
                         .IsUnique();
@@ -442,6 +442,8 @@ namespace Judhur.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PropertyId", "Status");
+
+                    b.HasIndex("ReporterId", "CreatedAtUtc");
 
                     b.HasIndex("ReporterId", "PropertyId")
                         .IsUnique()
