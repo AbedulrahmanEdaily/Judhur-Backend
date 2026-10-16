@@ -380,8 +380,8 @@ public sealed class ConversationsTests(JudhurApiFactory factory)
         Assert.Equal(2, await UnreadMessagesAsync(seller.Client));
     }
 
-    [Fact(Skip = "BUG: NotificationType.NewMessage exists but no handler creates it; StartConversation and SendMessage only push the message over SignalR")]
-    public async Task SendMessage_ToRecipient_CreatesNewMessageNotification()
+    [Fact]
+    public async Task StartConversation_CountsInMessagesBadgeInsteadOfNotifications()
     {
         var seller = await _scenario.NewUserAsync("seller");
         var buyer = await _scenario.NewUserAsync("buyer");
@@ -389,8 +389,7 @@ public sealed class ConversationsTests(JudhurApiFactory factory)
 
         await StartConversationAsync(buyer.Client, listing.Id);
 
-        var notification = await WaitForNotificationAsync(seller.Client, "NewMessage");
-        Assert.False(notification.GetProperty("isRead").GetBoolean());
-        Assert.Empty(await NotificationsAsync(buyer.Client, "NewMessage"));
+        Assert.Equal(1, await UnreadMessagesAsync(seller.Client));
+        Assert.Empty(await NotificationsAsync(seller.Client, "NewMessage"));
     }
 }
