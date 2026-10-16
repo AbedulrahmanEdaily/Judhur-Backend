@@ -100,6 +100,36 @@ public sealed class LoginTests(JudhurApiFactory factory)
     }
 
     [Fact]
+    public async Task Login_GoogleOnlyAccount_WrongPasswordsNeverLockGoogleSignIn()
+    {
+        var (user, idToken) = await _identity.NewGoogleUserAsync();
+
+        for (var attempt = 1; attempt <= 6; attempt++)
+        {
+            var failed = await _identity.LoginAsync(user.Email, WrongPassword);
+            await failed.AssertProblemAsync(HttpStatusCode.Unauthorized, "Identity.InvalidCredentials");
+        }
+
+        var google = await _identity.GoogleAsync(idToken);
+        Assert.Equal(HttpStatusCode.OK, google.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_UnconfirmedUser_FiveWrongPasswordsLockTheAccount()
+    {
+        var email = Scenario.NewEmail();
+        await _identity.RegisterUnconfirmedAsync(email);
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            await _identity.LoginAsync(email, WrongPassword);
+        }
+
+        var withRightPassword = await _identity.LoginAsync(email, Scenario.DefaultPassword);
+
+        await withRightPassword.AssertProblemAsync(HttpStatusCode.Forbidden, "Identity.LockedOut");
+    }
+
+    [Fact]
     public async Task Login_SuccessAfterFailures_ResetsFailureCount()
     {
         var email = Scenario.NewEmail();

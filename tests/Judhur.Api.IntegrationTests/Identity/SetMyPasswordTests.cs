@@ -1,6 +1,7 @@
 using System.Net;
 
 using Judhur.Api.IntegrationTests.Infrastructure;
+using Judhur.Application.Features.Identity;
 
 namespace Judhur.Api.IntegrationTests.Identity;
 
@@ -14,17 +15,34 @@ public sealed class SetMyPasswordTests(JudhurApiFactory factory)
     private static CancellationToken Ct => IdentityScenario.Ct;
 
     [Fact]
-    public async Task SetMyPassword_CorrectCurrentPassword_Returns204AndReplacesPassword()
+    public async Task SetMyPassword_CorrectCurrentPassword_Returns200AndReplacesPassword()
     {
         var user = await _identity.NewUserAsync();
 
         var response = await user.Client.PutJsonAsync(PasswordRoute, new { currentPassword = user.Password, newPassword = IdentityScenario.NewPassword }, Ct);
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var oldLogin = await _identity.LoginAsync(user.Email, user.Password);
         await oldLogin.AssertProblemAsync(HttpStatusCode.Unauthorized, "Identity.InvalidCredentials");
         await _identity.LoginOkAsync(user.Email, IdentityScenario.NewPassword);
         await _identity.Emails.WaitForAsync(user.Email, IdentityScenario.PasswordChangedSubject);
+    }
+
+    [Fact]
+    public async Task SetMyPassword_Success_EndsOtherSessionsAndKeepsThisDeviceSignedIn()
+    {
+        var user = await _identity.NewUserAsync();
+        var otherDevice = await _identity.LoginOkAsync(user.Email, user.Password);
+
+        var response = await user.Client.PutJsonAsync(PasswordRoute, new { currentPassword = user.Password, newPassword = IdentityScenario.NewPassword }, Ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var tokens = await response.ReadAsync<TokenResponse>();
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.Client.GetAsync($"{Routes.Account}/me", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _identity.Authorized(otherDevice.AccessToken).GetAsync($"{Routes.Account}/me", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _identity.RefreshAsync(otherDevice)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _identity.Authorized(tokens.AccessToken).GetAsync($"{Routes.Account}/me", Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _identity.RefreshAsync(tokens)).StatusCode);
     }
 
     [Fact]
@@ -88,14 +106,15 @@ public sealed class SetMyPasswordTests(JudhurApiFactory factory)
     }
 
     [Fact]
-    public async Task SetMyPassword_GoogleAccountWithItsGoogleToken_Returns204AndEnablesPasswordLogin()
+    public async Task SetMyPassword_GoogleAccountWithItsGoogleToken_Returns200AndEnablesPasswordLogin()
     {
         var (user, idToken) = await _identity.NewGoogleUserAsync();
 
         var response = await user.Client.PutJsonAsync(PasswordRoute, new { newPassword = IdentityScenario.NewPassword, googleIdToken = idToken }, Ct);
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        var me = await IdentityScenario.MeAsync(user.Client);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var tokens = await response.ReadAsync<TokenResponse>();
+        var me = await IdentityScenario.MeAsync(_identity.Authorized(tokens.AccessToken));
         Assert.True(me.GetProperty("hasPassword").GetBoolean());
         await _identity.LoginOkAsync(user.Email, IdentityScenario.NewPassword);
     }

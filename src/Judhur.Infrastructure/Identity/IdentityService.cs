@@ -22,6 +22,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
 {
     private const int ResetCodeLifetimeMinutes = 5;
     private const int MaxResetCodeAttempts = 5;
+    private static readonly string TimingDummyHash = new PasswordHasher<ApplicationUser>().HashPassword(new ApplicationUser(), Guid.NewGuid().ToString());
     private const string DeletedUserName = "مستخدم محذوف";
     private const string GoogleLoginProvider = "Google";
     private const int MaxFullNameLength = 150;
@@ -88,6 +89,11 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
     {
         var user = await _userManager.FindByEmailAsync(email);
         if (user is null)
+        {
+            _userManager.PasswordHasher.VerifyHashedPassword(new ApplicationUser(), TimingDummyHash, password);
+            return InvalidCredentials();
+        }
+        if (!await _userManager.HasPasswordAsync(user))
         {
             return InvalidCredentials();
         }
@@ -183,9 +189,13 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
             return null;
         }
         var code = RandomNumberGenerator.GetInt32(100_000, 1_000_000).ToString();
+        var nowUtc = _timeProvider.GetUtcNow();
+        if (user.ResetCodeExpiresAt is null || user.ResetCodeExpiresAt < nowUtc)
+        {
+            user.ResetCodeFailedAttempts = 0;
+        }
         user.ResetCodeHash = TokenHashing.Hash(code);
-        user.ResetCodeExpiresAt = _timeProvider.GetUtcNow().AddMinutes(ResetCodeLifetimeMinutes);
-        user.ResetCodeFailedAttempts = 0;
+        user.ResetCodeExpiresAt = nowUtc.AddMinutes(ResetCodeLifetimeMinutes);
         var updateResult = await _userManager.UpdateAsync(user);
         return updateResult.Succeeded ? new PasswordResetCode(user.Id, code) : null;
     }
@@ -712,7 +722,7 @@ public sealed class IdentityService(UserManager<ApplicationUser> userManager, Si
                 && p.ModerationStatus == ModerationStatus.Approved
                 && p.IsActive),
             _context.Reports.Count(r => r.Status == ReportStatus.Pending
-                && _context.Properties.Any(p => p.Id == r.PropertyId && p.SellerId == u.Id))));
+                && _context.Properties.IgnoreQueryFilters().Any(p => p.Id == r.PropertyId && p.SellerId == u.Id))));
 
     public async Task<IReadOnlyDictionary<Guid, UserInfoDto>> GetUsersInfoAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
     {

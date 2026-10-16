@@ -60,6 +60,7 @@ public sealed class EmailChangeTests(JudhurApiFactory factory)
         var response = await ConfirmChangeAsync(userId, linkEmail, token);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await user.Client.GetAsync($"{Routes.Account}/me", Ct)).StatusCode);
         var oldLogin = await _identity.LoginAsync(user.Email, user.Password);
         await oldLogin.AssertProblemAsync(HttpStatusCode.Unauthorized, "Identity.InvalidCredentials");
         var tokens = await _identity.LoginOkAsync(newEmail, user.Password);

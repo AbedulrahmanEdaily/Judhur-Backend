@@ -38,7 +38,9 @@ public sealed class RefreshTokenCommandHandler(IAppDbContext context, ITokenProv
         if (getUserResult.IsError)
         {
             _logger.LogWarning("Refresh rejected for user {UserId}: {ErrorCode}", userId, getUserResult.TopError.Code);
-            return getUserResult.Errors;
+            return getUserResult.TopError.Code == ApplicationError.UserNotFound.Code
+                ? RefreshTokenErrors.Expired
+                : getUserResult.Errors;
         }
         var nowUtc = _timeProvider.GetUtcNow();
         var tokenHash = TokenHashing.Hash(request.RefreshToken);
