@@ -39,7 +39,7 @@ public sealed class ResubmitPropertyForReviewCommandHandler(IUser user, IAppDbCo
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Property {PropertyId} resubmitted for review by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

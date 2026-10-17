@@ -4,30 +4,24 @@ services:
       context: .
       dockerfile: src/Judhur.Api/Dockerfile
       target: final
-    ports:
-      - "7000:7000"
     env_file: .env
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_HTTP_PORTS: "8080"
-      ASPNETCORE_HTTPS_PORTS: "7000"
-      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/judhur.pfx
-      ASPNETCORE_Kestrel__Certificates__Default__Password: ${CERT_PASSWORD:?CERT_PASSWORD is missing in .env}
+      ForwardedHeaders__Enabled: "true"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=JudhurDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True"
-    volumes:
-      - ${USERPROFILE}/.aspnet/https:/https:ro
+    ports:
+      - "127.0.0.1:8080:8080"
     depends_on:
       sqlserver:
         condition: service_healthy
-    restart: on-failure
+    restart: unless-stopped
 
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD is missing in .env}
-    ports:
-      - "1433:1433"
     volumes:
       - sqlserver-data:/var/opt/mssql
     healthcheck:

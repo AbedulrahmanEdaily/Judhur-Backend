@@ -53,6 +53,7 @@ public sealed class StartConversationCommandHandler(
         var conversation = await _context.Conversations
             .FirstOrDefaultAsync(c => c.BuyerId == buyerId && c.PropertyId == request.PropertyId, cancellationToken);
         var isNew = conversation is null;
+        var sentAtUtc = _timeProvider.GetUtcNow();
         if (conversation is null)
         {
             var conversationResult = Conversation.Create(Guid.CreateVersion7(), buyerId, sellerId.Value, request.PropertyId);
@@ -65,7 +66,7 @@ public sealed class StartConversationCommandHandler(
             _context.Conversations.Add(conversation);
         }
 
-        var messageResult = conversation.AddMessage(Guid.CreateVersion7(), buyerId, request.Message, _timeProvider.GetUtcNow());
+        var messageResult = conversation.AddMessage(Guid.CreateVersion7(), buyerId, request.Message, sentAtUtc);
         if (messageResult.IsError)
         {
             _logger.LogWarning("Start conversation rejected for user {UserId} on property {PropertyId}: {ErrorCode}", buyerId, request.PropertyId, messageResult.TopError.Code);
@@ -73,7 +74,32 @@ public sealed class StartConversationCommandHandler(
         }
         var message = messageResult.Value;
         _context.Messages.Add(message);
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException) when (isNew)
+        {
+            _context.Entry(message).State = EntityState.Detached;
+            _context.Entry(conversation).State = EntityState.Detached;
+            var existing = await _context.Conversations
+                .FirstOrDefaultAsync(c => c.BuyerId == buyerId && c.PropertyId == request.PropertyId, cancellationToken);
+            if (existing is null)
+            {
+                throw;
+            }
+            _logger.LogInformation("Start conversation for user {UserId} on property {PropertyId} raced with another request; adding the message to conversation {ConversationId}", buyerId, request.PropertyId, existing.Id);
+            conversation = existing;
+            isNew = false;
+            var retryResult = conversation.AddMessage(Guid.CreateVersion7(), buyerId, request.Message, sentAtUtc);
+            if (retryResult.IsError)
+            {
+                return retryResult.Errors;
+            }
+            message = retryResult.Value;
+            _context.Messages.Add(message);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
 
         var sent = new MessageSent(message.Id, conversation.Id, buyerId, conversation.SellerId, message.Content, message.SentAtUtc);
         _dispatcher.Defer(ct => _publisher.Publish(sent, ct));

@@ -10,11 +10,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Judhur.Application.Features.Properties.Commands.DeleteProperty;
 
-public sealed class DeletePropertyCommandHandler(IUser user, IAppDbContext context, TimeProvider timeProvider, ILogger<DeletePropertyCommandHandler> logger) : IRequestHandler<DeletePropertyCommand, Result<Deleted>>
+public sealed class DeletePropertyCommandHandler(IUser user, IAppDbContext context, TimeProvider timeProvider, IFileStorage fileStorage, ILogger<DeletePropertyCommandHandler> logger) : IRequestHandler<DeletePropertyCommand, Result<Deleted>>
 {
     private readonly IUser _user = user;
     private readonly IAppDbContext _context = context;
     private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly IFileStorage _fileStorage = fileStorage;
     private readonly ILogger<DeletePropertyCommandHandler> _logger = logger;
 
     public async Task<Result<Deleted>> Handle(DeletePropertyCommand request, CancellationToken cancellationToken)
@@ -33,6 +34,7 @@ public sealed class DeletePropertyCommandHandler(IUser user, IAppDbContext conte
             return PropertyErrors.NotFound;
         }
 
+        var documentPublicId = property.OwnershipDocumentPublicId;
         var result = property.Delete(_timeProvider.GetUtcNow());
         if (result.IsError)
         {
@@ -41,6 +43,14 @@ public sealed class DeletePropertyCommandHandler(IUser user, IAppDbContext conte
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        if (documentPublicId is not null)
+        {
+            var removed = await _fileStorage.DeletePrivateDocumentAsync(documentPublicId, CancellationToken.None);
+            if (removed.IsError)
+            {
+                _logger.LogWarning("Ownership document of deleted property {PropertyId} could not be removed: {ErrorCode}", property.Id, removed.TopError.Code);
+            }
+        }
         _logger.LogInformation("Property {PropertyId} deleted by seller {SellerId}", property.Id, sellerId);
         return Result.Deleted;
     }

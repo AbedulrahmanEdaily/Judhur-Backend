@@ -42,7 +42,7 @@ public sealed class ReactivatePropertyCommandHandler(IUser user, IAppDbContext c
         }
 
         await _context.SaveChangesAsync(cancellationToken);
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Property {PropertyId} reactivated by seller {SellerId}", property.Id, sellerId);
         return Result.Updated;
     }

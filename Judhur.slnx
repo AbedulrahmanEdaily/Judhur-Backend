@@ -1,9 +1,27 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path=".env.example" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+    <File Path="docker-compose.override.yml" />
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/.github/workflows/">
+    <File Path=".github/workflows/ci.yml" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Judhur.Api/Judhur.Api.csproj" />
     <Project Path="src/Judhur.Application/Judhur.Application.csproj" />
     <Project Path="src/Judhur.Contracts/Judhur.Contracts.csproj" />
     <Project Path="src/Judhur.Domain/Judhur.Domain.csproj" />
     <Project Path="src/Judhur.Infrastructure/Judhur.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Judhur.Api.IntegrationTests/Judhur.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Judhur.Application.UnitTests/Judhur.Application.UnitTests.csproj" />
+    <Project Path="tests/Judhur.Domain.UnitTests/Judhur.Domain.UnitTests.csproj" />
+    <Project Path="tests/Judhur.Tests.Common/Judhur.Tests.Common.csproj" />
   </Folder>
 </Solution>

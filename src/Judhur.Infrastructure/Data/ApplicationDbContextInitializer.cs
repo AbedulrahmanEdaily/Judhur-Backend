@@ -89,6 +89,11 @@ public class ApplicationDbContextInitializer(
                     $"Failed to create the admin account: {string.Join(" | ", createResult.Errors.Select(e => e.Code))}");
             }
         }
+        else if (!admin.EmailConfirmed || !await _userManager.CheckPasswordAsync(admin, settings.Password))
+        {
+            _logger.LogCritical("Admin seed skipped: account {Email} already exists but is unconfirmed or its password does not match AdminSeed:Password", settings.Email);
+            return;
+        }
 
         var roleResult = await _userManager.AddToRoleAsync(admin, Roles.Admin);
         if (!roleResult.Succeeded)
@@ -169,6 +174,7 @@ public class ApplicationDbContextInitializer(
                     "Failed to create admin user {Email}. Errors: {Errors}",
                     admin.Email,
                     errors);
+                return;
             }
             else
             {
@@ -178,8 +184,7 @@ public class ApplicationDbContextInitializer(
             }
         }
 
-        if (admin.Id != Guid.Empty &&
-            await _userManager.IsInRoleAsync(admin, Roles.Admin) == false)
+        if (!await _userManager.IsInRoleAsync(admin, Roles.Admin))
         {
             var roleResult = await _userManager.AddToRoleAsync(
                 admin,
@@ -206,9 +211,6 @@ public class ApplicationDbContextInitializer(
                     admin.Email);
             }
         }
-
-
-        // Normal User
 
         var user = await _userManager.FindByEmailAsync(
             "user@judhur.com");
@@ -242,6 +244,7 @@ public class ApplicationDbContextInitializer(
                     "Failed to create user {Email}. Errors: {Errors}",
                     user.Email,
                     errors);
+                return;
             }
             else
             {
@@ -251,8 +254,7 @@ public class ApplicationDbContextInitializer(
             }
         }
 
-        if (user.Id != Guid.Empty &&
-            await _userManager.IsInRoleAsync(user, Roles.User) == false)
+        if (!await _userManager.IsInRoleAsync(user, Roles.User))
         {
             var roleResult = await _userManager.AddToRoleAsync(
                 user,

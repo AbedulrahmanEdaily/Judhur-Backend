@@ -17,7 +17,7 @@ public sealed class SendPasswordChangedHandler(IIdentityService identityService,
         var result = await _identityService.BuildPasswordResetChangedAsync(notification.UserId, cancellationToken);
         if (result.IsError)
         {
-            _logger.LogError("Password changed email could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
+            _logger.LogWarning("Password changed email could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
             return;
         }
         await _emailQueue.EnqueueAsync(result.Value, cancellationToken);

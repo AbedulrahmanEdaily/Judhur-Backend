@@ -29,12 +29,12 @@ public sealed class GetMyConversationsQueryHandler(IUser user, IAppDbContext con
             _logger.LogWarning("Get my conversations rejected: request has no authenticated user");
             return ApplicationError.Unauthenticated;
         }
-        if (request.Page <= 0)
+        if (!Pagination.IsPageValid(request.Page))
         {
             _logger.LogWarning("Get my conversations rejected: invalid page {Page}", request.Page);
             return ApplicationError.PageInvalid;
         }
-        if (request.PageSize is <= 0 or > 100)
+        if (request.PageSize is <= 0 or > Pagination.MaxPageSize)
         {
             _logger.LogWarning("Get my conversations rejected: invalid page size {PageSize}", request.PageSize);
             return ApplicationError.PageSizeInvalid;

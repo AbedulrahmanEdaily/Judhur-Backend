@@ -120,6 +120,7 @@ public static class DependencyInjection
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 ClockSkew = TimeSpan.Zero,
+                ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                 ValidIssuer = jwtSettings.Issuer,
                 ValidAudience = jwtSettings.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Secret)),
@@ -142,9 +143,18 @@ public static class DependencyInjection
                         return;
                     }
                     var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                    if (await dbContext.Users.AnyAsync(u => u.Id == userId && (u.BannedAtUtc != null || u.DeletedAtUtc != null), context.HttpContext.RequestAborted))
+                    var account = await dbContext.Users
+                        .Where(u => u.Id == userId)
+                        .Select(u => new { u.SecurityStamp, u.BannedAtUtc, u.DeletedAtUtc })
+                        .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                    if (account is null || account.BannedAtUtc is not null || account.DeletedAtUtc is not null)
                     {
-                        context.Fail("Account banned.");
+                        context.Fail("Account is no longer active.");
+                        return;
+                    }
+                    if (context.Principal?.FindFirstValue(TokenProvider.SecurityStampClaim) != account.SecurityStamp)
+                    {
+                        context.Fail("Session ended by a credential change.");
                     }
                 }
             };

@@ -2,10 +2,6 @@ using Judhur.Domain.Properties.Enums;
 
 namespace Judhur.Application.Features.Properties.Dto;
 
-/// <summary>
-/// Full details of a property as seen by its owner, in any moderation state.
-/// Used to show the owner's own listing and to pre-fill the edit form.
-/// </summary>
 public sealed class MyPropertyDetailsDto
 {
     public Guid Id { get; set; }

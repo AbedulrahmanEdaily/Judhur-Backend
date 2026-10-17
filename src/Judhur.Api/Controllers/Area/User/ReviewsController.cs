@@ -42,10 +42,11 @@ public sealed class ReviewsController(ISender sender) : ApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status429TooManyRequests)]
     [EndpointSummary("Reviews a seller.")]
-    [EndpointDescription("Creates a review with a rating from 0.5 to 5 in steps of 0.5 and an optional comment of up to 500 characters. Allowed only after a conversation with the seller in which the seller replied (409 ReviewErrors.NotEligible), once per seller (409 ReviewErrors.DuplicateReview; edit the existing one instead) and never for yourself (409 ReviewErrors.CannotReviewSelf). The seller is notified. Limited to 5 new reviews per hour per user.")]
+    [EndpointDescription("Creates a review with a rating from 0.5 to 5 in steps of 0.5 and an optional comment of up to 500 characters. Allowed only after a conversation with the seller in which the seller replied (409 ReviewErrors.NotEligible), once per seller (409 ReviewErrors.DuplicateReview; edit the existing one instead) and never for yourself (409 ReviewErrors.CannotReviewSelf). Returns 404 Seller.NotFound when the seller was banned or deleted. The seller is notified. Limited to 5 new reviews per hour per user.")]
     [EndpointName("CreateReview")]
     public async Task<IActionResult> CreateAsync([FromBody] CreateReviewCommand request, CancellationToken ct)
     {

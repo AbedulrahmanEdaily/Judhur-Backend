@@ -39,7 +39,6 @@ public sealed class DeletePropertyImageCommandHandler(IAppDbContext context, ILo
             _logger.LogWarning("Delete property image rejected: image {ImageId} not found on property {PropertyId}", request.ImageId, property.Id);
             return PropertyErrors.ImageNotFound;
         }
-        // Kept before RemoveImage: the file is deleted from storage only after the database save.
         var publicId = image.PublicId;
         var result = property.RemoveImage(request.ImageId);
         if (result.IsError)
@@ -49,8 +48,6 @@ public sealed class DeletePropertyImageCommandHandler(IAppDbContext context, ILo
         }
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Image {ImageId} deleted from property {PropertyId} by seller {SellerId}", request.ImageId, property.Id, sellerId);
-        // Database first, storage second: a failure here only leaves an unused file,
-        // never a listing pointing at a missing image.
         await _fileStorage.DeleteFileAsync(publicId, CancellationToken.None);
         return Result.Deleted;
     }

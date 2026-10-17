@@ -69,7 +69,7 @@ public sealed class AddPropertyImageCommandHandler(IUser user, IAppDbContext con
             throw;
         }
         var image = property.PropertyImages.First(i => i.Id == imageId);
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Image {ImageId} added to property {PropertyId} by seller {SellerId}", image.Id, property.Id, sellerId);
         return new PropertyImageDto(image.Id, image.FileUrl, image.DisplayOrder, image.IsMainImage);
     }

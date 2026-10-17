@@ -7,6 +7,7 @@ using Asp.Versioning;
 
 using Judhur.Api;
 using Judhur.Api.Exceptions;
+using Judhur.Api.HealthChecks;
 using Judhur.Api.Hubs;
 using Judhur.Api.OpenApi.Transformer;
 using Judhur.Api.Services;
@@ -29,10 +30,10 @@ public static class DependencyInjection
                 .AddApiDocumentation()
                 .AddConfiguredCors(configuration)
                 .AddForwardedHeadersSupport(configuration)
-                .AddRateLimiting()
+                .AddRateLimiting(configuration)
                 .AddIdentityInfrastructure()
                 .AddRealtime();
-        services.AddHealthChecks();
+        services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
         return services;
     }
 
@@ -40,7 +41,10 @@ public static class DependencyInjection
     {
         services.AddSignalR()
             .AddJsonProtocol(options =>
-                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+            {
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.PayloadSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
         services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
         return services;
     }
@@ -63,8 +67,21 @@ public static class DependencyInjection
             options.ForwardLimit = 1;
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
+            foreach (var network in (configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? []).Where(n => !string.IsNullOrWhiteSpace(n)))
+            {
+                options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+            }
         });
         return services;
+    }
+
+    public static WebApplication UseForwardedHeadersIfEnabled(this WebApplication app, IConfiguration configuration)
+    {
+        if (configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
+        {
+            app.UseForwardedHeaders();
+        }
+        return app;
     }
 
     public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IConfiguration configuration)
@@ -72,12 +89,13 @@ public static class DependencyInjection
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is { Length: > 0 } origins
             ? origins
             : throw new InvalidOperationException("Configuration value 'Cors:AllowedOrigins' is missing.");
-        services.AddCors(options => options.AddPolicy("frontend"
-            ,
+        services.AddCors(options => options.AddPolicy(
+            "frontend",
             policy => policy
                 .WithOrigins(allowedOrigins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
+                .WithExposedHeaders("Retry-After")
                 .AllowCredentials()));
         return services;
     }
@@ -117,8 +135,9 @@ public static class DependencyInjection
         });
         return services;
     }
-    public static IServiceCollection AddRateLimiting(this IServiceCollection services)
+    public static IServiceCollection AddRateLimiting(this IServiceCollection services, IConfiguration configuration)
     {
+        var enabled = configuration.GetValue("RateLimiting:Enabled", true);
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -139,149 +158,41 @@ public static class DependencyInjection
                     return RateLimitPartition.GetNoLimiter("unlimited");
                 }
 
-                if (httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId)
-                {
-                    return RateLimitPartition.GetFixedWindowLimiter(
-                        partitionKey: $"user:{userId}",
-                        factory: _ => new FixedWindowRateLimiterOptions
-                        {
-                            PermitLimit = 300,
-                            Window = TimeSpan.FromMinutes(1),
-                        });
-                }
-
-                return RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 200,
-                        Window = TimeSpan.FromMinutes(1),
-                    });
+                return httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) is { } userId
+                    ? FixedWindow(enabled, $"user:{userId}", 300, TimeSpan.FromMinutes(1))
+                    : FixedWindow(enabled, $"ip:{ClientIp(httpContext)}", 200, TimeSpan.FromMinutes(1));
             });
 
-            options.AddPolicy(RateLimitPolicies.ResendConfirmation, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 3,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.SendResetPasswordCode, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 3,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.ChangePassword, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.GoogleLogin, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 10,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.SetMyPassword, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.CreateReport, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 10,
-                        Window = TimeSpan.FromHours(1),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.CreateReview, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromHours(1),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.DeleteAccount, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.ChangeEmail, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 3,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.SendMessage, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
-                        ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                        ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 30,
-                        Window = TimeSpan.FromMinutes(1),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.Login, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 10,
-                        Window = TimeSpan.FromMinutes(1),
-                    }));
-
-            options.AddPolicy(RateLimitPolicies.Register, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    factory: _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 5,
-                        Window = TimeSpan.FromMinutes(15),
-                    }));
+            options.AddPolicy(RateLimitPolicies.ResendConfirmation, httpContext => FixedWindow(enabled, ClientIp(httpContext), 3, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.SendResetPasswordCode, httpContext => FixedWindow(enabled, ClientIp(httpContext), 3, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.ChangePassword, httpContext => FixedWindow(enabled, ClientIp(httpContext), 5, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.GoogleLogin, httpContext => FixedWindow(enabled, ClientIp(httpContext), 10, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.Login, httpContext => FixedWindow(enabled, ClientIp(httpContext), 10, TimeSpan.FromMinutes(1)));
+            options.AddPolicy(RateLimitPolicies.Register, httpContext => FixedWindow(enabled, ClientIp(httpContext), 5, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.SetMyPassword, httpContext => FixedWindow(enabled, UserOrClientIp(httpContext), 5, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.CreateReport, httpContext => FixedWindow(enabled, UserOrClientIp(httpContext), 10, TimeSpan.FromHours(1)));
+            options.AddPolicy(RateLimitPolicies.CreateReview, httpContext => FixedWindow(enabled, UserOrClientIp(httpContext), 5, TimeSpan.FromHours(1)));
+            options.AddPolicy(RateLimitPolicies.DeleteAccount, httpContext => FixedWindow(enabled, UserOrClientIp(httpContext), 5, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.ChangeEmail, httpContext => FixedWindow(enabled, UserOrClientIp(httpContext), 3, TimeSpan.FromMinutes(15)));
+            options.AddPolicy(RateLimitPolicies.SendMessage, httpContext => FixedWindow(enabled, UserOrClientIp(httpContext), 30, TimeSpan.FromMinutes(1)));
         });
-
         return services;
     }
+
+    private static RateLimitPartition<string> FixedWindow(bool enabled, string partitionKey, int permitLimit, TimeSpan window)
+        => enabled
+            ? RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = window,
+            })
+            : RateLimitPartition.GetNoLimiter(partitionKey);
+
+    private static string ClientIp(HttpContext httpContext)
+        => httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    private static string UserOrClientIp(HttpContext httpContext)
+        => httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? ClientIp(httpContext);
 
     public static IServiceCollection AddIdentityInfrastructure(this IServiceCollection services)
     {
@@ -296,8 +207,6 @@ public static class DependencyInjection
             context.ProblemDetails.Instance = $"{context.HttpContext.Request.Method} {context.HttpContext.Request.Path}";
             context.ProblemDetails.Extensions["requestId"] = context.HttpContext.TraceIdentifier;
 
-            // Responses produced by the framework itself (auth middleware, unknown route, rate limiter,
-            // invalid JSON body) come with English default titles; replace them with Arabic ones.
             var status = context.ProblemDetails.Status ?? context.HttpContext.Response.StatusCode;
             var title = context.ProblemDetails.Title;
             if (string.IsNullOrEmpty(title)
@@ -331,11 +240,6 @@ public static class DependencyInjection
 
     public static IApplicationBuilder UseCoreMiddlewares(this IApplicationBuilder app, IConfiguration configuration)
     {
-        if (configuration.GetValue<bool>("ForwardedHeaders:Enabled"))
-        {
-            app.UseForwardedHeaders();
-        }
-        app.UseExceptionHandler();
         app.UseStatusCodePages();
         app.UseHttpsRedirection();
         app.UseRouting();

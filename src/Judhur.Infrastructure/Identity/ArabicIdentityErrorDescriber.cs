@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Judhur.Infrastructure.Identity;
 
-/// <summary>
-/// Arabic messages for the errors ASP.NET Core Identity produces itself
-/// (duplicate email, weak password, ...). Codes stay the same as the defaults.
-/// </summary>
 public sealed class ArabicIdentityErrorDescriber : IdentityErrorDescriber
 {
     public override IdentityError DefaultError()

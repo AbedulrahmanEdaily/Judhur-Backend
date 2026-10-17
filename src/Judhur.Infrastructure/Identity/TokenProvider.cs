@@ -9,6 +9,7 @@ using Judhur.Application.Features.Identity;
 using Judhur.Application.Features.Identity.Dtos;
 using Judhur.Domain.Common.Results;
 using Judhur.Domain.Identity;
+using Judhur.Infrastructure.Data;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,25 +18,32 @@ namespace Judhur.Infrastructure.Identity;
 
 public sealed class TokenProvider(
     JwtSettings jwtSettings,
-    IAppDbContext context,
+    AppDbContext context,
     TimeProvider timeProvider) : ITokenProvider
 {
+    public const string SecurityStampClaim = "sst";
+
     private const int RefreshTokenSizeInBytes = 32;
 
     private readonly JwtSettings _jwtSettings = jwtSettings;
-    private readonly IAppDbContext _context = context;
+    private readonly AppDbContext _context = context;
     private readonly TimeProvider _timeProvider = timeProvider;
 
     public async Task<Result<TokenResponse>> GenerateJwtTokenAsync(AppUserDto user, CancellationToken ct = default)
     {
         var nowUtc = _timeProvider.GetUtcNow();
         var expiresOnUtc = nowUtc.AddMinutes(_jwtSettings.TokenExpirationInMinutes);
+        var securityStamp = await _context.Users
+            .Where(u => u.Id == user.UserId)
+            .Select(u => u.SecurityStamp)
+            .FirstOrDefaultAsync(ct);
 
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.CreateVersion7().ToString()),
+            new(SecurityStampClaim, securityStamp ?? string.Empty),
         };
 
         foreach (var role in user.Roles)

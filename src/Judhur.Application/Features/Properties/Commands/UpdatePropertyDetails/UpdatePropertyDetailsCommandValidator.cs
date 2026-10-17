@@ -17,14 +17,16 @@ public sealed class UpdatePropertyDetailsCommandValidator : AbstractValidator<Up
 
         RuleFor(p => p.Price)
             .GreaterThan(0).WithMessage("السعر يجب أن يكون أكبر من صفر.")
-            .LessThanOrEqualTo(Property.MaxPrice).WithMessage("السعر أكبر من الحد المسموح.");
+            .LessThanOrEqualTo(Property.MaxPrice).WithMessage("السعر أكبر من الحد المسموح.")
+            .Must(price => decimal.Round(price, Property.MaxDecimalPlaces) == price).WithMessage("السعر يقبل خانتين عشريتين كحد أقصى.");
 
         RuleFor(p => p.PaymentType).IsInEnum().WithMessage("طريقة الدفع غير صالحة.");
         RuleFor(p => p.PropertyType).IsInEnum().WithMessage("نوع العقار غير صالح.");
 
         RuleFor(p => p.Area)
             .GreaterThan(0).WithMessage("المساحة يجب أن تكون أكبر من صفر.")
-            .LessThanOrEqualTo(Property.MaxArea).WithMessage("المساحة أكبر من الحد المسموح.");
+            .LessThanOrEqualTo(Property.MaxArea).WithMessage("المساحة أكبر من الحد المسموح.")
+            .Must(area => decimal.Round(area, Property.MaxDecimalPlaces) == area).WithMessage("المساحة تقبل خانتين عشريتين كحد أقصى.");
 
         RuleFor(p => p.City)
             .NotEmpty().WithMessage("المدينة مطلوبة.")

@@ -52,7 +52,10 @@ public sealed class Conversation : AuditableEntity
         }
         var message = messageResult.Value;
         _messages.Add(message);
-        LastMessageAtUtc = sentAtUtc;
+        if (LastMessageAtUtc is null || sentAtUtc > LastMessageAtUtc)
+        {
+            LastMessageAtUtc = sentAtUtc;
+        }
         return message;
     }
     public Result<Updated> MarkAsRead(Guid readerId, DateTimeOffset readAtUtc)

@@ -112,9 +112,17 @@ public static class PropertyErrors
         "PropertyErrors.AlreadyActive",
         "العقار مفعل بالفعل");
 
-    public static readonly Error CannotReactivateUnapprovedProperty = Error.Conflict(
-        "PropertyErrors.CannotReactivateUnapprovedProperty",
-        "لا يمكن تفعيل عقار غير مصرح به");
+    public static readonly Error CannotApproveRejectedProperty = Error.Conflict(
+        "PropertyErrors.CannotApproveRejectedProperty",
+        "لا يمكن الموافقة على عقار مرفوض قبل أن يعيد المالك إرساله للمراجعة");
+
+    public static readonly Error PriceTooPrecise = Error.Validation(
+        "PropertyErrors.PriceTooPrecise",
+        "السعر يقبل خانتين عشريتين كحد أقصى");
+
+    public static readonly Error AreaTooPrecise = Error.Validation(
+        "PropertyErrors.AreaTooPrecise",
+        "المساحة تقبل خانتين عشريتين كحد أقصى");
 
     public static readonly Error MainImageRequired = Error.Validation(
         "PropertyErrors.MainImageRequired",

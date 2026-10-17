@@ -12,6 +12,8 @@ namespace Judhur.Infrastructure.Identity.GoogleLogin;
 public sealed class GoogleTokenValidator(GoogleSettings settings, ILogger<GoogleTokenValidator> logger) : IGoogleTokenValidator
 {
     private readonly GoogleSettings _settings = settings;
+    private const int MaxFullNameLength = 150;
+
     private readonly ILogger<GoogleTokenValidator> _logger = logger;
 
     public async Task<Result<GoogleUser>> ValidateAsync(string idToken, CancellationToken cancellationToken = default)
@@ -29,6 +31,11 @@ public sealed class GoogleTokenValidator(GoogleSettings settings, ILogger<Google
             _logger.LogWarning("Google token rejected: {Reason}", exception.Message);
             return ApplicationError.InvalidGoogleToken;
         }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Google token could not be validated: Google certificates are unreachable");
+            return ApplicationError.GoogleUnavailable;
+        }
 
         if (string.IsNullOrWhiteSpace(payload.Subject) || string.IsNullOrWhiteSpace(payload.Email))
         {
@@ -36,7 +43,11 @@ public sealed class GoogleTokenValidator(GoogleSettings settings, ILogger<Google
             return ApplicationError.InvalidGoogleToken;
         }
 
-        var fullName = string.IsNullOrWhiteSpace(payload.Name) ? payload.Email : payload.Name;
+        var fullName = string.IsNullOrWhiteSpace(payload.Name) ? payload.Email : payload.Name.Trim();
+        if (fullName.Length > MaxFullNameLength)
+        {
+            fullName = fullName[..MaxFullNameLength];
+        }
         return new GoogleUser(payload.Subject, payload.Email, payload.EmailVerified, fullName, payload.Picture);
     }
 }

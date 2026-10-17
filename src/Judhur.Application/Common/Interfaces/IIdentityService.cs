@@ -53,8 +53,8 @@ public interface IIdentityService
     Task<UserStatsDto> GetUserStatsAsync(DateTimeOffset newSinceUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetAdminIdsAsync(CancellationToken cancellationToken = default);
     Task<bool> IsActiveAccountAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default);
-    Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, CancellationToken cancellationToken = default);
+    Task<Result<DeletedAccount>> DeleteAccountAsync(Guid userId, string? password, string? googleIdToken, DateTimeOffset deletedAtUtc, CancellationToken cancellationToken = default);
+    Task<Result<Success>> RequestEmailChangeAsync(Guid userId, string newEmail, string? password, string? googleIdToken, CancellationToken cancellationToken = default);
     Task<Result<EmailMessage>> BuildEmailChangeEmailAsync(Guid userId, string newEmail, CancellationToken cancellationToken = default);
     Task<Result<EmailChange>> ConfirmEmailChangeAsync(Guid userId, string newEmail, string token, CancellationToken cancellationToken = default);
     Task<Result<EmailMessage>> BuildEmailChangedNoticeAsync(Guid userId, string oldEmail, CancellationToken cancellationToken = default);
@@ -62,7 +62,7 @@ public interface IIdentityService
     Task<Result<MyProfileDto>> GetMyProfileAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Result<MyProfileDto>> UpdateProfileAsync(Guid userId, ProfileUpdate update, CancellationToken cancellationToken = default);
     Task<Result<ReplacedProfileImage>> SetProfileImageAsync(Guid userId, StoredFile? image, CancellationToken cancellationToken = default);
-    Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, CancellationToken cancellationToken = default);
+    Task<Result<Success>> SetPasswordAsync(Guid userId, string? currentPassword, string newPassword, string? googleIdToken, CancellationToken cancellationToken = default);
     Task<Result<SellerInfo>> GetSellerInfoAsync(Guid sellerId, CancellationToken cancellationToken = default);
     Task<Result<AppUserDto>> SignInWithGoogleAsync(GoogleUser googleUser, string? phoneNumber, string? city, CancellationToken cancellationToken = default);
 }

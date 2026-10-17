@@ -18,7 +18,7 @@ public sealed class SendEmailChangedNoticeHandler(IIdentityService identityServi
         var result = await _identityService.BuildEmailChangedNoticeAsync(notification.UserId, notification.OldEmail, cancellationToken);
         if (result.IsError)
         {
-            _logger.LogError("Email changed notice could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
+            _logger.LogWarning("Email changed notice could not be built for user {UserId}: {ErrorCode}", notification.UserId, result.TopError.Code);
             return;
         }
         await _emailQueue.EnqueueAsync(result.Value, cancellationToken);

@@ -5,11 +5,13 @@ namespace Judhur.Infrastructure.Email;
 public sealed class EmailSettings
 {
     public const string SectionName = "Email";
+    public const string PasswordKey = "EmailPassword";
 
     public required string SenderAddress { get; init; }
     public required string SenderName { get; init; }
     public required string SmtpHost { get; init; }
     public required int SmtpPort { get; init; }
+    public required string Password { get; init; }
 
     public static EmailSettings Bind(IConfiguration configuration)
     {
@@ -22,7 +24,10 @@ public sealed class EmailSettings
             SmtpHost = Required(section, nameof(SmtpHost)),
             SmtpPort = int.TryParse(section[nameof(SmtpPort)], out var port)
                 ? port
-                : throw new InvalidOperationException($"Configuration value '{section.Path}:{nameof(SmtpPort)}' is missing or invalid.")
+                : throw new InvalidOperationException($"Configuration value '{section.Path}:{nameof(SmtpPort)}' is missing or invalid."),
+            Password = configuration[PasswordKey] is { Length: > 0 } password
+                ? password
+                : throw new InvalidOperationException($"Configuration value '{PasswordKey}' is missing.")
         };
     }
 

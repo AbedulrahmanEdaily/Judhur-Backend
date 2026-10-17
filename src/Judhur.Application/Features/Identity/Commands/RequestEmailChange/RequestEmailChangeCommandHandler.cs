@@ -31,7 +31,7 @@ public sealed class RequestEmailChangeCommandHandler(
         }
 
         var newEmail = request.NewEmail.Trim();
-        var result = await _identityService.RequestEmailChangeAsync(userId, newEmail, request.Password, cancellationToken);
+        var result = await _identityService.RequestEmailChangeAsync(userId, newEmail, request.Password, request.GoogleIdToken, cancellationToken);
         if (result.IsError)
         {
             _logger.LogWarning("Request email change failed for user {UserId}: {ErrorCode}", userId, result.TopError.Code);

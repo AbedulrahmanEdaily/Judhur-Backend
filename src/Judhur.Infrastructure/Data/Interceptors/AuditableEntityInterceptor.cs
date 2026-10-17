@@ -8,10 +8,6 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Judhur.Infrastructure.Data.Interceptors;
 
-/// <summary>
-/// Stamps the audit columns on every <see cref="AuditableEntity"/> touched by a
-/// save, so handlers never have to remember to do it themselves.
-/// </summary>
 public sealed class AuditableEntityInterceptor(IUser user, TimeProvider timeProvider) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(
@@ -40,8 +36,6 @@ public sealed class AuditableEntityInterceptor(IUser user, TimeProvider timeProv
             return;
         }
 
-        // Read both once: one save is one moment, and every row it writes
-        // carries the same timestamp and the same author.
         var utcNow = timeProvider.GetUtcNow();
         var userId = user.Id;
 

@@ -43,7 +43,7 @@ public sealed class SetMainPropertyImageCommandHandler(
             return result.Errors;
         }
         await _context.SaveChangesAsync(cancellationToken);
-        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, cancellationToken);
+        await _reviewQueue.PublishIfEnteredAsync(property.Id, property.Title, wasQueued, CancellationToken.None);
         _logger.LogInformation("Image {ImageId} set as main image of property {PropertyId} by seller {SellerId}", request.ImageId, property.Id, sellerId);
         return Result.Updated;
     }

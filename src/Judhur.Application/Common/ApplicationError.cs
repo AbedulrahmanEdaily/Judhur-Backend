@@ -34,6 +34,15 @@ public static class ApplicationError
     public static readonly Error DuplicateEmail = Error.Conflict(
         code: "Identity.DuplicateEmail",
         description: "البريد الإلكتروني مستخدم مسبقًا.");
+    public static readonly Error GoogleReauthenticationRequired = Error.Validation(
+        code: "Identity.GoogleReauthenticationRequired",
+        description: "أكّد هويتك بتسجيل الدخول عبر Google مرة أخرى.");
+    public static readonly Error GoogleReauthenticationFailed = Error.Validation(
+        code: "Identity.GoogleReauthenticationFailed",
+        description: "حساب Google المستخدم لا يطابق حسابك.");
+    public static readonly Error GoogleUnavailable = Error.Failure(
+        code: "Identity.GoogleUnavailable",
+        description: "تعذّر الاتصال بـ Google، حاول مرة أخرى بعد قليل.");
     public static readonly Error ParticipantUnavailable = Error.Conflict(
         code: "Conversations.ParticipantUnavailable",
         description: "لم يعد بإمكانك مراسلة هذا المستخدم.");
@@ -72,9 +81,9 @@ public static class ApplicationError
 
     public static readonly Error PageInvalid = Error.Validation(
         code: "Pagination.PageInvalid",
-        description: "رقم الصفحة يجب أن يكون أكبر من صفر.");
+        description: $"رقم الصفحة يجب أن يكون بين 1 و {Pagination.MaxPage}.");
 
     public static readonly Error PageSizeInvalid = Error.Validation(
         code: "Pagination.PageSizeInvalid",
-        description: "حجم الصفحة يجب أن يكون بين 1 و100.");
+        description: $"حجم الصفحة يجب أن يكون بين 1 و{Pagination.MaxPageSize}.");
 }

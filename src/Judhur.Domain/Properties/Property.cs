@@ -8,6 +8,7 @@ namespace Judhur.Domain.Properties;
 public sealed class Property : AuditableEntity
 {
     public const int MinImages = 3;
+    public const int MaxDecimalPlaces = 2;
     public const int MaxImages = 10;
 
     public const int MaxTitleLength = 200;
@@ -195,6 +196,11 @@ public sealed class Property : AuditableEntity
         LandClassification landClassification,
         LegalStatus legalStatus)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         var detailsError = ValidateDetails(
             title,
             description,
@@ -236,6 +242,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> UpdateDescription(string? description)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (description?.Length > MaxDescriptionLength)
         {
             return PropertyErrors.DescriptionTooLong;
@@ -246,6 +257,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> SetOwnershipDocument(string publicId)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (string.IsNullOrWhiteSpace(publicId))
         {
             return PropertyErrors.OwnershipDocumentRequired;
@@ -264,6 +280,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> Approve(Guid reviewedBy, DateTimeOffset reviewedAtUtc)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (reviewedBy == Guid.Empty)
         {
             return PropertyErrors.ReviewerRequired;
@@ -272,6 +293,11 @@ public sealed class Property : AuditableEntity
         if (ModerationStatus == ModerationStatus.Approved)
         {
             return PropertyErrors.AlreadyApproved;
+        }
+
+        if (ModerationStatus == ModerationStatus.Rejected)
+        {
+            return PropertyErrors.CannotApproveRejectedProperty;
         }
 
         if (_propertyImages.Count < MinImages)
@@ -299,6 +325,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> Reject(Guid reviewedBy, DateTimeOffset reviewedAtUtc, string reason)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (reviewedBy == Guid.Empty)
         {
             return PropertyErrors.ReviewerRequired;
@@ -319,13 +350,14 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.RejectionReasonRequired;
         }
 
-        if (reason.Length > MaxRejectionReasonLength)
+        var trimmedReason = reason.Trim();
+        if (trimmedReason.Length > MaxRejectionReasonLength)
         {
             return PropertyErrors.RejectionReasonTooLong;
         }
 
         ModerationStatus = ModerationStatus.Rejected;
-        RejectionReason = reason;
+        RejectionReason = trimmedReason;
         ReviewedBy = reviewedBy;
         ReviewedAtUtc = reviewedAtUtc;
 
@@ -334,6 +366,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> SuspendByAdmin(Guid adminId, DateTimeOffset suspendedAtUtc, string reason)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (adminId == Guid.Empty)
         {
             return PropertyErrors.ReviewerRequired;
@@ -365,6 +402,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> ResubmitForReview()
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (ModerationStatus != ModerationStatus.Rejected)
         {
             return PropertyErrors.CannotResubmitUnrejectedProperty;
@@ -383,6 +425,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> Deactivate()
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (!IsActive)
         {
             return PropertyErrors.AlreadyDeactivated;
@@ -395,9 +442,9 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> Reactivate()
     {
-        if (ModerationStatus != ModerationStatus.Approved)
+        if (IsDeleted)
         {
-            return PropertyErrors.CannotReactivateUnapprovedProperty;
+            return PropertyErrors.NotFound;
         }
 
         if (IsActive)
@@ -410,8 +457,6 @@ public sealed class Property : AuditableEntity
         return Result.Updated;
     }
 
-    // Soft delete: the row stays so conversations and reports about this property are kept.
-    // The global query filter in PropertyConfiguration hides deleted properties from every query.
     public Result<Deleted> Delete(DateTimeOffset deletedAtUtc)
     {
         if (IsDeleted)
@@ -422,12 +467,18 @@ public sealed class Property : AuditableEntity
         IsDeleted = true;
         DeletedAtUtc = deletedAtUtc;
         IsActive = false;
+        OwnershipDocumentPublicId = null;
 
         return Result.Deleted;
     }
 
     public Result<Updated> AddImage(Guid imageId, string fileUrl, string publicId, bool isMainImage)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (_propertyImages.Count >= MaxImages)
         {
             return PropertyErrors.MaxImagesReached;
@@ -469,6 +520,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> RemoveImage(Guid imageId)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         var image = _propertyImages.FirstOrDefault(i => i.Id == imageId);
 
         if (image is null)
@@ -493,6 +549,11 @@ public sealed class Property : AuditableEntity
 
     public Result<Updated> SetMainImage(Guid imageId)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         var image = _propertyImages.FirstOrDefault(i => i.Id == imageId);
 
         if (image is null)
@@ -554,6 +615,11 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.PriceTooHigh;
         }
 
+        if (decimal.Round(price, MaxDecimalPlaces) != price)
+        {
+            return PropertyErrors.PriceTooPrecise;
+        }
+
         if (!Enum.IsDefined(paymentType))
         {
             return PropertyErrors.PaymentInvalid;
@@ -572,6 +638,11 @@ public sealed class Property : AuditableEntity
         if (area > MaxArea)
         {
             return PropertyErrors.AreaTooHigh;
+        }
+
+        if (decimal.Round(area, MaxDecimalPlaces) != area)
+        {
+            return PropertyErrors.AreaTooPrecise;
         }
 
         if (string.IsNullOrWhiteSpace(city))
@@ -599,12 +670,12 @@ public sealed class Property : AuditableEntity
             return PropertyErrors.FullAddressTooLong;
         }
 
-        if (latitude < -90 || latitude > 90)
+        if (!double.IsFinite(latitude) || latitude < -90 || latitude > 90)
         {
             return PropertyErrors.LatitudeInvalid;
         }
 
-        if (longitude < -180 || longitude > 180)
+        if (!double.IsFinite(longitude) || longitude < -180 || longitude > 180)
         {
             return PropertyErrors.LongitudeInvalid;
         }
@@ -624,6 +695,11 @@ public sealed class Property : AuditableEntity
 
     private Result<Updated> ChangeMarketStatus(PropertyStatus expectedCurrent, PropertyStatus next)
     {
+        if (IsDeleted)
+        {
+            return PropertyErrors.NotFound;
+        }
+
         if (ModerationStatus != ModerationStatus.Approved)
         {
             return PropertyErrors.CannotChangeStatusOfUnapprovedProperty;

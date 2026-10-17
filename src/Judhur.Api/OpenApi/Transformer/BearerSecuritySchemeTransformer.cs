@@ -36,7 +36,7 @@ public sealed class BearerSecuritySchemeTransformer : IOpenApiDocumentTransforme
         operation.Security ??= [];
         operation.Security.Add(new OpenApiSecurityRequirement
         {
-            [new OpenApiSecuritySchemeReference("Bearer", context.Document)] = []
+            [new OpenApiSecuritySchemeReference(SchemeId, context.Document)] = []
         });
         return Task.CompletedTask;
     }
