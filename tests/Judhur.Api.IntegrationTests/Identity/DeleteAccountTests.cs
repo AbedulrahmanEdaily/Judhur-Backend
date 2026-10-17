@@ -50,7 +50,7 @@ public sealed class DeleteAccountTests(JudhurApiFactory factory)
         await DeleteOkAsync(user);
 
         var refresh = await _identity.RefreshAsync(user.Tokens);
-        await refresh.AssertProblemAsync(HttpStatusCode.NotFound, "Auth.User.NotFound");
+        await refresh.AssertProblemAsync(HttpStatusCode.Unauthorized, "RefreshTokenErrors.Expired");
     }
 
     [Fact]

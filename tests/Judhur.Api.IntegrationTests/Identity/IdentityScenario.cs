@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 using Judhur.Api.IntegrationTests.Infrastructure;
 using Judhur.Application.Common.Models;
@@ -8,7 +7,7 @@ using Judhur.Application.Features.Identity;
 
 namespace Judhur.Api.IntegrationTests.Identity;
 
-public sealed partial class IdentityScenario(JudhurApiFactory factory)
+public sealed class IdentityScenario(JudhurApiFactory factory)
 {
     public const string PasswordChangedSubject = "تم تغيير كلمة المرور";
     public const string EmailChangedSubject = "تم تغيير البريد الإلكتروني";
@@ -146,20 +145,11 @@ public sealed partial class IdentityScenario(JudhurApiFactory factory)
         Assert.Equal(count, EmailsTo(to, subject).Count);
     }
 
-    public static Uri ActionLink(EmailMessage message)
-    {
-        var link = LinkPattern().Matches(message.HtmlMessage)
-            .Select(match => new Uri(WebUtility.HtmlDecode(match.Groups["url"].Value)))
-            .FirstOrDefault(uri => FakeEmailSender.QueryOf(uri).ContainsKey("token"));
-        return link ?? throw new InvalidOperationException("The email has no action link.");
-    }
+    public static Uri ActionLink(EmailMessage message) => FakeEmailSender.ExtractLink(message);
 
     public static string PublicIdOf(string imageUrl)
     {
         var path = new Uri(imageUrl).AbsolutePath.TrimStart('/');
         return path.EndsWith(".jpg", StringComparison.Ordinal) ? path[..^".jpg".Length] : path;
     }
-
-    [GeneratedRegex("href=\"(?<url>https?://[^\"]+)\"")]
-    private static partial Regex LinkPattern();
 }

@@ -152,7 +152,7 @@ public sealed class PasswordResetTests(JudhurApiFactory factory)
     }
 
     [Fact]
-    public async Task ChangePassword_NewCodeRequested_ResetsAttemptsAndAcceptsNewCode()
+    public async Task ChangePassword_NewCodeWhileOldStillValid_KeepsFailedAttempts()
     {
         var email = Scenario.NewEmail();
         await _identity.RegisterConfirmedAsync(email);
@@ -165,7 +165,7 @@ public sealed class PasswordResetTests(JudhurApiFactory factory)
 
         var response = await ChangePasswordAsync(email, newCode);
 
-        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        await response.AssertProblemAsync(HttpStatusCode.BadRequest, "Identity.InvalidResetCode");
     }
 
     [Fact]

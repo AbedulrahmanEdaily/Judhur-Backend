@@ -35,14 +35,10 @@ public sealed partial class FakeEmailSender : IEmailSender
     }
 
     public static Uri ExtractLink(EmailMessage message)
-    {
-        var match = LinkPattern().Match(message.HtmlMessage);
-        if (!match.Success)
-        {
-            throw new InvalidOperationException("The email has no link.");
-        }
-        return new Uri(WebUtility.HtmlDecode(match.Groups["url"].Value));
-    }
+        => LinkPattern().Matches(message.HtmlMessage)
+            .Select(match => new Uri(WebUtility.HtmlDecode(match.Groups["url"].Value)))
+            .FirstOrDefault(uri => QueryOf(uri).ContainsKey("token"))
+            ?? throw new InvalidOperationException("The email has no action link.");
 
     public static string ExtractResetCode(EmailMessage message)
     {
