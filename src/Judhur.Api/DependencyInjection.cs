@@ -89,12 +89,13 @@ public static class DependencyInjection
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is { Length: > 0 } origins
             ? origins
             : throw new InvalidOperationException("Configuration value 'Cors:AllowedOrigins' is missing.");
-        services.AddCors(options => options.AddPolicy("frontend"
-            ,
+        services.AddCors(options => options.AddPolicy(
+            "frontend",
             policy => policy
                 .WithOrigins(allowedOrigins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
+                .WithExposedHeaders("Retry-After")
                 .AllowCredentials()));
         return services;
     }
