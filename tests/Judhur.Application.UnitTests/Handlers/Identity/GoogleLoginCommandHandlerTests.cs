@@ -58,8 +58,8 @@ public sealed class GoogleLoginCommandHandlerTests
         var result = await _handler.Handle(Command, TestContext.Current.CancellationToken);
 
         Assert.Equal(ApplicationError.InvalidGoogleToken.Code, result.TopError.Code);
-        await _identity.DidNotReceiveWithAnyArgs().SignInWithGoogleAsync(default!, default, default, default);
-        await _tokens.DidNotReceiveWithAnyArgs().GenerateJwtTokenAsync(default!, default);
+        await _identity.DidNotReceiveWithAnyArgs().SignInWithGoogleAsync(default!, default, default, TestContext.Current.CancellationToken);
+        await _tokens.DidNotReceiveWithAnyArgs().GenerateJwtTokenAsync(default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed class GoogleLoginCommandHandlerTests
         var result = await _handler.Handle(Command, TestContext.Current.CancellationToken);
 
         Assert.Equal(ApplicationError.AccountBanned.Code, result.TopError.Code);
-        await _tokens.DidNotReceiveWithAnyArgs().GenerateJwtTokenAsync(default!, default);
+        await _tokens.DidNotReceiveWithAnyArgs().GenerateJwtTokenAsync(default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]

@@ -45,7 +45,7 @@ public sealed class LoginCommandHandlerTests
         var result = await _handler.Handle(new LoginCommand("user@example.com", "Passw0rd"), TestContext.Current.CancellationToken);
 
         Assert.Equal(ApplicationError.InvalidPassword.Code, result.TopError.Code);
-        await _tokens.DidNotReceiveWithAnyArgs().GenerateJwtTokenAsync(default!, default);
+        await _tokens.DidNotReceiveWithAnyArgs().GenerateJwtTokenAsync(default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]

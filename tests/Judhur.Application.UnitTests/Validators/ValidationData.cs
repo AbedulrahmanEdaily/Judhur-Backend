@@ -73,7 +73,7 @@ public static class ValidationData
 
     public static TheoryData<string?> InvalidRowVersions =>
     [
-        null,
+        (string?)null,
         "",
         "not base64!",
         "AAAAAA==",

@@ -25,7 +25,7 @@ public sealed class TransactionBehaviorTests
         await _behavior.Handle(new TransactionalTestCommand("x"), _ => TestResults.Success(), TestContext.Current.CancellationToken);
 
         await _transaction.Received(1).CommitAsync(Arg.Any<CancellationToken>());
-        await _transaction.DidNotReceiveWithAnyArgs().RollbackAsync(default);
+        await _transaction.DidNotReceiveWithAnyArgs().RollbackAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class TransactionBehaviorTests
 
         Assert.True(result.IsError);
         await _transaction.Received(1).RollbackAsync(Arg.Any<CancellationToken>());
-        await _transaction.DidNotReceiveWithAnyArgs().CommitAsync(default);
+        await _transaction.DidNotReceiveWithAnyArgs().CommitAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -54,8 +54,8 @@ public sealed class TransactionBehaviorTests
             _ => throw new InvalidOperationException("boom"),
             TestContext.Current.CancellationToken));
 
-        await _transaction.DidNotReceiveWithAnyArgs().CommitAsync(default);
-        await _transaction.DidNotReceiveWithAnyArgs().RollbackAsync(default);
+        await _transaction.DidNotReceiveWithAnyArgs().CommitAsync(TestContext.Current.CancellationToken);
+        await _transaction.DidNotReceiveWithAnyArgs().RollbackAsync(TestContext.Current.CancellationToken);
     }
 
     [Theory]

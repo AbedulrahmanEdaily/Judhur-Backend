@@ -31,8 +31,7 @@ public sealed class TestDatabase : IAsyncDisposable
             return new TestDatabase(null, server);
         }
 
-        var container = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
             .Build();
         await container.StartAsync();
         return new TestDatabase(container, container.GetConnectionString());

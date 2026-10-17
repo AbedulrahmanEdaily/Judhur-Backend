@@ -49,7 +49,7 @@ public sealed class DeferredDispatchBehaviorTests
         var result = await _behavior.Handle(new PlainTestCommand("x"), _ => TestResults.Failed(), TestContext.Current.CancellationToken);
 
         Assert.True(result.IsError);
-        await _dispatcher.DidNotReceiveWithAnyArgs().DispatchAsync(default);
+        await _dispatcher.DidNotReceiveWithAnyArgs().DispatchAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed class DeferredDispatchBehaviorTests
             _ => throw new InvalidOperationException("boom"),
             TestContext.Current.CancellationToken));
 
-        await _dispatcher.DidNotReceiveWithAnyArgs().DispatchAsync(default);
+        await _dispatcher.DidNotReceiveWithAnyArgs().DispatchAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
