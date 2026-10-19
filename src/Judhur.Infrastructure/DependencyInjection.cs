@@ -8,6 +8,7 @@ using Judhur.Infrastructure.Data;
 using Judhur.Infrastructure.CloudinaryStorage;
 using Judhur.Infrastructure.Common;
 using Judhur.Infrastructure.Data.Interceptors;
+using Judhur.Infrastructure.Data.Seed;
 using Judhur.Infrastructure.Email;
 using Judhur.Infrastructure.Identity;
 using Judhur.Infrastructure.Identity.GoogleLogin;
@@ -67,6 +68,7 @@ public static class DependencyInjection
         services.AddDataProtection()
             .PersistKeysToDbContext<AppDbContext>()
             .SetApplicationName("Judhur");
+        services.AddScoped<DemoDataSeeder>();
         services.AddScoped<ApplicationDbContextInitializer>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 

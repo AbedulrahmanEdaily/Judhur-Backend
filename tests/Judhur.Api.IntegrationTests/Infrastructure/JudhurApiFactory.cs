@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Judhur.Api.IntegrationTests.Infrastructure;
 
-public sealed class JudhurApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class JudhurApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     public const string AdminEmail = "admin@judhur.test";
     public const string AdminPassword = "Admin#Pass2026";
@@ -18,6 +18,8 @@ public sealed class JudhurApiFactory : WebApplicationFactory<Program>, IAsyncLif
     public FakeEmailSender Emails { get; } = new();
 
     public FakeFileStorage Files { get; } = new();
+
+    protected virtual bool SeedDemoData => false;
 
     public string ConnectionString => _database?.ConnectionString
         ?? throw new InvalidOperationException("The test database has not been started.");
@@ -51,6 +53,7 @@ public sealed class JudhurApiFactory : WebApplicationFactory<Program>, IAsyncLif
         builder.UseSetting("AdminSeed:City", "رام الله");
         builder.UseSetting("RateLimiting:Enabled", "false");
         builder.UseSetting("Database:ApplyMigrationsOnStartup", "true");
+        builder.UseSetting("Database:SeedDemoData", SeedDemoData ? "true" : "false");
         builder.UseSetting("Logging:LogLevel:Default", "Warning");
 
         builder.ConfigureTestServices(services =>
