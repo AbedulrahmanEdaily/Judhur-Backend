@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Email\Templates\*.html;Email\Templates\*.png" LogicalName="EmailTemplates.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Data\Seed\Resources\ownership-document-sample.pdf" LogicalName="DemoData.ownership-document-sample.pdf" />
   </ItemGroup>
 
 </Project>

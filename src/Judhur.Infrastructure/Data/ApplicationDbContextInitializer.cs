@@ -19,8 +19,12 @@ public class ApplicationDbContextInitializer(
     RoleManager<IdentityRole<Guid>> roleManager,
     IHostEnvironment environment,
     IConfiguration configuration,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    DemoDataSeeder demoDataSeeder)
 {
+    private const string DevelopmentAdminEmail = "admin@judhur.com";
+    private const string DevelopmentAdminPassword = "Admin@12345";
+
     private readonly ILogger<ApplicationDbContextInitializer> _logger = logger;
     private readonly AppDbContext _context = context;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
@@ -28,6 +32,7 @@ public class ApplicationDbContextInitializer(
     private readonly IHostEnvironment _environment = environment;
     private readonly IConfiguration _configuration = configuration;
     private readonly TimeProvider _timeProvider = timeProvider;
+    private readonly DemoDataSeeder _demoDataSeeder = demoDataSeeder;
 
     public async Task InitializeAsync()
     {
@@ -46,6 +51,7 @@ public class ApplicationDbContextInitializer(
             throw;
         }
     }
+
     public async Task SeedAsync()
     {
         try
@@ -59,12 +65,79 @@ public class ApplicationDbContextInitializer(
         }
     }
 
-    private async Task EnsureProductionAdminAsync()
+    private async Task TrySeedAsync()
+    {
+        foreach (var role in new[] { Roles.User, Roles.Admin })
+        {
+            await EnsureRoleAsync(role);
+        }
+
+        var adminId = _environment.IsDevelopment()
+            ? await EnsureDevelopmentAdminAsync()
+            : await EnsureConfiguredAdminAsync();
+        if (adminId is null)
+        {
+            return;
+        }
+
+        if (_configuration.GetValue("Database:SeedDemoData", _environment.IsDevelopment()))
+        {
+            await _demoDataSeeder.SeedAsync(adminId.Value);
+        }
+    }
+
+    private async Task EnsureRoleAsync(string role)
+    {
+        if (await _roleManager.RoleExistsAsync(role))
+        {
+            return;
+        }
+        var result = await _roleManager.CreateAsync(new IdentityRole<Guid>(role));
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create the role {role}: {string.Join(" | ", result.Errors.Select(e => e.Code))}");
+        }
+        _logger.LogInformation("Role {Role} created", role);
+    }
+
+    private async Task<Guid?> EnsureDevelopmentAdminAsync()
+    {
+        var admin = await _userManager.FindByEmailAsync(DevelopmentAdminEmail);
+        if (admin is null)
+        {
+            admin = new ApplicationUser
+            {
+                Id = Guid.CreateVersion7(),
+                Email = DevelopmentAdminEmail,
+                UserName = DevelopmentAdminEmail,
+                FullName = "عبد الرحمن عديلي",
+                City = "نابلس",
+                EmailConfirmed = true,
+                CreatedAtUtc = _timeProvider.GetUtcNow().AddDays(-365)
+            };
+            var createResult = await _userManager.CreateAsync(admin, DevelopmentAdminPassword);
+            if (!createResult.Succeeded)
+            {
+                _logger.LogError(
+                    "Development admin {Email} could not be created: {Errors}",
+                    DevelopmentAdminEmail,
+                    string.Join(" | ", createResult.Errors.Select(e => e.Code)));
+                return null;
+            }
+            _logger.LogInformation("Development admin {Email} created", DevelopmentAdminEmail);
+        }
+
+        await EnsureAdminRoleAsync(admin);
+        return admin.Id;
+    }
+
+    private async Task<Guid?> EnsureConfiguredAdminAsync()
     {
         var admins = await _userManager.GetUsersInRoleAsync(Roles.Admin);
         if (admins.Count > 0)
         {
-            return;
+            return admins.OrderBy(a => a.CreatedAtUtc).First().Id;
         }
 
         var settings = AdminSeedSettings.Bind(_configuration);
@@ -92,278 +165,36 @@ public class ApplicationDbContextInitializer(
         else if (!admin.EmailConfirmed || !await _userManager.CheckPasswordAsync(admin, settings.Password))
         {
             _logger.LogCritical("Admin seed skipped: account {Email} already exists but is unconfirmed or its password does not match AdminSeed:Password", settings.Email);
-            return;
+            return null;
         }
 
-        var roleResult = await _userManager.AddToRoleAsync(admin, Roles.Admin);
-        if (!roleResult.Succeeded)
+        await EnsureAdminRoleAsync(admin);
+        _logger.LogInformation("Admin account {Email} set up from configuration", admin.Email);
+        return admin.Id;
+    }
+
+    private async Task EnsureAdminRoleAsync(ApplicationUser admin)
+    {
+        if (await _userManager.IsInRoleAsync(admin, Roles.Admin))
+        {
+            return;
+        }
+        var result = await _userManager.AddToRoleAsync(admin, Roles.Admin);
+        if (!result.Succeeded)
         {
             throw new InvalidOperationException(
-                $"Failed to assign the admin role: {string.Join(" | ", roleResult.Errors.Select(e => e.Code))}");
+                $"Failed to assign the admin role to {admin.Email}: {string.Join(" | ", result.Errors.Select(e => e.Code))}");
         }
-
-        _logger.LogInformation("Admin account {Email} set up from configuration", admin.Email);
-    }
-
-    private async Task TrySeedAsync()
-    {
-        var roles = new[] { Roles.User, Roles.Admin };
-
-        foreach (var role in roles)
-        {
-            if (!await _roleManager.RoleExistsAsync(role))
-            {
-                var roleResult = await _roleManager.CreateAsync(
-                    new IdentityRole<Guid>(role));
-
-                if (!roleResult.Succeeded)
-                {
-                    var errors = string.Join(
-                        " | ",
-                        roleResult.Errors.Select(e =>
-                            $"{e.Code}: {e.Description}"));
-
-                    _logger.LogError(
-                        "Failed to create role {Role}. Errors: {Errors}",
-                        role,
-                        errors);
-
-                    continue;
-                }
-
-                _logger.LogInformation(
-                    "Role {Role} created successfully.",
-                    role);
-            }
-        }
-
-        if (!_environment.IsDevelopment())
-        {
-            await EnsureProductionAdminAsync();
-            return;
-        }
-
-        var admin = await _userManager.FindByEmailAsync(
-            "admin@judhur.com");
-
-        if (admin is null)
-        {
-            admin = new ApplicationUser
-            {
-                Id = Guid.CreateVersion7(),
-                Email = "admin@judhur.com",
-                FullName = "Abdulrahman Edaily",
-                UserName = "Abed",
-                EmailConfirmed = true,
-                City = "Nablus",
-                CreatedAtUtc = _timeProvider.GetUtcNow()
-            };
-
-            var createResult = await _userManager.CreateAsync(
-                admin,
-                "Admin@12345");
-
-            if (!createResult.Succeeded)
-            {
-                var errors = string.Join(
-                    " | ",
-                    createResult.Errors.Select(e =>
-                        $"{e.Code}: {e.Description}"));
-
-                _logger.LogError(
-                    "Failed to create admin user {Email}. Errors: {Errors}",
-                    admin.Email,
-                    errors);
-                return;
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "Admin user {Email} created successfully.",
-                    admin.Email);
-            }
-        }
-
-        if (!await _userManager.IsInRoleAsync(admin, Roles.Admin))
-        {
-            var roleResult = await _userManager.AddToRoleAsync(
-                admin,
-                Roles.Admin);
-
-            if (!roleResult.Succeeded)
-            {
-                var errors = string.Join(
-                    " | ",
-                    roleResult.Errors.Select(e =>
-                        $"{e.Code}: {e.Description}"));
-
-                _logger.LogError(
-                    "Failed to assign role {Role} to admin {Email}. Errors: {Errors}",
-                    Roles.Admin,
-                    admin.Email,
-                    errors);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "Role {Role} assigned to admin {Email}.",
-                    Roles.Admin,
-                    admin.Email);
-            }
-        }
-
-        var user = await _userManager.FindByEmailAsync(
-            "user@judhur.com");
-
-        if (user is null)
-        {
-            user = new ApplicationUser
-            {
-                Id = Guid.CreateVersion7(),
-                Email = "user@judhur.com",
-                FullName = "Faheem Hasson",
-                UserName = "Faheem",
-                PhoneNumber = "0599123456",
-                EmailConfirmed = true,
-                City = "Nablus",
-                CreatedAtUtc = _timeProvider.GetUtcNow()
-            };
-
-            var createResult = await _userManager.CreateAsync(
-                user,
-                "User@12345");
-
-            if (!createResult.Succeeded)
-            {
-                var errors = string.Join(
-                    " | ",
-                    createResult.Errors.Select(e =>
-                        $"{e.Code}: {e.Description}"));
-
-                _logger.LogError(
-                    "Failed to create user {Email}. Errors: {Errors}",
-                    user.Email,
-                    errors);
-                return;
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "User {Email} created successfully.",
-                    user.Email);
-            }
-        }
-
-        if (!await _userManager.IsInRoleAsync(user, Roles.User))
-        {
-            var roleResult = await _userManager.AddToRoleAsync(
-                user,
-                Roles.User);
-
-            if (!roleResult.Succeeded)
-            {
-                var errors = string.Join(
-                    " | ",
-                    roleResult.Errors.Select(e =>
-                        $"{e.Code}: {e.Description}"));
-
-                _logger.LogError(
-                    "Failed to assign role {Role} to user {Email}. Errors: {Errors}",
-                    Roles.User,
-                    user.Email,
-                    errors);
-            }
-            else
-            {
-                _logger.LogInformation(
-                    "Role {Role} assigned to user {Email}.",
-                    Roles.User,
-                    user.Email);
-            }
-        }
-
-        await SeedDevelopmentDataAsync(admin, user);
-    }
-
-    private async Task SeedDevelopmentDataAsync(ApplicationUser admin, ApplicationUser user)
-    {
-        if (string.IsNullOrEmpty(user.PhoneNumber))
-        {
-            user.PhoneNumber = "0599123456";
-            await _userManager.UpdateAsync(user);
-        }
-
-        var layla = await EnsureSellerAsync("layla@judhur.com", "ليلى منصور", "layla", "0598765432", "رام الله");
-        var samer = await EnsureSellerAsync("samer@judhur.com", "سامر عودة", "samer", "0569876543", "الخليل");
-        if (layla is null || samer is null)
-        {
-            _logger.LogError("Development sellers could not be created, skipping property seeding");
-            return;
-        }
-
-        await PropertySeeder.SeedAsync(
-            _context,
-            admin.Id,
-            [user.Id, layla.Id, samer.Id],
-            user.Id,
-            _timeProvider.GetUtcNow(),
-            _logger);
-    }
-
-    private async Task<ApplicationUser?> EnsureSellerAsync(string email, string fullName, string userName, string phoneNumber, string city)
-    {
-        var seller = await _userManager.FindByEmailAsync(email);
-        if (seller is null)
-        {
-            seller = new ApplicationUser
-            {
-                Id = Guid.CreateVersion7(),
-                Email = email,
-                FullName = fullName,
-                UserName = userName,
-                PhoneNumber = phoneNumber,
-                EmailConfirmed = true,
-                City = city,
-                CreatedAtUtc = _timeProvider.GetUtcNow()
-            };
-
-            var createResult = await _userManager.CreateAsync(seller, "User@12345");
-            if (!createResult.Succeeded)
-            {
-                _logger.LogError(
-                    "Failed to create seller {Email}. Errors: {Errors}",
-                    email,
-                    string.Join(" | ", createResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
-                return null;
-            }
-
-            _logger.LogInformation("Seller {Email} created successfully.", email);
-        }
-
-        if (!await _userManager.IsInRoleAsync(seller, Roles.User))
-        {
-            var roleResult = await _userManager.AddToRoleAsync(seller, Roles.User);
-            if (!roleResult.Succeeded)
-            {
-                _logger.LogError(
-                    "Failed to assign role {Role} to seller {Email}. Errors: {Errors}",
-                    Roles.User,
-                    email,
-                    string.Join(" | ", roleResult.Errors.Select(e => $"{e.Code}: {e.Description}")));
-                return null;
-            }
-        }
-
-        return seller;
     }
 }
-    public static class InitializerExtensions
+
+public static class InitializerExtensions
+{
+    public static async Task InitializeDatabaseAsync(this WebApplication app)
     {
-        public static async Task InitializeDatabaseAsync(this WebApplication app)
-        {
-            using var scope = app.Services.CreateScope();
-            var initializer = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitializer>();
-            await initializer.InitializeAsync();
-            await initializer.SeedAsync();
-        }
+        using var scope = app.Services.CreateScope();
+        var initializer = scope.ServiceProvider.GetRequiredService<ApplicationDbContextInitializer>();
+        await initializer.InitializeAsync();
+        await initializer.SeedAsync();
     }
+}
